@@ -1,0 +1,11 @@
+# 最小集：只排除明确的机密与本机状态，不放宽到上游仓库那份
+.codebuddy/
+.env
+*.env
+*.key
+*.pem
+credentials.json
+secrets/
+
+# 本仓库组装时的临时产物
+.tmp-src/
