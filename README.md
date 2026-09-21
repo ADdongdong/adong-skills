@@ -1,6 +1,6 @@
 # adong-skills
 
-我的 skill 总目录 —— 按**功能**分 6 类，共 50 个条目。
+我的 skill 总目录 —— 按**功能**分 6 类，共 51 个条目。
 
 - **自建 skill 放文件本体**：克隆下来就能装，各自 `SKILL.md` / `scripts` / `references` 完整随行。
 - **收藏 skill 只做索引**：登记用途、触发场景、上游地址与安装方式，**不搬运他人代码**（唯一例外见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)）。
@@ -9,13 +9,13 @@
 
 | 分类 | 中文 | 条目 | 自建 | 收藏 |
 |---|---|---|---|---|
-| [`01-web-ui`](01-web-ui) | 网页与界面 | 15 | 1 | 14 |
+| [`01-web-ui`](01-web-ui) | 网页与界面 | 16 | 2 | 14 |
 | [`02-visuals`](02-visuals) | 图表与图像 | 14 | 1 | 13 |
 | [`03-content-pipeline`](03-content-pipeline) | 内容流水线 | 13 | 0 | 13 |
 | [`04-presentation`](04-presentation) | 演示与幻灯片 | 2 | 0 | 2 |
 | [`05-dev-tooling`](05-dev-tooling) | 工程与系统工具 | 3 | 3 | 0 |
 | [`06-learning`](06-learning) | 学习与表达 | 3 | 1 | 2 |
-| **合计** | | **50** | **6** | **44** |
+| **合计** | | **51** | **7** | **44** |
 
 ## 怎么用这个仓库
 
@@ -32,13 +32,14 @@
 
 **同一个上游可能出现在多个分类**（`baoyu-skills` 在 3 个、`garden-skills` 在 5 个）：那是**有意分片**，每个分片只列属于本类的 skill，文件头会给出合集总览与跨类跳转。
 
-## 01-web-ui — 网页与界面（15）
+## 01-web-ui — 网页与界面（16）
 
 ### A1 设计语言与规范
 
 | Skill | 用途 | 来源 | 索引 |
 |---|---|---|---|
 | `awesome-design-md` | 74 个品牌的 `DESIGN.md` 设计语言库 —— 要"照着 X 的样子做"时取它的令牌、字体与组件规则 | 自建 | [目录](01-web-ui/awesome-design-md/) |
+| `b-admin-ui-refs` | **B 端后台 UI 参考库** —— 24 个开源后台项目（Tabler / Twenty / Plane / Payload / shadcn / Vben / Documenso …）的索引与逐项借鉴点，按需求类型路由到最合适项目，并附 `ghfind.mjs` 在仓库里定位到具体组件文件 | 自建 | [目录](01-web-ui/b-admin-ui-refs/) |
 | `create-design-md` | 从既有仓库或线上站点产出一份 `DESIGN.md`，给编码 agent 一份长期界面上下文 | 收藏 | [ui-skills](01-web-ui/ui-skills.md) |
 | `design-artifact` | HTML 制品的设计原则与创意方向：配色、字体搭配、布局、主题、整体气质 | 收藏 | [effective-html](01-web-ui/effective-html.md) |
 | `web-design-engineer` | 用 HTML / CSS / JS / React 构建或重设计浏览器渲染的视觉制品 | 收藏 | [garden-skills](01-web-ui/garden-skills.md) |
