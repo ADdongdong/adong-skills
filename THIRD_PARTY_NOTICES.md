@@ -41,11 +41,12 @@
 
 `hahadong-push-github`、`c-drive-cleanup`、`feynman-tutor-skill`、`mermaid-doc-renderer` 等同时发布在作者自己的 GitHub 账号下，并按 skillhub 约定的 frontmatter 字段提供。本仓库中的副本**保持文件原样（未改写任何 `SKILL.md`）**，唯一例外见下方。
 
-### 本仓库对自建内容做过的改动（仅 1 处）
+### 本仓库对内容做过的改动
 
 | 文件 | 改动 | 原因 |
 |---|---|---|
 | `05-dev-tooling/hahadong-push-github/scripts/push_to_github.sh` | 把兜底 python 解释器的硬编码绝对路径（`C:/Users/<用户名>/...`）改为基于 `$USERPROFILE` / `$HOME` 的环境变量探测；找不到时给出明确报错并退出 | 去除个人信息，同时保持原意与可用性 |
+| **全部文本文件（30 个）** | 统一换行为 **LF**；新增根目录 `.gitattributes`（`* text=auto eol=lf`，二进制文件标 `binary`） | 仓库原先混着 CRLF 与 LF，会让 `git status` 长期误报"已修改"。其中 **10 个来自上游且上游本身是 CRLF**（`mermaid-doc-renderer` 5 个、`c-drive-cleanup` 2 个、`xd-dev-handbook` 3 个），转换后**除行尾符外与上游逐字节一致**，不涉及任何文字内容改动 |
 
 另：`05-dev-tooling/c-drive-cleanup/` 已剔除 `_skillhub_meta.json`（含本机绝对路径与 skillhub namespace），`_meta.json` 只保留 `slug` / `version` / `publishedAt`。
 
