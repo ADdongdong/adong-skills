@@ -144,4 +144,4 @@
 
 ## 对上游做过的改动
 
-全部改动（只有 1 处，外加 1 项元数据剔除）逐条记在 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md#本仓库对自建内容做过的改动仅-1-处)。除此之外，所有自建 skill 的 `SKILL.md` **保持原样未改** —— 它们同时是 skillhub 等平台按 frontmatter 解析的输入。
+全部改动（2 处，外加 1 项元数据剔除）逐条记在 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md#本仓库对内容做过的改动)。除此之外，所有 skill 的 `SKILL.md` **内容保持原样未改** —— 它们同时是 skillhub 等平台按 frontmatter 解析的输入。
