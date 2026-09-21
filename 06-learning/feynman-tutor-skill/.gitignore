@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# WorkBuddy build artifacts
+*.zip
+dist/
+build/
+
+# Python (if any scripts added later)
+__pycache__/
+*.pyc
+.venv/
