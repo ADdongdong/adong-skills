@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+# 浜岃繘鍒讹細涓嶅仛浠讳綍鏂囨湰杞崲
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.docx binary
+*.pdf binary
+*.zip binary
