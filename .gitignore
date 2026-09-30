@@ -9,3 +9,9 @@ secrets/
 
 # 本仓库组装时的临时产物
 .tmp-src/
+.DS_Store
+Thumbs.db
+*.tmp
+.skills-manager.lock
+__pycache__/
+*.pyc

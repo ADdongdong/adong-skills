@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d2edfa3a-9da6-47c9-9af0-b298d8a29a29",
+  "path": "xd-dev-handbook",
+  "path_key": "xd-dev-handbook",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
