@@ -1,0 +1,11 @@
+{
+  "slug": "ai-stock-analyst",
+  "name": "AI Stock Analyst",
+  "version": "1.0.0",
+  "installedAt": 1785481808521,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a4e49550-e527-4406-b761-c4f2e607b757.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\ai-stock-analyst__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a4e49550-e527-4406-b761-c4f2e607b757.png",
+  "installedContentHash": "sha256:6884a9d635166acf34caa44dff0f87c5cfbb4ce4960d108e6a288f09b231b2d3"
+}

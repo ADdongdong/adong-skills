@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4eb37d6f-611f-42ff-a9d5-4b8ed81a233f",
+  "path": "知乎选题分析器",
+  "path_key": "知乎选题分析器",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

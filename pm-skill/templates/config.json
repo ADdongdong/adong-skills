@@ -1,0 +1,99 @@
+{
+  "_schema": "pm-skill v3 配置文件。定义 PM 项目的所有工作流行为。",
+
+  "project": {
+    "name": "",
+    "description": "",
+    "language": "zh-CN"
+  },
+
+  "mode": {
+    "_comment": "interactive: 每个 gate 需用户确认。yolo: 自动批准所有 gate。",
+    "value": "interactive"
+  },
+
+  "granularity": {
+    "_comment": "coarse: 3-5 阶段。standard: 5-8 阶段。fine: 8-12 阶段。",
+    "value": "standard"
+  },
+
+  "workflow": {
+    "research": true,
+    "_research_comment": "规划前进行市场和领域研究",
+
+    "deerflow_enabled": true,
+    "_deerflow_enabled_comment": "启用 deerflow-skill 作为 Web 研究引擎。如未安装，降级到 Agent 原生 WebSearch。",
+
+    "wiki_enabled": true,
+    "_wiki_enabled_comment": "启用 llm-wiki-skill 集成。如未安装，自动降级。",
+
+    "prd_gates": true,
+    "_prd_gates_comment": "PRD 生成时启用 BLOCKING gates（研究→模板→生成→结晶）",
+
+    "require_verification": true,
+    "_require_verification_comment": "执行完成后必须运行验证",
+
+    "auto_advance": false,
+    "_auto_advance_comment": "阶段完成后自动进入下一阶段（跳过 transition 确认）",
+
+    "discuss_mode": "discuss",
+    "_discuss_mode_comment": "discuss: 访谈模式。assumptions: 基于代码库推断。"
+  },
+
+  "gates": {
+    "confirm_project": true,
+    "_confirm_project_comment": "/pm-init: 创建文件前确认项目范围",
+
+    "confirm_roadmap": true,
+    "_confirm_roadmap_comment": "/pm-init: 确认路线图阶段分解",
+
+    "confirm_phase_scope": true,
+    "_confirm_phase_scope_comment": "/pm-plan: 确认阶段范围",
+
+    "confirm_plan": true,
+    "_confirm_plan_comment": "/pm-plan: 确认执行计划",
+
+    "confirm_prd_research": true,
+    "_confirm_prd_research_comment": "/pm-prd: 研究总结后确认继续",
+
+    "confirm_prd_template": true,
+    "_confirm_prd_template_comment": "/pm-prd: 确认 PRD 模板类型",
+
+    "confirm_execution": true,
+    "_confirm_execution_comment": "/pm-execute: 开始执行前确认",
+
+    "confirm_verification": true,
+    "_confirm_verification_comment": "/pm-verify: 验证结果确认",
+
+    "confirm_transition": true,
+    "_confirm_transition_comment": "/pm-transition: 阶段切换确认"
+  },
+
+  "quality": {
+    "prd_completeness_threshold": 0.8,
+    "_prd_completeness_threshold_comment": "PRD 完整度阈值（0-1）。低于阈值时阻止生成。",
+
+    "require_wiki_citations": true,
+    "_require_wiki_citations_comment": "PRD 中要求引用 wiki 来源（如 wiki 可用）",
+
+    "require_competitor_analysis": true,
+    "_require_competitor_analysis_comment": "策略阶段要求竞品分析",
+
+    "requirement_dedup_threshold": 0.7,
+    "_requirement_dedup_threshold_comment": "需求去重相似度阈值（0-1）。超过此阈值的需求对标记为疑似重复。",
+
+    "requirement_wiki_storage": true,
+    "_requirement_wiki_storage_comment": "需求存储到 wiki 台账（需 llm-wiki-skill）。false 时仅存储在 REQUIREMENTS.md。"
+  },
+
+  "phases": {
+    "max_plans_per_phase": 5,
+    "default_phase_types": ["discovery", "strategy", "prd", "execution", "release"],
+    "_default_phase_types_comment": "新项目的默认阶段类型序列"
+  },
+
+  "safety": {
+    "always_confirm_destructive": true,
+    "always_confirm_external_services": true
+  }
+}

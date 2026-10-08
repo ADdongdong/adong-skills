@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "909b7ffe-9883-43ca-a3af-d3ce7d5ac164",
+  "path": "better-typography",
+  "path_key": "better-typography",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

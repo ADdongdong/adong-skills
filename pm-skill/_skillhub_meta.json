@@ -1,0 +1,11 @@
+{
+  "slug": "pm-skills",
+  "name": "pm-skills",
+  "version": "1.0.0",
+  "installedAt": 1785211032327,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/c5e5faab-b8e1-489d-a489-8b56ffc52c07.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\pm-skills__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/c5e5faab-b8e1-489d-a489-8b56ffc52c07.png",
+  "installedContentHash": "sha256:0948c95dfd0c7c212a38a9f0f193ed55424836e08abc6259f323b8db9d2cf3cb"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b2987e76-3f35-4d9e-85fb-d710e8d0d2f5",
+  "path": "mermaid-diagram__skillhub",
+  "path_key": "mermaid-diagram__skillhub",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

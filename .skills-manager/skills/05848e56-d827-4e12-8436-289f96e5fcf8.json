@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "05848e56-d827-4e12-8436-289f96e5fcf8",
+  "path": "ad-api",
+  "path_key": "ad-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

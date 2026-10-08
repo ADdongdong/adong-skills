@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8fa420c3-ce18-4c12-9e2f-3855bc68069b",
+  "path": "we-health-skill",
+  "path_key": "we-health-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

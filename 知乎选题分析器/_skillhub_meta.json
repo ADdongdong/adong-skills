@@ -1,0 +1,11 @@
+{
+  "slug": "zhihu-topic-finder",
+  "name": "知乎热榜选题",
+  "version": "1.2.5",
+  "installedAt": 1785979382274,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/7f79eb60-b8d8-4d8e-9b79-6ace0de1ff17.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\zhihu-topic-finder__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/7f79eb60-b8d8-4d8e-9b79-6ace0de1ff17.png",
+  "installedContentHash": "sha256:b8e0abbc3957b0bb33d21833d0fa035a72261e8de6d3c9999d90ce910e7123c8"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1da6a376-212b-45fc-b38a-841e61623f9d",
+  "path": "个人23策略股票分析技能",
+  "path_key": "个人23策略股票分析技能",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

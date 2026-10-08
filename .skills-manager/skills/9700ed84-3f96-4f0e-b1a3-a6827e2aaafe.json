@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9700ed84-3f96-4f0e-b1a3-a6827e2aaafe",
+  "path": "mx-finance-data",
+  "path_key": "mx-finance-data",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

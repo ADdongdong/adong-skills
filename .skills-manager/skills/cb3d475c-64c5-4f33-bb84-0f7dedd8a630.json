@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cb3d475c-64c5-4f33-bb84-0f7dedd8a630",
+  "path": "better-colors",
+  "path_key": "better-colors",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

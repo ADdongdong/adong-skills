@@ -1,0 +1,22 @@
+{
+  "name": "MCP管理器",
+  "installedAt": 1782799588678,
+  "source": "marketplace",
+  "version": "1.0.0",
+  "skillId": "skill_2053082370941849600",
+  "examples_zh": [
+    "列出所有已安装的MCP服务器",
+    "调用某个MCP工具并传入参数",
+    "查看某个MCP工具的参数说明"
+  ],
+  "examples_en": [
+    "List all installed MCP servers",
+    "Call a specific MCP tool with parameters",
+    "View the parameter schema for an MCP tool"
+  ],
+  "iconSource": "letter:auto",
+  "skillName": "mcporter",
+  "description_zh": "管理和调用 MCP 服务器与工具",
+  "description_en": "Manage and call MCP servers & tools",
+  "installedContentHash": "sha256:dcd4ee9e51a596bc532bf991c35bcc31d0633e60c76df0e5df8a6e1dfa8f5de9"
+}

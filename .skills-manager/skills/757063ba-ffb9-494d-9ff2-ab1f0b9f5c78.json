@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "757063ba-ffb9-494d-9ff2-ab1f0b9f5c78",
+  "path": "daily-ai-feynman",
+  "path_key": "daily-ai-feynman",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

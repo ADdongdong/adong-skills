@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9fe31082-3bc7-4245-8c41-f7018a83d293",
+  "path": "docx-redact-rebrand",
+  "path_key": "docx-redact-rebrand",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

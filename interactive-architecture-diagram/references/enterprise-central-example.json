@@ -1,0 +1,407 @@
+{
+  "version": 1,
+  "kind": "matrix",
+  "template": "shared-tracks",
+  "template_version": 1,
+  "presentation_preset": "red-gold-compact-v1",
+  "id": "matrix_0070ff583078",
+  "title": "采购与供应链协同（中车式结构示例）",
+  "rows": [
+    {
+      "id": "row_1"
+    },
+    {
+      "id": "row_2"
+    },
+    {
+      "id": "row_3"
+    },
+    {
+      "id": "row_4"
+    },
+    {
+      "id": "row_5"
+    },
+    {
+      "id": "row_6"
+    },
+    {
+      "id": "row_7"
+    },
+    {
+      "id": "row_8"
+    },
+    {
+      "id": "row_9"
+    },
+    {
+      "id": "row_10"
+    }
+  ],
+  "columns": [
+    {
+      "id": "benefits",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_9bcc8c053745",
+          "title": "管理标准\n同源",
+          "role": "entity",
+          "start": 1,
+          "span": 3
+        },
+        {
+          "id": "n_b8af840a39c8",
+          "title": "资源整合\n高效",
+          "role": "entity",
+          "start": 4,
+          "span": 3
+        },
+        {
+          "id": "n_7c33dc8bda2c",
+          "title": "业务运作\n协同",
+          "role": "entity",
+          "start": 7,
+          "span": 4
+        }
+      ],
+      "style_role": "frame"
+    },
+    {
+      "id": "categories",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_9741847719ce",
+          "title": "顶层设计",
+          "role": "entity",
+          "start": 1,
+          "span": 3
+        },
+        {
+          "id": "n_da2500e8fdb7",
+          "title": "统筹规划",
+          "role": "entity",
+          "start": 4,
+          "span": 3
+        },
+        {
+          "id": "n_24e582d01a29",
+          "title": "流程管控",
+          "role": "entity",
+          "start": 7,
+          "span": 4
+        }
+      ],
+      "style_role": "frame"
+    },
+    {
+      "id": "core",
+      "title": "",
+      "cells": [
+        {
+          "id": "foundation",
+          "title": "统一支撑要素",
+          "role": "group",
+          "style_role": "foundation",
+          "columns": 5,
+          "flow": "row",
+          "items": [
+            {
+              "id": "n_6ac1f24f0056",
+              "title": "①\n体系\n制度",
+              "role": "entity"
+            },
+            {
+              "id": "n_84b3102cf7b1",
+              "title": "②\n品类\n管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_a8d143636771",
+              "title": "③\n供方\n管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_497fd95c488c",
+              "title": "④\n数字\n平台",
+              "role": "entity"
+            },
+            {
+              "id": "n_cb12f419e873",
+              "title": "⑤\n能力\n建设",
+              "role": "entity"
+            }
+          ],
+          "start": 1,
+          "span": 3
+        },
+        {
+          "id": "planning",
+          "title": "采购与供应链专项规划及年度工作要点",
+          "role": "group",
+          "style_role": "planning",
+          "columns": 5,
+          "flow": "row",
+          "items": [
+            {
+              "id": "n_9162539ed341",
+              "title": "韧性与安全管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_d36586ca1ea1",
+              "title": "数智化管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_a2f5c157c1f8",
+              "title": "绿色低碳管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_9764ba694d36",
+              "title": "评价与监督检查",
+              "role": "entity"
+            },
+            {
+              "id": "n_b54dd5fb6a03",
+              "title": "人才队伍建设",
+              "role": "entity"
+            }
+          ],
+          "start": 4,
+          "span": 3
+        },
+        {
+          "id": "process_1",
+          "title": "采购、物流业务",
+          "role": "group",
+          "columns": 7,
+          "flow": "row",
+          "items": [
+            {
+              "id": "n_68d6d48169ae",
+              "title": "采购\n品类",
+              "role": "entity"
+            },
+            {
+              "id": "n_63b9207a3a5d",
+              "title": "采购\n需求",
+              "role": "entity"
+            },
+            {
+              "id": "n_9aba55ddc527",
+              "title": "采购\n寻源",
+              "role": "entity"
+            },
+            {
+              "id": "n_ab7b949d5dc0",
+              "title": "合同\n管理",
+              "role": "entity"
+            },
+            {
+              "id": "n_6a18a1c42cfa",
+              "title": "订单\n执行",
+              "role": "entity"
+            },
+            {
+              "id": "n_d9ad092c3e68",
+              "title": "仓储\n物流",
+              "role": "entity"
+            },
+            {
+              "id": "n_d472207fc95a",
+              "title": "采购\n结算",
+              "role": "entity"
+            }
+          ],
+          "start": 7,
+          "span": 3
+        },
+        {
+          "id": "process_2",
+          "title": "供应商管理业务",
+          "role": "group",
+          "columns": 7,
+          "flow": "row",
+          "items": [
+            {
+              "id": "n_ff3116520411",
+              "title": "供应商\n开发",
+              "role": "entity"
+            },
+            {
+              "id": "n_752429e5082d",
+              "title": "供应商\n认证",
+              "role": "entity"
+            },
+            {
+              "id": "n_5d7016aa1c85",
+              "title": "供应商\n评价",
+              "role": "entity"
+            },
+            {
+              "id": "n_419f9581c6b4",
+              "title": "分级\n分类",
+              "role": "entity"
+            },
+            {
+              "id": "n_9eb17e38a80a",
+              "title": "供应商\n改善",
+              "role": "entity"
+            },
+            {
+              "id": "n_5ecb863ed5ca",
+              "title": "供应商\n退出",
+              "role": "entity"
+            },
+            {
+              "id": "n_68f8b30df0a8",
+              "title": "关系\n管理",
+              "role": "entity"
+            }
+          ],
+          "start": 10,
+          "span": 1
+        }
+      ],
+      "style_role": "business"
+    },
+    {
+      "id": "purchasing_modes",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_143d306ec99f",
+          "title": "全面\n集采",
+          "role": "entity",
+          "start": 1,
+          "span": 1
+        },
+        {
+          "id": "n_5f1b2fe16432",
+          "title": "一级集采\n“1+N”\n模式",
+          "role": "entity",
+          "start": 2,
+          "span": 7
+        },
+        {
+          "id": "n_04561d8e4e5d",
+          "title": "二级\n集采",
+          "role": "entity",
+          "start": 9,
+          "span": 2
+        }
+      ],
+      "style_role": "frame"
+    },
+    {
+      "id": "departments",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_be17479121f7",
+          "title": "产业链\n供应链管理\n委员会",
+          "role": "entity",
+          "start": 1,
+          "span": 1
+        },
+        {
+          "id": "n_23b211221f04",
+          "title": "产业链\n管理部",
+          "role": "entity",
+          "start": 2,
+          "span": 1
+        },
+        {
+          "id": "n_f6943bc7696c",
+          "title": "相关\n职能部门",
+          "role": "entity",
+          "start": 3,
+          "span": 2
+        },
+        {
+          "id": "n_e2b4925c9792",
+          "title": "各事业部",
+          "role": "entity",
+          "start": 5,
+          "span": 1
+        },
+        {
+          "id": "n_c35fc3bfed86",
+          "title": "“1+N”\n集采单位",
+          "role": "entity",
+          "start": 6,
+          "span": 2
+        },
+        {
+          "id": "n_d9747bec9592",
+          "title": "供应商管理\n评价中心",
+          "role": "entity",
+          "start": 8,
+          "span": 1
+        },
+        {
+          "id": "n_1f5d13349cc2",
+          "title": "各级\n子公司",
+          "role": "entity",
+          "start": 9,
+          "span": 2
+        }
+      ],
+      "style_role": "frame"
+    },
+    {
+      "id": "management_levels",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_f5f5f7e39325",
+          "title": "决\n策\n层",
+          "role": "entity",
+          "start": 1,
+          "span": 1
+        },
+        {
+          "id": "n_d03a70040bac",
+          "title": "管\n理\n层",
+          "role": "entity",
+          "start": 2,
+          "span": 4
+        },
+        {
+          "id": "n_1e4a92cee4f3",
+          "title": "操\n作\n层",
+          "role": "entity",
+          "start": 6,
+          "span": 5
+        }
+      ],
+      "style_role": "frame"
+    },
+    {
+      "id": "legal_levels",
+      "title": "",
+      "cells": [
+        {
+          "id": "n_f272a54a40a7",
+          "title": "总\n部",
+          "role": "entity",
+          "start": 1,
+          "span": 5
+        },
+        {
+          "id": "n_593fee8653f4",
+          "title": "一\n级\n子\n公\n司",
+          "role": "entity",
+          "start": 6,
+          "span": 5
+        }
+      ],
+      "style_role": "frame"
+    }
+  ],
+  "footer": "审计与监督：按职责检查采购、供应链管理及相关业务活动",
+  "edges": []
+}

@@ -1,0 +1,11 @@
+{
+  "slug": "mp-draft-push",
+  "name": "公众号自动发布",
+  "version": "1.0.2",
+  "installedAt": 1785303629272,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a00e31c7-8d6a-4e65-84fc-16a177f95674.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\mp-draft-push__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a00e31c7-8d6a-4e65-84fc-16a177f95674.png",
+  "installedContentHash": "sha256:45aadcfff16b52a52c4cf2f818ab2ec930406699c8b6c6aa78893aa808ccedc5"
+}

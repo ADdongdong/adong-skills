@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "903e69a9-ce78-4c05-9fdd-b53c58c36105",
+  "path": "tdxuse",
+  "path_key": "tdxuse",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

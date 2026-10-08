@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "185c0d5d-5ffb-47ef-bf69-4295b725bd08",
+  "path": "oklch-skill",
+  "path_key": "oklch-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

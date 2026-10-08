@@ -1,0 +1,13 @@
+{
+  "name": "AI交付前全自动自检技能",
+  "installedAt": 1790229045075,
+  "source": "marketplace",
+  "version": "1.0.0",
+  "skillId": "skill_2095070772061040640",
+  "description_zh": "AI交付前全自动自检技能。任何一次向用户交付结果（present_files、最终总结、结论、状态汇报、提问/征询）之前，必须实际加载并实跑本技能，对整条回复（含结尾）逐项枚举 D1–D12 闸门快照，拦截责任转嫁、半途交付、最优步隐藏、伪阻断提问、尾巴豁免、自主闭环缺失、语言后门、先盖章后干活等把活推回用户或以声明替代实际扫描的形态。无真实加载状态即视为未过闸。适用于所有项目、所有交付形态的发送前强制终检。",
+  "description_en": "AI pre-delivery automated self-check skill. Before ANY result delivery to the user (present_files, final summary, conclusion, status report, or asking a question), this skill MUST be actually loaded and executed, enumerating the D1-D12 gate snapshot item by item over the ENTIRE message including the tail. It intercepts responsibility-shifting, half-done delivery, hidden-optimal-step deferral, pseudo-blocking questions, tail exemption, lack of autonomous closure, language backdoors, and stamp-before-work patterns that push work back to the user or replace real scanning with mere claims. No real load state means the gate was not passed. Mandatory final check before sending, for all projects and all delivery forms.",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/2bd8018c-fe43-4701-89a3-b65997c294bf/1bd0447b-f785-4bc4-a355-e9dbff540637.png",
+  "installedContentHash": "sha256:28a62183869d37e3ebffdefe1d8af1218809fa932eb2d3d693a33994e03e6f83",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\delivery-no-pseudoblock\\_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/2bd8018c-fe43-4701-89a3-b65997c294bf/1bd0447b-f785-4bc4-a355-e9dbff540637.png"
+}

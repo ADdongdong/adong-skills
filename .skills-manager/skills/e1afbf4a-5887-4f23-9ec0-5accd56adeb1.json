@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e1afbf4a-5887-4f23-9ec0-5accd56adeb1",
+  "path": "swiss-design",
+  "path_key": "swiss-design",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

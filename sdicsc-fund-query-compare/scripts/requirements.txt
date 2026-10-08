@@ -1,0 +1,6 @@
+# scripts/requirements.txt
+# 格式：包名>=最低版本,<上限版本（宽松版本，提升兼容性）
+# 安装命令：pip3 install --user -r scripts/requirements.txt
+# PEP 668兼容：使用 --user 或 --break-system-packages 标志
+
+httpx>=0.24.0,<1.0.0        # HTTP 客户端（异步请求基金数据API）

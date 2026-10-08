@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a7854df8-01ef-471e-bfc6-f3a4a90795ba",
+  "path": "colorize",
+  "path_key": "colorize",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

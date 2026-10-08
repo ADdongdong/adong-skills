@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "258890e5-da96-41e9-8b99-f85cf956265f",
+  "path": "interactive-architecture-diagram",
+  "path_key": "interactive-architecture-diagram",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

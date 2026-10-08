@@ -1,0 +1,7 @@
+interface:
+  display_name: "VibeHub"
+  short_description: "持续识别 Vibe Coding 补充需求中的准确术语并提供内链"
+  default_prompt: "使用 $vibehub 持续检查这段 Vibe Coding 对话，在完成每轮开发任务时主动指出用户没有说出的准确术语、解释和 VibeHub 内链。"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,13 @@
+{
+  "slug": "c-drive-cleanup",
+  "name": "超级C盘清理",
+  "version": "1.0.1",
+  "installedAt": 1788506256744,
+  "source": "skillhub",
+  "namespace": "user_517027d9",
+  "canonicalName": "@user_517027d9/c-drive-cleanup",
+  "iconSource": "https://skillhub-1388575217.cos.accelerate.myqcloud.com/skill-icons/uploads/599971/b1a94a0b9d1e456baea3596a1bf29399.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\c-drive-cleanup__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://skillhub-1388575217.cos.accelerate.myqcloud.com/skill-icons/uploads/599971/b1a94a0b9d1e456baea3596a1bf29399.png",
+  "installedContentHash": "sha256:d1b828666558da4170192df64cbd143e087b514a0c3db7e10295ce85b1bf25b1"
+}

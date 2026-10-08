@@ -1,0 +1,6 @@
+# 银行流水核查 skill dependencies
+# Install: pip install -r requirements.txt
+
+pdfplumber
+requests
+openpyxl

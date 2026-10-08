@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8830144b-9156-484c-8e93-d4f872c23645",
+  "path": "html-plan",
+  "path_key": "html-plan",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

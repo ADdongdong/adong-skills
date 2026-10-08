@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4bdb5122-846c-4d04-8017-d1a80c1bd34b",
+  "path": "cozyledger-design-tokens",
+  "path_key": "cozyledger-design-tokens",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dac41c16-b703-4d1d-ae13-81877f991c9f",
+  "path": "wps-knowledgebase",
+  "path_key": "wps-knowledgebase",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

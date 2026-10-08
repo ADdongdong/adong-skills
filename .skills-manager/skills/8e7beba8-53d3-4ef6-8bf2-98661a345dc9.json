@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8e7beba8-53d3-4ef6-8bf2-98661a345dc9",
+  "path": "sdicsc-smart-stock-selection",
+  "path_key": "sdicsc-smart-stock-selection",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

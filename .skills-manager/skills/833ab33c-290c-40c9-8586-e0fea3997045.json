@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "833ab33c-290c-40c9-8586-e0fea3997045",
+  "path": "web-video-presentation",
+  "path_key": "web-video-presentation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

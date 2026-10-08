@@ -1,0 +1,19 @@
+{
+  "slug": "archify4workbuddy",
+  "name": "archify-skillhub-workbuddy",
+  "version": "1.0.1",
+  "installedAt": 1789538155091,
+  "source": "skillhub",
+  "namespace": "user_74e3042b",
+  "canonicalName": "@user_74e3042b/archify4workbuddy",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a00e31c7-8d6a-4e65-84fc-16a177f95674.png",
+  "labels": {
+    "requires_api_key": "false"
+  },
+  "description_zh": "来源：\tgithub.com/tt-a1i/archify v2.16.0，MIT，Node.js 零依赖\nArchify 已成功移植为 WorkBuddy 技能，全链路跑通。上传 SkillHub \n关键适配\t① frontmatter 加 agent_created:true ②命令改 $ARCHIFY_HOME/bin/archify.mjs 绝对路径 ③Windows 路径坑：node 原生程序不认 Git Bash 的 /c/...，必须用 C:/Users/... ④update check 默认 ARCHIFY_UPDATE_CHECK_DISABLED=1\n安装\t~/.workbuddy/skills/archify（已生效，WorkBuddy 内可直接调用）\nCreate polished, validated architecture, workflow, sequence, data-flow, and lifecycle/state diagrams as explorable standalone HTML with inline SVG, dark/light themes, optional trace motion, and PNG/JPEG/WebP/SVG/WebM export. Accept plain-language requirements or pasted Mermaid flowchart, sequenceDiagram, and stateDiagram input; inspect repository evidence when the diagram must reflect real code. Use when the user asks to visualize system architecture, infrastructure, cloud/security/network topology, technical workflows, API call sequences, request lifecycles, data pipelines, ETL/ELT, data lineage, state machines, or to convert/beautify Mermaid.",
+  "description_en": "Create polished, validated architecture, workflow, sequence, data-flow, and lifecycle/state diagrams as explorable standalone HTML with inline SVG, dark/light themes, optional trace motion, and PNG/JPEG/WebP/SVG/WebM export. Accept plain-language requirements or pasted Mermaid flowchart, sequenceDiagram, and stateDiagram input; inspect repository evidence when the diagram must reflect real code. Use when the user asks to visualize system architecture, infrastructure, cloud/security/network topology, technical workflows, API call sequences, request lifecycles, data pipelines, ETL/ELT, data lineage, state machines, or to convert/beautify Mermaid.",
+  "installs": 870,
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\archify4workbuddy__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a00e31c7-8d6a-4e65-84fc-16a177f95674.png",
+  "installedContentHash": "sha256:fab52b313da2f262d884c3fc709eda16d821808bd2456adfbd5056e364de8d2c"
+}

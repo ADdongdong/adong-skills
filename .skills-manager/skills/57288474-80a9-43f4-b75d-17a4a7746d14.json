@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "57288474-80a9-43f4-b75d-17a4a7746d14",
+  "path": "html-wireframe",
+  "path_key": "html-wireframe",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

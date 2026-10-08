@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5114d6c2-259f-495a-a120-b6f8fbf0be38",
+  "path": "delivery-no-pseudoblock",
+  "path_key": "delivery-no-pseudoblock",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

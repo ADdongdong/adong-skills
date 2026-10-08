@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c12f5be3-c97f-4f5d-81ec-b2f4a10898c9",
+  "path": "web-access",
+  "path_key": "web-access",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

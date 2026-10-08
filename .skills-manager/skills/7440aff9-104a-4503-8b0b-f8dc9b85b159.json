@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7440aff9-104a-4503-8b0b-f8dc9b85b159",
+  "path": "b-admin-ui-refs",
+  "path_key": "b-admin-ui-refs",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

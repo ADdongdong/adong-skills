@@ -1,0 +1,11 @@
+{
+  "slug": "md-to-wechat",
+  "name": "公众号排版skill",
+  "version": "1.0.0",
+  "installedAt": 1785303635524,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/7920727c-4e7d-496a-9223-d9c6673e9e53.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\md-to-wechat__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/7920727c-4e7d-496a-9223-d9c6673e9e53.png",
+  "installedContentHash": "sha256:cc64b331788ac9d02df248cae59569666238d5e72f60cea8ad1c637594b5b56e"
+}

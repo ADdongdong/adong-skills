@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5b3c0406-d0e7-4818-b128-1f85bd1c7712",
+  "path": "fixing-motion-performance",
+  "path_key": "fixing-motion-performance",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "327c5bd1-1ef2-4adc-a2ca-83ca6bb12143",
+  "path": "wechat-write",
+  "path_key": "wechat-write",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

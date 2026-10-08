@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热门基金分析报告 — YYYY-MM-DD</title>
+<style>
+  :root {
+    --bg: #f0fdf4; --card: #fff; --text: #14532d; --muted: #4d7c0f;
+    --border: #bbf7d0; --accent: #166534; --red: #dc2626; --green: #16a34a;
+    --gold: #a16207; --blue: #1d4ed8; --amber: #d97706;
+    --header-from: #14532d; --header-to: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px 16px;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    color: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px;
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 700; }
+  .header .meta { opacity: 0.85; font-size: 0.85rem; margin-top: 4px; }
+  h2 {
+    font-size: 1.05rem; font-weight: 600; margin: 24px 0 10px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  h3 { font-size: 0.95rem; font-weight: 600; margin: 12px 0 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .card.rec { border-left: 4px solid var(--gold); }
+  .tldr {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .tldr h2 { font-size: 0.95rem; color: var(--accent); margin-bottom: 8px; }
+  .tldr ul { padding-left: 1.1em; font-size: 0.9rem; }
+  .tldr li { margin: 4px 0; }
+  .up { color: var(--red); } .down { color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; background: #f9fafb; }
+  .risk { margin-top: 8px; font-size: 0.85rem; color: var(--red); }
+  .footer {
+    margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.75rem; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>热门基金分析报告</h1>
+    <div class="meta">日期：YYYY-MM-DD</div>
+  </div>
+
+  <div class="tldr">
+    <h2>今日要点</h2>
+    <ul>
+      <li>[市场环境一句话]</li>
+      <li>[涨跌榜主线 / 推荐关注方向]</li>
+      <li>[主要风险]</li>
+    </ul>
+  </div>
+
+  <h2>一、昨日热门基金涨跌排名</h2>
+  <h3>涨幅前 5</h3>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>排名</th><th>基金名称</th><th>代码</th><th>昨日涨跌幅</th><th>近一周走势简评</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>…</td><td>…</td><td class="up">+X.XX%</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>跌幅前 5</h3>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>排名</th><th>基金名称</th><th>代码</th><th>昨日涨跌幅</th><th>近一周走势简评</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>…</td><td>…</td><td class="down">-X.XX%</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>二、市场环境与资金流向分析</h2>
+  <div class="card">
+    <p style="font-size:0.9rem">[主要指数走势与情绪 / 板块轮动与资金流向 / 关键影响因素]</p>
+  </div>
+
+  <h2>三、短期正收益潜力基金推荐</h2>
+  <div class="card rec">
+    <h3>推荐一：[基金名称]（[代码]）</h3>
+    <ul style="padding-left:18px;font-size:0.9rem">
+      <li>推荐理由 1</li>
+      <li>推荐理由 2</li>
+    </ul>
+    <p style="font-size:0.9rem;margin-top:8px">预期收益区间：… · 建议持有：…</p>
+    <div class="risk">主要风险：[提示]</div>
+  </div>
+  <!-- 推荐二、推荐三同结构 -->
+
+  <h2>四、今日市场展望与操作建议</h2>
+  <div class="card">
+    <p style="font-size:0.9rem">[展望与操作建议]</p>
+  </div>
+
+  <div class="footer">
+    以上分析基于公开数据整理，仅供参考，不构成投资建议。基金过往业绩不代表未来表现，投资有风险，决策需谨慎。
+  </div>
+
+</div>
+</body>
+</html>

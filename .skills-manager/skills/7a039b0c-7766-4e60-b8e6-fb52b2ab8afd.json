@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7a039b0c-7766-4e60-b8e6-fb52b2ab8afd",
+  "path": "pdf-split-by-qrcode",
+  "path_key": "pdf-split-by-qrcode",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

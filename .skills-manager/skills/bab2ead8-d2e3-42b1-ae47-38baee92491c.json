@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bab2ead8-d2e3-42b1-ae47-38baee92491c",
+  "path": "bank-statement-check-forp",
+  "path_key": "bank-statement-check-forp",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

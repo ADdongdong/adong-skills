@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a0f73206-de94-474d-8b26-a31202c69358",
+  "path": "learning-review-system",
+  "path_key": "learning-review-system",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

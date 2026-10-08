@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7649b91f-0707-4f44-b576-e5a8c5fec644",
+  "path": "soft-skill",
+  "path_key": "soft-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

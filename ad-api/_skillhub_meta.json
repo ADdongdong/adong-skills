@@ -1,0 +1,11 @@
+{
+  "slug": "ad-api",
+  "name": "星耀数智金融数据skill",
+  "version": "1.0.9",
+  "installedAt": 1789022016567,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/27205dc2-3c4b-4854-85b1-8902f05745a3.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\ad-api__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/27205dc2-3c4b-4854-85b1-8902f05745a3.png",
+  "installedContentHash": "sha256:eee7f91ff142f58977939a3a75ecb3d94ee7233b5547efbe38fe58c94b6ff75f"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "43af9e7a-6839-40f0-85be-b964f1c54457",
+  "path": "ad-fundamental-analysis",
+  "path_key": "ad-fundamental-analysis",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c959e609-74e8-432e-87b2-cc673258d4b3",
+  "path": "docx-merge-sections",
+  "path_key": "docx-merge-sections",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

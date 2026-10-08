@@ -1,0 +1,24 @@
+{
+  "name": "NeoData金融搜索服务",
+  "installedAt": 1781058183538,
+  "source": "marketplace",
+  "version": "1.1.0",
+  "skillId": "skill_2053082432761950208",
+  "examples_zh": [
+    "腾讯和贵州茅台今天涨了多少？",
+    "宁德时代最近三个季度的营收和净利润",
+    "新能源板块今天资金流向如何？"
+  ],
+  "examples_en": [
+    "How much did Tencent and Kweichow Moutai rise today?",
+    "Show CATL's revenue and net profit for the last 3 quarters",
+    "What's the capital flow in the new energy sector today?"
+  ],
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/neodata-financial-search.png",
+  "skillName": "neodata-financial-search",
+  "description_zh": "自然语言查询股票、基金、宏观、外汇、大宗商品等金融数据",
+  "description_en": "Natural language financial search for stocks, funds, macro, FX and commodities",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\neodata-financial-search\\_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/neodata-financial-search.png",
+  "installedContentHash": "sha256:d042009832909796d9af99fde271ebf301d05151d1f7ab9f1035f3cdb663558d"
+}

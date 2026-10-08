@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "38744db1-8de4-4854-9215-d1ff5c1a0c1c",
+  "path": "pm-skill",
+  "path_key": "pm-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

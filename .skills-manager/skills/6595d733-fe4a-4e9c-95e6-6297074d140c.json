@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6595d733-fe4a-4e9c-95e6-6297074d140c",
+  "path": "trip-plan-compliant-map",
+  "path_key": "trip-plan-compliant-map",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

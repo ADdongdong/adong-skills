@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "70d051a7-e671-4dde-a93b-77e755997d56",
+  "path": "mermaid-diagram-generator",
+  "path_key": "mermaid-diagram-generator",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

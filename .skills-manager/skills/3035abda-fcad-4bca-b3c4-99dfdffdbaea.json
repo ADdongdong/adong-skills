@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3035abda-fcad-4bca-b3c4-99dfdffdbaea",
+  "path": "tdx-financial-expert",
+  "path_key": "tdx-financial-expert",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

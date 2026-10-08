@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基金持仓舆情报告 — [基金名称]</title>
+<style>
+  :root {
+    --bg: #f0fdf4; --card: #fff; --text: #14532d; --muted: #4d7c0f;
+    --border: #bbf7d0; --accent: #166534; --red: #dc2626; --green: #16a34a;
+    --gold: #a16207; --blue: #1d4ed8; --amber: #d97706;
+    --header-from: #14532d; --header-to: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px 16px;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    color: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px;
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 700; }
+  .header .meta { opacity: 0.85; font-size: 0.85rem; margin-top: 4px; }
+  h2 {
+    font-size: 1.05rem; font-weight: 600; margin: 24px 0 10px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .tldr {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .tldr h2 { font-size: 0.95rem; color: var(--accent); margin-bottom: 8px; }
+  .tldr ul { padding-left: 1.1em; font-size: 0.9rem; }
+  .tldr li { margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; background: #f9fafb; }
+  .sent {
+    display: inline-block; font-size: 0.75rem; font-weight: 600;
+    padding: 1px 7px; border-radius: 4px; margin-right: 6px;
+  }
+  .sent.pos { background: #eff6ff; color: #2563eb; }
+  .sent.neu { background: #f3f4f6; color: var(--muted); }
+  .sent.neg { background: #fef2f2; color: var(--red); }
+  .news-item { font-size: 0.9rem; margin-bottom: 8px; }
+  .news-meta { font-size: 0.8rem; color: var(--muted); }
+  .footer {
+    margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.75rem; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>[基金名称] 持仓舆情报告</h1>
+    <div class="meta">代码：[XXXXXX] · 数据截至：YYYY-MM-DD</div>
+  </div>
+
+  <div class="tldr">
+    <h2>舆情要点</h2>
+    <ul>
+      <li>[整体情绪：偏多 / 中性 / 偏空]</li>
+      <li>[1–2 只关键重仓异动或催化]</li>
+      <li>[需跟踪的风险事件]</li>
+    </ul>
+  </div>
+
+  <h2>一、持仓概览（前十大重仓）</h2>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>序号</th><th>股票名称</th><th>股票代码</th><th>占净值比例（%）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>…</td><td>…</td><td>X.XX</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>二、个股舆情详情</h2>
+  <div class="card">
+    <h3>1. [股票名称]（[代码]）</h3>
+    <div class="news-item">
+      <span class="sent pos">正面</span>[新闻标题]
+      <div class="news-meta">来源：… · 时间：YYYY-MM-DD</div>
+    </div>
+    <div class="news-item">
+      <span class="sent neu">中性</span>[新闻标题]
+      <div class="news-meta">来源：… · 时间：YYYY-MM-DD</div>
+    </div>
+    <!-- 每只股票 2-3 条；情绪：pos=正面 / neu=中性 / neg=负面 -->
+  </div>
+
+  <h2>三、舆情总结</h2>
+  <div class="card">
+    <p style="font-size:0.9rem"><strong>整体倾向：</strong>[概述]</p>
+    <p style="font-size:0.9rem;margin-top:8px"><strong>重点风险：</strong>[如有负面集中]</p>
+    <p style="font-size:0.9rem;margin-top:8px"><strong>正面催化：</strong>[如有]</p>
+  </div>
+
+  <div class="footer">
+    以上分析基于公开数据整理，仅供参考，不构成投资建议。基金过往业绩不代表未来表现，投资有风险，决策需谨慎。
+  </div>
+
+</div>
+</body>
+</html>

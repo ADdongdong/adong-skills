@@ -1,0 +1,14 @@
+{
+  "name": "基金分析",
+  "installedAt": 1784512680076,
+  "source": "marketplace",
+  "version": "1.0.1",
+  "skillId": "skill_2076627911660621824",
+  "examples_zh": [
+    "帮我分析我的基金持仓组合，做个体检"
+  ],
+  "description_zh": "公募基金/ETF全面分析，支持持仓组合诊断和单只基金深度分析。",
+  "description_en": "Comprehensive fund/ETF analysis with portfolio diagnosis and single fund deep analysis.",
+  "iconSource": "letter:auto",
+  "installedContentHash": "sha256:5c956b2c841b97d281da7485ff159c289ec98a0e0dd406203d5c83a5544376f8"
+}

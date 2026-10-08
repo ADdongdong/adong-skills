@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "65990a7e-b2fd-4dfb-9890-c6c7d3e4e602",
+  "path": "fund-analysis",
+  "path_key": "fund-analysis",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

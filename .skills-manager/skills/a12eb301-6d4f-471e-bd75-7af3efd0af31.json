@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a12eb301-6d4f-471e-bd75-7af3efd0af31",
+  "path": "beautiful-shadows",
+  "path_key": "beautiful-shadows",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

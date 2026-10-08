@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e8e446b9-d440-4721-99a9-c2773adf60ab",
+  "path": "mp-draft-push",
+  "path_key": "mp-draft-push",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

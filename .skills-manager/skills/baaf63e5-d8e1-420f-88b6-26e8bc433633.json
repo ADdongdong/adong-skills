@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "baaf63e5-d8e1-420f-88b6-26e8bc433633",
+  "path": "feynman-tutor",
+  "path_key": "feynman-tutor",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

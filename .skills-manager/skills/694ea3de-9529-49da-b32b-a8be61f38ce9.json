@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "694ea3de-9529-49da-b32b-a8be61f38ce9",
+  "path": "sdicsc-market-query",
+  "path_key": "sdicsc-market-query",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

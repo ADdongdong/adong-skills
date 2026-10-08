@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0f103957-6a5b-4467-8b28-85583dfae268",
+  "path": "container-lines",
+  "path_key": "container-lines",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

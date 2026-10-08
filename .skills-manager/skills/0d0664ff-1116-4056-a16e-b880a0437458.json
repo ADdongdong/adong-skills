@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0d0664ff-1116-4056-a16e-b880a0437458",
+  "path": "smart-charts",
+  "path_key": "smart-charts",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

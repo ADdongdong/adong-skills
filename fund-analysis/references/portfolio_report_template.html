@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基金持仓分析报告 — YYYY-MM-DD</title>
+<style>
+  :root {
+    --bg: #f0fdf4; --card: #fff; --text: #14532d; --muted: #4d7c0f;
+    --border: #bbf7d0; --accent: #166534; --red: #dc2626; --green: #16a34a;
+    --gold: #a16207; --blue: #1d4ed8; --amber: #d97706;
+    --header-from: #14532d; --header-to: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px 16px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    color: #fff; border-radius: 12px; padding: 28px 24px; margin-bottom: 20px;
+  }
+  .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .header .meta { opacity: 0.85; font-size: 0.875rem; }
+  h2 {
+    font-size: 1.1rem; font-weight: 600; margin: 28px 0 12px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  h3 { font-size: 0.95rem; font-weight: 600; margin: 14px 0 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 8px;
+  }
+  .stat .label { font-size: 0.8rem; color: var(--muted); }
+  .stat .value { font-size: 1.15rem; font-weight: 700; margin-top: 2px; }
+  .up { color: var(--red); }
+  .down { color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; background: #f9fafb; }
+  .tag {
+    display: inline-block; font-size: 0.75rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .tag.take-profit { background: #fef2f2; color: var(--red); }
+  .tag.hold { background: #eff6ff; color: var(--blue); }
+  .tag.stop { background: #fffbeb; color: var(--amber); }
+  .issue { font-size: 0.9rem; margin-bottom: 6px; }
+  .issue.warn::before { content: "⚠ "; color: var(--amber); }
+  .issue.tip::before { content: "💡 "; }
+  .issue.alert::before { content: "🔴 "; }
+  .tldr {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .tldr h2 { font-size: 0.95rem; color: var(--accent); margin-bottom: 8px; }
+  .tldr ul { padding-left: 1.1em; font-size: 0.9rem; }
+  .tldr li { margin: 4px 0; }
+  .footer {
+    margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.75rem; text-align: center;
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .header { border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>基金持仓分析报告</h1>
+    <div class="meta">生成日期：YYYY-MM-DD · 数据截至：YYYY-MM-DD</div>
+  </div>
+
+  <div class="tldr">
+    <h2>诊断结论</h2>
+    <ul>
+      <li>[组合整体定性：配置缺陷 / 风格缺失 / 集中度]</li>
+      <li>[优先调整方向 1–2 条]</li>
+      <li>[见顶信号或主要风险]</li>
+    </ul>
+  </div>
+
+  <!-- 一、持仓概览 -->
+  <h2>一、持仓概览</h2>
+  <div class="card">
+    <div class="summary">
+      <div class="stat"><div class="label">总市值</div><div class="value">¥XX,XXX</div></div>
+      <div class="stat"><div class="label">总成本</div><div class="value">¥XX,XXX</div></div>
+      <div class="stat"><div class="label">总盈亏</div><div class="value up">+/-¥X,XXX</div></div>
+      <div class="stat"><div class="label">综合收益率</div><div class="value up">+/-X.XX%</div></div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>基金名称</th><th>资产大类</th><th>市值</th><th>占比</th>
+          <th>成本</th><th>收益率</th><th>建议</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>[名称]</td><td>[大类]</td><td>¥X,XXX</td><td>XX.X%</td>
+          <td>¥X,XXX</td><td class="up">+X.X%</td>
+          <td><span class="tag hold">持有观察</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 二、宏观与市场环境 -->
+  <h2>二、宏观与市场环境</h2>
+  <div class="card">
+    <h3>外围传导</h3>
+    <p style="font-size:0.9rem">[隔夜美股/日韩/A50/中概/美元指数对次日开盘的传导研判]</p>
+    <h3>宏观环境层</h3>
+    <p style="font-size:0.9rem">[宏观面 / 政策面 / 消息面要点]</p>
+    <h3>市场状态层</h3>
+    <p style="font-size:0.9rem">[情绪面 / 资金面 / 技术面要点]</p>
+  </div>
+
+  <!-- 三、配置诊断 -->
+  <h2>三、配置诊断</h2>
+  <div class="card">
+    <h3>资产类别分布</h3>
+    <table>
+      <thead><tr><th>资产大类</th><th>市值</th><th>占比</th><th>诊断</th></tr></thead>
+      <tbody>
+        <tr><td>A股权益</td><td>¥X,XXX</td><td>XX%</td><td>[简述]</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin-top:14px">发现的问题 / 短板</h3>
+    <div class="issue warn">[问题描述]</div>
+    <div class="issue tip">[优化建议]</div>
+  </div>
+
+  <!-- 四、各基金简评 -->
+  <h2>四、各基金简评</h2>
+  <div class="card">
+    <p style="font-size:0.9rem"><strong>[基金名称]</strong> — <span class="tag take-profit">减仓止盈</span>：[不超过20字理由]</p>
+    <!-- 持仓≤10只逐只；过多则分类点评 -->
+  </div>
+
+  <!-- 五、牛市见顶信号 -->
+  <h2>五、牛市见顶信号检查</h2>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead><tr><th>信号</th><th>当前状态</th><th>判断</th></tr></thead>
+      <tbody>
+        <tr><td>估值</td><td>[描述]</td><td>未触发 / 关注 / 触发</td></tr>
+        <tr><td>通胀</td><td>[描述]</td><td>…</td></tr>
+        <tr><td>资金面</td><td>[描述]</td><td>…</td></tr>
+        <tr><td>政策</td><td>[描述]</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 六、综合调整建议 -->
+  <h2>六、综合调整建议</h2>
+  <div class="card">
+    <ol style="padding-left:20px;font-size:0.9rem">
+      <li><strong>增配：</strong>[方向与理由]</li>
+      <li><strong>减配：</strong>[方向与理由]</li>
+      <li><strong>引入新类型 / 再平衡：</strong>[操作建议]</li>
+    </ol>
+  </div>
+
+  <div class="footer">
+    以上分析基于公开数据整理，仅供参考，不构成投资建议。基金过往业绩不代表未来表现，投资有风险，决策需谨慎。
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单只基金深度分析 — [基金名称]</title>
+<style>
+  :root {
+    --bg: #f0fdf4; --card: #fff; --text: #14532d; --muted: #4d7c0f;
+    --border: #bbf7d0; --accent: #166534; --red: #dc2626; --green: #16a34a;
+    --gold: #a16207; --blue: #1d4ed8; --amber: #d97706;
+    --header-from: #14532d; --header-to: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px 16px;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    color: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px;
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 700; }
+  .header .meta { opacity: 0.85; font-size: 0.85rem; margin-top: 4px; }
+  h2 {
+    font-size: 1.05rem; font-weight: 600; margin: 24px 0 10px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .tldr {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .tldr h2 { font-size: 0.95rem; color: var(--accent); margin-bottom: 8px; }
+  .tldr ul { padding-left: 1.1em; font-size: 0.9rem; }
+  .tldr li { margin: 4px 0; }
+  .up { color: var(--red); } .down { color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; background: #f9fafb; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; font-size: 0.9rem; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+  .kv .label { color: var(--muted); } .kv .value { font-weight: 600; }
+  .footer {
+    margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.75rem; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>[基金名称]（[代码]）深度分析</h1>
+    <div class="meta">类型：[指数ETF/主动/…] · 数据截至：YYYY-MM-DD</div>
+  </div>
+
+  <div class="tldr">
+    <h2>核心结论</h2>
+    <ul>
+      <li>[绩效/估值一句话定性]</li>
+      <li>[回本/情景关键判断]</li>
+      <li>[策略框架：条件→操作→止损，非买卖指令]</li>
+    </ul>
+  </div>
+
+  <h2>一、基金速览</h2>
+  <div class="card">
+    <div class="grid-2">
+      <div class="kv"><span class="label">最新净值：</span><span class="value">X.XXXX</span></div>
+      <div class="kv"><span class="label">规模：</span><span class="value">XX 亿</span></div>
+      <div class="kv"><span class="label">近1年收益：</span><span class="value up">+/-X.XX%</span></div>
+      <div class="kv"><span class="label">跟踪指数：</span><span class="value">[指数名]</span></div>
+      <div class="kv"><span class="label">管理费/托管费：</span><span class="value">X.XX% / X.XX%</span></div>
+      <div class="kv"><span class="label">基金经理：</span><span class="value">[姓名]（任职 X 年）</span></div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>区间</th><th>1周</th><th>1月</th><th>3月</th><th>6月</th><th>YTD</th><th>1年</th><th>3年</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>收益率</td>
+          <td class="up">…</td><td>…</td><td>…</td><td>…</td><td>…</td><td>…</td><td>…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>二、底层指数 / 行业</h2>
+  <div class="card">
+    <p style="font-size:0.9rem">[点位、PE/PB分位、行业基本面、资金流向、关键风险 — 各标注来源与日期]</p>
+  </div>
+
+  <h2>三、回本难度评估</h2>
+  <div class="card">
+    <div class="grid-2">
+      <div class="kv"><span class="label">当前收益率：</span><span class="value down">-X.XX%</span></div>
+      <div class="kv"><span class="label">回本所需涨幅：</span><span class="value">X.XX%</span></div>
+      <div class="kv"><span class="label">成本基准点位：</span><span class="value">XXXX</span></div>
+      <div class="kv"><span class="label">回本时间估算：</span><span class="value">保守/基准/乐观</span></div>
+    </div>
+  </div>
+
+  <h2>四、情景对比</h2>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>情景</th><th>目标点位</th><th>预期回报</th><th>对持仓影响</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>保守</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>基准</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>乐观</td><td>…</td><td>…</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>五、策略对比</h2>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>策略</th><th>条件 / 要点</th><th>优点</th><th>缺点</th><th>适合谁</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>持有等待</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>定投/逢低加仓</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>波段操作</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>调仓/分散</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+        <tr><td>止损/切换</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    以上分析基于公开数据整理，仅供参考，不构成投资建议。基金过往业绩不代表未来表现，投资有风险，决策需谨慎。
+  </div>
+
+</div>
+</body>
+</html>

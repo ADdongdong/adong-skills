@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d202e838-9c62-4d51-9d49-18a3d2016849",
+  "path": "improve-ui",
+  "path_key": "improve-ui",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

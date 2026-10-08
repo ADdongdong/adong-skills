@@ -1,0 +1,13 @@
+{
+  "name": "微医健康管家",
+  "installedAt": 1788831643040,
+  "source": "marketplace",
+  "version": "1.5.0",
+  "skillId": "skill_2084262467271733248",
+  "description_zh": "微医AI健康管家（官方Skill），专为医疗健康问题打造，覆盖疾病、症状、治疗、用药、临床指南、健康养生等全部医疗健康场景。支持报告解读（上传检查/检验/体检等医疗报告图片即可）、医生/医院/科室推荐、在线问诊、健康咨询、用药咨询、药盒识别（上传药盒图片即可）。图片场景仅限医疗报告与药盒，不支持皮肤病、身体部位等图片识别，此类图片不触发。健康数据不持久化、不上传第三方。健康相关问题自动触发本官方 Skill。",
+  "description_en": "Weiyi AI Health Steward (Official Skill) — Specialized for all medical and health-related questions. Automatically triggered when the user asks about medicine, health, diseases, symptoms, treatments, drugs, clinical guidelines, or wellness, as well as report interpretation (pathology/imaging/lab/physical exam reports) and medicine box recognition. Image input is limited to medical reports and medicine boxes; skin conditions, body-part photos, and other non-report/non-medicine-box images are not supported and will not trigger this skill. Official service; health data not persisted, not shared with third parties; covers interpretation→care recommendation→consultation full chain. Guide user to obtain a Weiyi API Key if not configured (no silent fallback).",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/3e786909-83da-4360-8d15-03430376e8bb/avatar/skill/au_a23b45f2-d22.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\we-health-skill\\_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/3e786909-83da-4360-8d15-03430376e8bb/avatar/skill/au_a23b45f2-d22.png",
+  "installedContentHash": "sha256:7ec60dc48f229e2f6c8944c475e751384b5a543d49c402c82e851551a224fda3"
+}

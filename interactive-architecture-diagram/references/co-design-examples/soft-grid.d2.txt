@@ -1,0 +1,92 @@
+classes: {
+  zone_1: {
+    style: {
+      fill: "#F0F5FA"
+      stroke: "#4185BF"
+      font-color: "#333333"
+      border-radius: 8
+    }
+  }
+  zone_2: {
+    style: {
+      fill: "#F2F7FB"
+      stroke: "#4185BF"
+      font-color: "#333333"
+      border-radius: 8
+    }
+  }
+  zone_3: {
+    style: {
+      fill: "#F6F9FC"
+      stroke: "#4185BF"
+      font-color: "#333333"
+      border-radius: 8
+    }
+  }
+  zone_4: {
+    style: {
+      fill: "#F9FBFD"
+      stroke: "#4185BF"
+      font-color: "#333333"
+      border-radius: 8
+    }
+  }
+  zone_5: {
+    style: {
+      fill: "#FCFDFE"
+      stroke: "#4185BF"
+      font-color: "#333333"
+      border-radius: 8
+    }
+  }
+  entity: {
+    style: {
+      fill: "#FFFFFF"
+      stroke: "#E8ECF5"
+      font-color: "#333333"
+      border-radius: 6
+      shadow: true
+    }
+  }
+  signal: {
+    style: {
+      fill: transparent
+      font-color: "#6B7280"
+    }
+  }
+}
+
+direction: down
+
+collect: {
+  label: 采集层
+  class: zone_1
+  grid-columns: 2
+  grid-gap: 48
+  log_collector: 日志采集器 {class: entity}
+  metric_collector: 指标采集器 {class: entity}
+}
+
+process: {
+  label: 处理层
+  class: zone_2
+  grid-columns: 2
+  grid-gap: 48
+  clean_service: 清洗服务 {class: entity}
+  aggregate_service: 聚合服务 {class: entity}
+}
+
+consume: {
+  label: 消费层
+  class: zone_3
+  grid-columns: 2
+  grid-gap: 48
+  search_console: 检索台 {class: entity}
+  alert_service: 告警服务 {class: entity; style.fill: "#FF8800"; style.font-color: "#FFFFFF"}
+}
+
+collect.log_collector -> process.clean_service: 日志
+process.clean_service -> consume.search_console: 清洗结果
+collect.metric_collector -> process.aggregate_service: 指标
+process.aggregate_service -> consume.alert_service: 聚合指标
+# layoutopt:v1 local-options={"target_width":1600,"target_height":900,"min_font_size":10,"max_candidates":8,"budget_ms":10000,"constraints":{"locked_paths":["","collect","consume","process"],"allow_chain_reflow":true}}

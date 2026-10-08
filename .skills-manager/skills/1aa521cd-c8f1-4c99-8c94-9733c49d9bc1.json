@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1aa521cd-c8f1-4c99-8c94-9733c49d9bc1",
+  "path": "bank-statement-check",
+  "path_key": "bank-statement-check",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

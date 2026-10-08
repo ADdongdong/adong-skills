@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3e1e8b22-7b23-4707-af2b-e68a421488de",
+  "path": "distill",
+  "path_key": "distill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

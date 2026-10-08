@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f7b767d6-5c6c-4375-9e7a-456019d49ebc",
+  "path": "a-stock-data",
+  "path_key": "a-stock-data",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

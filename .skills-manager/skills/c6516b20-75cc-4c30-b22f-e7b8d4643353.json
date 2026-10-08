@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c6516b20-75cc-4c30-b22f-e7b8d4643353",
+  "path": "sdicsc-crowding-degree",
+  "path_key": "sdicsc-crowding-degree",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

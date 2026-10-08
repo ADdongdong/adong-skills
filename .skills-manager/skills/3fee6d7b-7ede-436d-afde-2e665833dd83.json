@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3fee6d7b-7ede-436d-afde-2e665833dd83",
+  "path": "pytdx-api",
+  "path_key": "pytdx-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "slug": "sdicsc-market-query",
+  "name": "国投证券-行情数据",
+  "version": "1.0.2",
+  "installedAt": 1786503656005,
+  "source": "skillhub",
+  "iconSource": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a4e49550-e527-4406-b761-c4f2e607b757.png",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\sdicsc-market-query__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://cloudcache.tencent-cloud.com/qcloud/ui/static/other_external_resource/a4e49550-e527-4406-b761-c4f2e607b757.png",
+  "installedContentHash": "sha256:c3dd3d909c74c10508b939e8ecbdce76d52490cf38c708b4e5b45e67a6008200"
+}

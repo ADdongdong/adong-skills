@@ -1,0 +1,23 @@
+{
+  "name": "PPT 演示文稿",
+  "installedAt": 1784512650006,
+  "source": "marketplace",
+  "version": "2.0.3",
+  "skillId": "skill_2053082606165762048",
+  "examples_zh": [
+    "帮我生成一份产品发布 PPT",
+    "把这份大纲做成演示文稿",
+    "给这个 PPT 添加一个目录页"
+  ],
+  "examples_en": [
+    "Generate a product launch presentation",
+    "Turn this outline into a slide deck",
+    "Add a table of contents slide to this PPT"
+  ],
+  "description_zh": "PowerPoint 演示文稿生成",
+  "description_en": "Generate and edit PowerPoint presentations",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/pptx-generator.svg",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\pptx-generator\\_icon.svg",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/pptx-generator.svg",
+  "installedContentHash": "sha256:37f6a626e37d7cf9b7d301b8bec859896c0854e58dd85a0553dc98d00cd13884"
+}

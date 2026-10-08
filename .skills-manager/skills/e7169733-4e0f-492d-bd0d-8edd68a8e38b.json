@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e7169733-4e0f-492d-bd0d-8edd68a8e38b",
+  "path": "kb-retriever",
+  "path_key": "kb-retriever",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

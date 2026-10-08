@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "14cbc262-2a86-49da-9bcb-7c910a4f1141",
+  "path": "compose-layout-pitfalls",
+  "path_key": "compose-layout-pitfalls",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

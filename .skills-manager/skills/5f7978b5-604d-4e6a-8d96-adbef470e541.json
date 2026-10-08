@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5f7978b5-604d-4e6a-8d96-adbef470e541",
+  "path": "lingxi-financialsearch-skill",
+  "path_key": "lingxi-financialsearch-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+render_out/
+dist/
+.env
+*.env
+*.key
+*.pem
+credentials.json
+secrets/

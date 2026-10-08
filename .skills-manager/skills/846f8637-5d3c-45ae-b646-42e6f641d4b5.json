@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "846f8637-5d3c-45ae-b646-42e6f641d4b5",
+  "path": "每日热点选题【零一数科·出品】",
+  "path_key": "每日热点选题【零一数科·出品】",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

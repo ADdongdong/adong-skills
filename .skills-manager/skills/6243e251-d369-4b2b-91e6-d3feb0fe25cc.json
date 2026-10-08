@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6243e251-d369-4b2b-91e6-d3feb0fe25cc",
+  "path": "beautiful-article",
+  "path_key": "beautiful-article",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

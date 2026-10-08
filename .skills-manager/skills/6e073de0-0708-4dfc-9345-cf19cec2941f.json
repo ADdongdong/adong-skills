@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6e073de0-0708-4dfc-9345-cf19cec2941f",
+  "path": "hahadong-push",
+  "path_key": "hahadong-push",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

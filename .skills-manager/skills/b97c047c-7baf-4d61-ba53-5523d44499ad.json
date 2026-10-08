@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b97c047c-7baf-4d61-ba53-5523d44499ad",
+  "path": "design-artifact",
+  "path_key": "design-artifact",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

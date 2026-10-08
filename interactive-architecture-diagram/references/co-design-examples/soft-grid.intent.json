@@ -1,0 +1,85 @@
+{
+  "outline_intent_version": 2,
+  "source": "画观测平台架构。采集层有日志采集器和指标采集器；处理层有清洗服务和聚合服务；消费层有检索台和告警服务。日志采集器发送日志给清洗服务，清洗服务发送清洗结果给检索台；指标采集器发送指标给聚合服务，聚合服务发送聚合指标给告警服务。采集、处理、消费三层纵向排列，两条通路都必须完整显示。告警服务以橙色 #FF8800 突出。\n每层两个业务节点必须在同一行，三层仍上下排列。",
+  "focus": "保留完整业务内容、归属和关系，并清晰表达阅读顺序",
+  "target_width": 1600,
+  "target_height": 900,
+  "min_font_size": 10,
+  "budget": {
+    "model_repairs": 2,
+    "handoffs": 1,
+    "layout_candidates": 4,
+    "max_tokens": 64000,
+    "seconds": 1800
+  },
+  "regions": [
+    {
+      "id": "collect",
+      "label": "采集层",
+      "source_quote": "采集层有日志采集器和指标采集器",
+      "suggestions": {
+        "grid_columns": 3
+      },
+      "open": [
+        "layout",
+        "granularity",
+        "grouping",
+        "routing",
+        "style"
+      ]
+    },
+    {
+      "id": "process",
+      "label": "处理层",
+      "source_quote": "处理层有清洗服务和聚合服务",
+      "suggestions": {
+        "grid_columns": 3
+      },
+      "open": [
+        "layout",
+        "granularity",
+        "grouping",
+        "routing",
+        "style"
+      ]
+    },
+    {
+      "id": "consume",
+      "label": "消费层",
+      "source_quote": "消费层有检索台和告警服务",
+      "suggestions": {
+        "grid_columns": 3
+      },
+      "open": [
+        "layout",
+        "granularity",
+        "grouping",
+        "routing",
+        "style"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "explicit_two_columns_0",
+      "kind": "grid_columns",
+      "target": "采集层",
+      "value": 2,
+      "source_quote": "每层两个业务节点必须在同一行，三层仍上下排列。"
+    },
+    {
+      "id": "explicit_two_columns_1",
+      "kind": "grid_columns",
+      "target": "处理层",
+      "value": 2,
+      "source_quote": "每层两个业务节点必须在同一行，三层仍上下排列。"
+    },
+    {
+      "id": "explicit_two_columns_2",
+      "kind": "grid_columns",
+      "target": "消费层",
+      "value": 2,
+      "source_quote": "每层两个业务节点必须在同一行，三层仍上下排列。"
+    }
+  ]
+}

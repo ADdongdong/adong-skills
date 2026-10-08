@@ -15,3 +15,8 @@ Thumbs.db
 .skills-manager.lock
 __pycache__/
 *.pyc
+
+# skills-manager: oversized skills excluded from backup (auto-managed)
+/video-shotcraft/
+/.skills-manager/skills/f71f76a0-9076-47f0-b87d-e4ec53225ac4.json
+# skills-manager: end oversized skills

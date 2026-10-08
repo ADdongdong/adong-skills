@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6dc3aedc-00fc-4a4c-aac4-fa28f2197b40",
+  "path": "sdicsc-fund-query-compare",
+  "path_key": "sdicsc-fund-query-compare",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

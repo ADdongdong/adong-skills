@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6430823d-7253-4ca6-8cb2-e70d534bce69",
+  "path": "xidian-req-spec",
+  "path_key": "xidian-req-spec",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

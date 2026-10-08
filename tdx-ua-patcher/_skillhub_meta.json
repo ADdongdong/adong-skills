@@ -1,0 +1,9 @@
+{
+  "slug": "tdx-ua-patcher",
+  "name": "通达信UA修改，TcefWnd.dll修改",
+  "version": "1.0.0",
+  "installedAt": 1781059062598,
+  "source": "skillhub",
+  "iconDownloadFailedAt": 1791420778028,
+  "installedContentHash": "sha256:99305477809791a756d29f3d8b5b1eb70eea9969fccc1dcb8763406619e0170c"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e737fb05-e42b-4fbd-bdad-e5ad908f1e00",
+  "path": "drawio",
+  "path_key": "drawio",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

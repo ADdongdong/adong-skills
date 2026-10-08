@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "eb33364f-5939-4918-8e5d-22f3a731392f",
+  "path": "vibehub",
+  "path_key": "vibehub",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

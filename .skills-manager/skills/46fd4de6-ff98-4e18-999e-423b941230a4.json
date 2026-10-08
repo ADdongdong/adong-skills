@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "46fd4de6-ff98-4e18-999e-423b941230a4",
+  "path": "mermaid-doc-renderer-2",
+  "path_key": "mermaid-doc-renderer-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

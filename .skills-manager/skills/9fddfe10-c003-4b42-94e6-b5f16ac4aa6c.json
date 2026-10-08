@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9fddfe10-c003-4b42-94e6-b5f16ac4aa6c",
+  "path": "c-drive-cleanup",
+  "path_key": "c-drive-cleanup",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

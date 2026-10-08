@@ -1,0 +1,21 @@
+# 通达信行情服务器配置文件模板 (mootdx config)
+# 文件位置（通常）：
+# Windows: %APPDATA%/mootdx/config.json
+# Linux/macOS: ~/.mootdx/config.json
+
+{
+    "server": {
+        "ip": "119.147.212.81",
+        "port": 7709,
+        "timeout": 15
+    },
+    "bestip": {
+        "enabled": true,
+        "auto_update": true
+    }
+}
+
+# 说明：
+# - ip 和 port 为通达信行情服务器地址
+# - 技能会自动更新最优服务器，无需手动编辑
+# - 若自动优选失败，可从通达信官方客户端的 connect.cfg 文件中提取最新IP填入此处

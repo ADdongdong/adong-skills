@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--
+  公众号封面对模板（主题文字 + guizang 背景素材）
+  用法：复制到 <工作目录>/cover.html，替换所有 {{...}} 占位符，
+        然后 node scripts/render_cover.cjs <工作目录>
+  产出：cover.png(2100x900) / cover_square.png(1080x1080) / cover_preview.png
+
+  配图来源：guizang-social-card-skill 自带背景素材（9 选 1）
+    默认用 ikb-dot-gradient（IKB 克莱因蓝，与 accent #1c5fd9 一致）
+    按篇切换只需改 --art 变量指向其他 .webp 即可
+    素材路径（相对于本 skill 根目录）：
+      assets/screenshot-backgrounds/style-b/ikb-dot-gradient.webp     ← 默认
+      assets/screenshot-backgrounds/style-b/lemon-green-dot-shadow.webp
+      assets/screenshot-backgrounds/style-b/lemon-grid.webp
+      assets/screenshot-backgrounds/style-b/safety-orange-halftone.webp
+      assets/screenshot-backgrounds/style-a/dune.webp
+      assets/screenshot-backgrounds/style-a/forest-ink.webp
+      assets/screenshot-backgrounds/style-a/indigo-porcelain.webp
+      assets/screenshot-backgrounds/style-a/kraft-paper.webp
+      assets/screenshot-backgrounds/style-a/monocle-classic.webp
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{
+    --paper:#ffffff;
+    --ink:#111418;
+    --grey-1:#f2f4f7;
+    --grey-2:#dfe3e9;
+    --grey-3:#6b7280;
+    --accent:#1c5fd9;      /* 系列主色，与正文 SVG 插图一致 */
+    --accent-soft:#eef3fd;
+    /* 配图源：guizang 背景素材（绝对路径，渲染时由 render_cover.cjs 注入） */
+    --art:url("{{配图绝对路径}}");
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#e9ecf1;font-family:"Microsoft YaHei","Segoe UI","Noto Sans SC",sans-serif;
+       -webkit-font-smoothing:antialiased;}
+  .mono{font-family:Consolas,"Cascadia Mono",monospace;letter-spacing:.08em;}
+
+  /* ============ 21:9 主封面 2100x900：左文字 + 右配图 ============ */
+  #wechat-21x9{
+    width:2100px;height:900px;background:var(--paper);color:var(--ink);
+    display:grid;grid-template-columns:1180px 920px;overflow:hidden;
+  }
+  #wechat-21x9 .left{padding:92px 76px 68px 100px;display:flex;flex-direction:column;}
+  #wechat-21x9 .kicker{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:.12em;}
+  #wechat-21x9 .rule{height:3px;background:var(--accent);margin:30px 0 40px;width:96px;}
+  #wechat-21x9 .title{
+    font-size:98px;line-height:1.18;font-weight:700;letter-spacing:-.01em;
+    /* 标题超过 14 字时降到 84px；两行内为佳 */
+  }
+  #wechat-21x9 .title em{font-style:normal;color:var(--accent);}
+  #wechat-21x9 .sub{margin-top:36px;font-size:33px;line-height:1.62;color:var(--grey-3);max-width:900px;}
+  #wechat-21x9 .foot{margin-top:auto;display:flex;align-items:center;gap:24px;
+                     border-top:1px solid var(--grey-2);padding-top:26px;
+                     font-size:24px;font-weight:600;color:var(--grey-3);}
+  #wechat-21x9 .foot .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);}
+
+  /* 右侧配图区：整块出血，guizang 素材盖满 */
+  #wechat-21x9 .art{position:relative;overflow:hidden;
+                    background-image:var(--art);background-size:cover;background-position:center;}
+  /* 图与文字之间的分界 */
+  #wechat-21x9 .art::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
+                            background:var(--accent);z-index:2;}
+
+  /* ============ 1:1 方形封面 1080x1080：上配图 + 下短标题 ============ */
+  #wechat-1x1{
+    width:1080px;height:1080px;background:var(--paper);color:var(--ink);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  #wechat-1x1 .art{height:600px;overflow:hidden;position:relative;
+                   background-image:var(--art);background-size:cover;background-position:center;}
+  #wechat-1x1 .art .tag{position:absolute;left:0;bottom:0;background:var(--accent);color:#fff;
+                        font-size:24px;font-weight:700;padding:16px 28px;letter-spacing:.1em;}
+  #wechat-1x1 .txt{flex:1;padding:56px 72px 60px;display:flex;flex-direction:column;}
+  #wechat-1x1 .short{
+    font-size:96px;line-height:1.24;font-weight:700;letter-spacing:-.015em;
+    /* 短标题 4–10 字；两行时在逗号处硬断行 <br>，别让中文自动折行 */
+  }
+  #wechat-1x1 .short em{font-style:normal;color:var(--accent);}
+  #wechat-1x1 .foot{margin-top:auto;border-top:1px solid var(--grey-2);padding-top:24px;
+                    display:flex;justify-content:space-between;font-size:24px;font-weight:600;color:var(--grey-3);}
+
+  /* ============ 配对预览（仅供人眼比对，不上传） ============ */
+  #wechat-pair{width:2400px;padding:80px;background:#e9ecf1;display:flex;align-items:flex-end;gap:72px;}
+  #wechat-pair .cap{font-size:22px;font-weight:700;color:var(--grey-3);margin-bottom:20px;}
+  .stage{padding:40px;display:flex;flex-direction:column;align-items:flex-start;gap:40px;}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ 21:9 主封面（草稿箱封面用这张） ============ -->
+  <section id="wechat-21x9">
+    <div class="left">
+      <div class="kicker mono">{{栏目标签，如 FEYNMAN DAILY · NO.03}}</div>
+      <div class="rule"></div>
+      <h1 class="title">{{完整标题，可用 <em>词</em> 标出主色重点}}</h1>
+      <p class="sub">{{副标题，一句话说清读完能得到什么，20–30 字}}</p>
+      <div class="foot"><span class="dot"></span><span>{{领域标签，如 AI 科普}}</span><span>·</span><span>{{日期 2026.07.30}}</span></div>
+    </div>
+    <div class="art"></div>
+  </section>
+
+  <!-- ============ 1:1 方形封面（短标题另起一句，不要裁 21:9） ============ -->
+  <section id="wechat-1x1">
+    <div class="art">
+      <div class="tag mono">{{FEYNMAN DAILY · NO.03}}</div>
+    </div>
+    <div class="txt">
+      <h2 class="short">{{短标题<br>4–10 字}}</h2>
+      <div class="foot"><span>{{领域标签}}</span><span class="mono">{{2026.07.30}}</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 配对预览（自动克隆上面两张，无需手动维护） ============ -->
+  <section id="wechat-pair"></section>
+
+</div>
+
+<script>
+  // 把两张封面等比缩放后并排放进预览区，方便一眼比对视觉关系。
+  (function () {
+    const pair = document.getElementById('wechat-pair');
+    const mk = (srcId, scale, label) => {
+      const wrap = document.createElement('div');
+      const cap = document.createElement('div');
+      cap.className = 'cap mono';
+      cap.textContent = label;
+      const box = document.createElement('div');
+      const src = document.getElementById(srcId);
+      const node = src.cloneNode(true);
+      node.removeAttribute('id');
+      node.style.transform = 'scale(' + scale + ')';
+      node.style.transformOrigin = 'top left';
+      const w = parseInt(getComputedStyle(src).width);
+      const h = parseInt(getComputedStyle(src).height);
+      box.style.width = (w * scale) + 'px';
+      box.style.height = (h * scale) + 'px';
+      box.style.overflow = 'hidden';
+      box.style.border = '1px solid #dfe3e9';
+      box.appendChild(node);
+      wrap.appendChild(cap);
+      wrap.appendChild(box);
+      return wrap;
+    };
+    pair.appendChild(mk('wechat-21x9', 0.72, '21:9 / 2100x900'));
+    pair.appendChild(mk('wechat-1x1', 0.72, '1:1 / 1080x1080'));
+  })();
+</script>
+</body>
+</html>

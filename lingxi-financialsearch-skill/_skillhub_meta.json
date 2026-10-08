@@ -1,0 +1,22 @@
+{
+  "name": "国泰海通金融数据查询",
+  "installedAt": 1781058202129,
+  "source": "marketplace",
+  "version": "1.11.0",
+  "skillId": "skill_2053082702444552192",
+  "examples_zh": [
+    "查一下贵州茅台今日股价和市盈率",
+    "查科大讯飞营业收入和净利润",
+    "今日A股涨幅最大的股票有哪些"
+  ],
+  "examples_en": [
+    "Check Guizhou Moutai's stock price and P/E ratio today",
+    "Show iFLYTEK revenue and net profit",
+    "Top gaining A-share stocks today"
+  ],
+  "iconSource": "letter:auto",
+  "skillName": "lingxi-financialsearch-skill",
+  "description_zh": "国泰海通金融数据查询，自然语言查A股行情、财务、技术指标",
+  "description_en": "GTHT financial data search: A-share quotes, financials, technical indicators via natural language",
+  "installedContentHash": "sha256:deac0213d2fcf8e7d0924bfd023213586ca36a6b7a7a6483105666d255e90e0f"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "AIHOT",
+  "installedAt": 1781058250688,
+  "source": "marketplace",
+  "version": "1.2.1",
+  "skillId": "skill_2053079401717506048",
+  "examples_zh": [
+    "今天 AI 圈有什么大新闻？",
+    "帮我看一下最近的 AI 日报",
+    "OpenAI 最近发布了什么？"
+  ],
+  "examples_en": [
+    "What's hot in AI today?",
+    "Show me the latest AI daily briefing",
+    "What has Anthropic released recently?"
+  ],
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/aihot.svg",
+  "skillName": "aihot",
+  "description_zh": "一句话查到 aihot.virxact.com 上每天精选的 AI 模型 / 产品 / 行业 / 论文动态，自动整理成中文简报，免配置 API Key。",
+  "description_en": "One-line access to curated AI models products industry news and papers from aihot.virxact.com, no API key needed.",
+  "iconLocalPath": "C:\\Users\\10355\\.workbuddy\\skills\\aihot\\_icon.svg",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/aihot.svg",
+  "installedContentHash": "sha256:8e8f0cca89aec2988faf31c285ccff1a1afdf632d20a4f78ed63d1438e3dec89"
+}
