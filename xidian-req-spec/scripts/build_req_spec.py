@@ -13,6 +13,12 @@
 图源建议先用 skill `mermaid转图片` 把 Markdown 里的 ```mermaid 块渲染成 PNG
 （`render_mermaid.py <md> --out <图目录> --format png --scale 3`）。
 
+版本 v1.3（2026-10-08）—— **需求点结构由「四段式」改为「七节式」**：功能点下固定 7 节，
+`业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出`。
+「输入、输出」为新增节，写清该功能点**输入哪些数据、输出哪些数据**（两段 + 两张三列表）。
+旧四段式的槽位去向见 `_LEGACY_KEYS` 与 references/02。**v1.3 起旧键名会直接报错**，
+不再静默生成 —— 四段式的「补充说明」在新结构里没有一一对应项，自动映射会写错文档。
+
 用法：
     from build_req_spec import build
     build(SPEC, r'D:\\out\\XX需求规格说明书V1.0.docx')
@@ -20,12 +26,12 @@
 SPEC 结构见文件末尾 EXAMPLE。核心特点：
 - 以 assets/需求规格说明书_模板.docx 为底，完整继承原文档样式与多级标题自动编号
   （heading 1..6 = styleId 2..7，编号 1. / 1.1. / 1.1.1. / 1.1.1.1. 自动生成，无需手写序号）
-- 需求点用 ("req", {...}) 一次性生成「用户场景 / 权限说明 / 功能描述 / 补充说明」四段式
+- 需求点用 ("req", {...}) 一次性生成**七节式**（见 SECTIONS / FUNC_KEYS / IO_*_HEADER）
 - **目录（TOC 域）自动更新**：清掉模板带来的旧缓存条目 + 置 settings 的 updateFields，
   在 Word/WPS 中打开即按当前正文重排，**不需要手动 F9**（见 _clear_toc_cache）
 - **每一张表都带全边框**：显式写 tblBorders（模板的菜单目录表本身是无边框的，
   只套 Table Grid 样式压不住，见 _force_borders）
-- **逐条列用真实项目符号**（numbering 定义，不手打"●"）；用户场景保持叙述段落（见 bullets / bullet）
+- **逐条列用真实项目符号**（numbering 定义，不手打"●"）；业务说明保持叙述段落（见 bullets / bullet）
 """
 import copy, os, re, shutil, sys, tempfile
 from docx import Document
@@ -45,13 +51,38 @@ TEMPLATE = os.path.join(HERE, '..', 'assets', '需求规格说明书_模板.docx
 W = qn('w:p'); T = qn('w:tbl')
 # 模板中的 styleId 映射
 SID = {'Normal': '1', 'h1': '2', 'h2': '3', 'h3': '4', 'h4': '5', 'h5': '6', 'h6': '7'}
-# 需求点四段式的小节名（h5）
-SEC_USER = '用户场景'
-SEC_PERM = '权限说明'
-SEC_FUNC = '功能描述'
-SEC_EXTRA = '补充说明'
-# 功能描述内部固定要素（按此顺序出现，缺失则跳过）
-FUNC_KEYS = ['数据来源', '状态划分', '二级页面', '操作说明', '界面原型图', '字段说明', '字段逻辑']
+# ---- 需求点：七节式（v1.3 起替代原「四段式」）----
+# 功能点（H4）下固定这 7 节，顺序即此列表顺序（脚本按此顺序生成，调用方不必关心）。
+SEC_BIZ_DESC = '业务说明'        # 叙述段落：这个功能是什么、什么业务场景下解决什么问题
+SEC_BIZ_RULE = '业务规则'        # 逐条/表格：判定、流转、状态、限制、边界
+SEC_ROLE     = '使用角色'        # 逐条：谁会用到这个功能
+SEC_PERM     = '权限说明'        # 三要素：菜单权限 / 功能权限 / 列表数据权限
+SEC_FUNC     = '功能说明'        # 功能概述 + 二级页面 + 操作说明 + 界面原型图
+SEC_FIELD    = '页面字段说明'    # 表：字段名称 | 规则/说明
+SEC_IO       = '输入、输出'      # 输入表（数据项|来源|说明）+ 输出表（数据项|去向|说明）
+SECTIONS = [SEC_BIZ_DESC, SEC_BIZ_RULE, SEC_ROLE, SEC_PERM, SEC_FUNC, SEC_FIELD, SEC_IO]
+
+# 「功能说明」内部固定子要素（按此顺序出现，缺失则跳过）
+FUNC_KEYS = ['功能概述', '二级页面', '操作说明', '界面原型图']
+
+# 「输入、输出」两张表的标准表头（三列；不写字面表头时由脚本自动补）
+IO_IN_HEADER  = ['数据项', '来源', '说明']
+IO_OUT_HEADER = ['数据项', '去向', '说明']
+# 「页面字段说明」表标准表头
+FIELD_HEADER  = ['字段名称', '规则/说明']
+
+# 旧四段式的键名 → 新七节式的迁移提示（v1.3 起旧键名直接报错，见 req()）
+_LEGACY_KEYS = {
+    '用户场景': ('业务说明', '内容基本可平移；业务说明写得更偏"业务背景 + 解决什么问题"'),
+    '功能描述': ('功能说明', '「功能说明」下改挂 功能概述 / 二级页面 / 操作说明 / 界面原型图 四个子要素；'
+                            '原「数据来源」的内容并入「输入、输出」的输入表（来源列）'),
+    '补充说明': ('业务规则', '边界情况 / 限制条件 / 后续规划合并进「业务规则」'),
+    '数据来源': ('输入、输出', '写进输入表的「来源」列，不再单列小节'),
+    '状态划分': ('业务规则', '状态枚举属于业务规则'),
+    '字段逻辑': ('页面字段说明', '与字段说明合并为「页面字段说明」'),
+    '字段说明': ('页面字段说明', '与字段逻辑合并为「页面字段说明」'),
+}
+
 # 「名称 / 类型 / 规则/说明」明细表标准表头
 DETAIL_HEADER = ['名称', '类型', '规则/说明']
 # 【菜单目录】表标准表头
@@ -167,7 +198,7 @@ def _field_runs(body):
 BODY_FONT = '宋体'      # 正文/表格：ascii/hAnsi/eastAsia/cs 均为宋体
 BODY_SZ_HALF = 24       # 12pt（w:sz 单位为半磅）
 LINE = 1.5              # = w:spacing w:line="360" w:lineRule="auto"
-FIRST_LINE_TWIPS = 420  # 用户场景段落首行缩进（2 字符）
+FIRST_LINE_TWIPS = 420  # 叙述性段落首行缩进（业务说明 / 功能概述，2 字符）
 
 
 def _sty(doc, key):
@@ -486,8 +517,8 @@ class Builder:
         """一条**项目符号**（真实编号列表，不是手打的"●"）：圆点样式与缩进由模板的
         bullet 定义提供（左 420 悬挂 420）。
 
-        用在**逐条并列**的内容上：权限说明 / 补充说明 / 数据来源 / 状态划分 / 字段逻辑。
-        **用户场景不加** —— 它是叙述性段落，加了圆点会读成清单，反而不像"场景"。
+        用在**逐条并列**的内容上：业务规则 / 使用角色 / 权限说明 / 页面字段说明的条目。
+        **业务说明不加** —— 它是叙述性段落，加了圆点会读成清单，反而不像"说明"。
 
         条目**开头的手写序号（`1、`）会被去掉** —— 不然会叠成"● 1、…"两层标记（见 `_strip_list_no`）。
         """
@@ -522,7 +553,7 @@ class Builder:
         return self._add(text, 'Normal')
 
     def p_indent(self, text=''):
-        """首行缩进 2 字符的正文段落（主文档「用户场景」正文即此格式）。"""
+        """首行缩进 2 字符的正文段落（主文档的叙述性正文即此格式，现由「业务说明」使用）。"""
         return self._add(text, 'Normal', first_line=FIRST_LINE_TWIPS)
 
     def cover(self, 系统名=None, 版本=None, 公司=None, 日期=None):
@@ -590,7 +621,11 @@ class Builder:
         return t
 
     def kv(self, label, value):
-        """「标签：内容」单行 —— 权限说明 / 功能描述内部要素的标准句式。"""
+        """「标签：内容」单行 —— 节内子要素（二级页面 / 操作说明）与分段（输入 / 输出）的标准句式。
+
+        注意：`业务规则` / `使用角色` / `页面字段说明` 是 **H5 标题本身**，正文不要再写一遍标签，
+        三个节走 `_labelled(..., prefix=False)`。
+        """
         return self.p('%s：%s' % (label, value) if value else '%s：' % label)
 
     def bullets(self, items, indent=False, bullet=True):
@@ -598,7 +633,7 @@ class Builder:
 
         `bullet=True`（默认）→ **真实项目符号**（用 numbering 定义，圆点与悬挂缩进交给 Word 排）；
         `bullet=False` → 普通段落（`indent=True` 时首行缩进 2 字符）。
-        **用户场景用 `bullet=False`**：它是叙述性段落，加圆点会被读成清单，反而不像"场景"。
+        **业务说明用 `bullet=False, indent=True`**：它是叙述性段落，加圆点会被读成清单。
 
         **只有一条时不加圆点**（`len(items) == 1` → 普通段落）：单条内容写成一句话更自然，
         「● 无」「● 不涉及」这类只有一个圆点跟着两个字的排版也会显得怪。
@@ -650,78 +685,171 @@ class Builder:
                 fmt_run(r)
         return p
 
-    # ---------- 需求点 ----------
-    def req(self, title, 用户场景=None, 权限说明=None, 功能描述=None, 补充说明=None, level=4):
+    # ---------- 需求点（七节式，v1.3） ----------
+    @staticmethod
+    def _ensure_header(rows, header):
+        """二维表：首行已是标准表头就沿用，否则**自动补一行** —— 调用方只写数据行即可。"""
+        rows = [list(r) for r in rows]
+        head = [str(x) for x in header]
+        if not rows or [str(x) for x in rows[0]][:len(head)] != head:
+            rows = [head] + rows
+        return rows
+
+    def _labelled(self, label, val, widths=None, header=None, prefix=True):
+        """「标签：内容」的三种形态（七节式里多个节共用）：
+
+        · 单条（str / 长度 1 的列表）→ 标签与内容**同行**：`输入：…`；
+        · 多条（1 维列表）→ `标签：` 独占一行 + **项目符号**逐条列；
+        · 二维列表（行是列表）→ **表格**（传 header 则自动补标准表头，标签行可省）。
+
+        `prefix=False` —— **当这节本身就是 H5 标题时用**（业务规则 / 使用角色 / 页面字段说明）：
+        标题已经写了节名，正文再来一行"业务规则："纯属重复。只有**节内子要素**
+        （功能说明里的 二级页面 / 操作说明）和**一节含多段**（输入、输出）才需要标签。
         """
-        生成一个完整需求点：
-            h{level}   功能点名称（默认 level=4；当【菜单目录】的一级菜单本身即功能点时用 level=3）
-              h{level+1} 用户场景      → **叙述段落**（首行缩进 2 字符，不加项目符号）
-              h{level+1} 权限说明      → 逐条列（**项目符号**；菜单权限/功能权限/列表数据权限/使用人员）
-              h{level+1} 功能描述      → {'数据来源':[], '状态划分':[], '二级页面':表, '操作说明':表,
-                                         '界面原型图':str, '字段逻辑':表/[], '字段说明':表}
-                                        （多条目 → 项目符号；二维列表 → 表格）
-              h{level+1} 补充说明      → 逐条列（**项目符号**，默认「无」）
+        if val is None:
+            return
+        if isinstance(val, (list, tuple)) and val and isinstance(val[0], (list, tuple)):
+            rows = self._ensure_header(val, header) if header else [list(r) for r in val]
+            ncol = len(rows[0])
+            w = list(widths) if widths and len(widths) == ncol else [15.0 / ncol] * ncol
+            if prefix:
+                self.p('%s：' % label)
+            self.table(rows, w)
+            return
+        items = list(val) if isinstance(val, (list, tuple)) else [val]
+        if prefix and len(items) == 1:
+            self.p('%s：%s' % (label, items[0]))
+        elif prefix:
+            self.p('%s：' % label)
+            self.bullets(items)
+        else:
+            # 无标签：单条写一行、多条加项目符号（`bullets()` 已内置"单条不加圆点"）
+            self.bullets(items)
+
+    def _op_table(self, rows):
+        """操作说明表：`名称 | 类型 | 规则/说明`（★ 最核心，所有可点击元素都要进表）。"""
+        self.table(self._ensure_header(rows, DETAIL_HEADER), [3.5, 2.5, 9.0])
+
+    def _proto(self, val):
+        """界面原型图：文字 / 图片路径 / `{'图片':…, '图注':…}` / **上面几种组成的列表** ——
+        一个功能点常有多个入口、多个状态（原始文件 / AI 批注、首次确认 / 修改态…），逐张插。"""
+        items = list(val) if isinstance(val, (list, tuple)) else [val]
+        if any(isinstance(x, dict) or (x and os.path.isfile(str(x))) for x in items):
+            for x in items:
+                if isinstance(x, dict):
+                    fig = dict(x)
+                    self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
+                elif x and os.path.isfile(str(x)):
+                    self.figure(x, 图注='界面原型图')
+        else:
+            self.p('界面原型图：' + (val or '（此处插入页面截图）'))
+
+    def _func_section(self, spec):
+        """「功能说明」节：4 个固定子要素，顺序固定，缺则跳过。
+
+        · 功能概述   → **叙述段落**（首行缩进 2 字符，不加圆点）：这个页面是干什么用的
+        · 二级页面   → `二级页面 | 规则/说明` 表（一个菜单下挂多个并列页面时才用）
+        · 操作说明   → `名称 | 类型 | 规则/说明` 三列表（★ 核心）
+        · 界面原型图 → 截图（可传列表逐张插）或文字（`无`）
+
+        也接受**简写**：直接给一个字符串/一维列表 → 当作「功能概述」；
+        直接给二维列表 → 当作只有「操作说明」表。
         """
+        if isinstance(spec, str):
+            self.p_indent(spec)
+            return
+        if isinstance(spec, (list, tuple)) and spec and not isinstance(spec[0], (list, tuple)):
+            self.bullets(spec, indent=True, bullet=False)
+            return
+        if isinstance(spec, (list, tuple)):
+            self.p('操作说明：')
+            if spec:
+                self._op_table(spec)
+            return
+        for key in FUNC_KEYS:
+            if key not in spec:
+                continue
+            val = spec[key]
+            if key == '功能概述':
+                self.bullets(val if isinstance(val, (list, tuple)) else [val],
+                             indent=True, bullet=False)
+            elif key == '二级页面':
+                self._labelled(key, val, widths=(5.0, 10.0), header=['二级页面', '规则/说明'])
+            elif key == '操作说明':
+                self.p('操作说明：')
+                if val:
+                    self._op_table(val)
+            elif key == '界面原型图':
+                self._proto(val)
+
+    def _io_section(self, spec):
+        """「输入、输出」节（v1.3 新增）：**两段 + 两张三列表**。
+
+        `spec` 形如：
+
+            {'输入': [[数据项, 来源, 说明], …],      # 表头 数据项 | 来源 | 说明
+             '输出': [[数据项, 去向, 说明], …]}      # 表头 数据项 | 去向 | 说明
+
+        表头不用自己写，脚本按标准表头自动补；**来源 / 去向**要写清是
+        `人工录入`、`<哪个系统>对接` 还是 `系统推导` —— 这一节的价值全在这两列。
+        """
+        if not isinstance(spec, dict):
+            raise TypeError('输入输出 需要 dict，形如 {"输入": [[…]], "输出": [[…]]}')
+        if spec.get('输入') is not None:
+            self._labelled('输入', spec['输入'], widths=(4.0, 4.5, 6.5), header=IO_IN_HEADER)
+        if spec.get('输出') is not None:
+            self._labelled('输出', spec['输出'], widths=(4.0, 4.5, 6.5), header=IO_OUT_HEADER)
+
+    def req(self, title, 业务说明=None, 业务规则=None, 使用角色=None, 权限说明=None,
+            功能说明=None, 页面字段说明=None, 输入输出=None, level=4, **legacy):
+        """
+        生成一个完整需求点（**七节式**，v1.3 起替代原「四段式」）：
+
+            h{level}   功能点名称（默认 level=4；【菜单目录】的一级菜单本身即功能点时用 level=3；
+                       多页模块下用 level=5 → 七节落到 H6）
+              h{level+1} 业务说明     → **叙述段落**（首行缩进 2 字符，不加项目符号）
+              h{level+1} 业务规则     → 逐条列（项目符号）/ 二维 → 表格 / 单条一行；无则写「无」
+              h{level+1} 使用角色     → 逐条列（项目符号）
+              h{level+1} 权限说明     → **三要素**：菜单权限 / 功能权限 / 列表数据权限
+              h{level+1} 功能说明     → {'功能概述':…, '二级页面':表, '操作说明':表, '界面原型图':…}
+              h{level+1} 页面字段说明 → 表（字段名称|规则/说明）/ 逐条 / 单条
+              h{level+1} 输入、输出   → {'输入': 二维表, '输出': 二维表}（表头自动补）
+
+        `使用角色` 独立成节后，原「权限说明」的 `使用人员` 不再重复写（见 references/02）。
+        旧四段式的键名（用户场景 / 功能描述 / 补充说明 …）**会直接报错**并给出迁移指引 ——
+        见 `_LEGACY_KEYS`：四段式的「补充说明」在新结构里没有一一对应项，静默映射会写错文档。
+        """
+        for k in legacy:
+            if k in _LEGACY_KEYS:
+                new, why = _LEGACY_KEYS[k]
+                raise ValueError('v1.3 起需求点改用七节式：`%s` 已取消，请改用 `%s`。%s' % (k, new, why))
+            raise TypeError('req() 收到未知参数：%r（七节式为 %s）' % (k, ' / '.join(SECTIONS)))
         sec = level + 1
         self.h(level, title)
-        if 用户场景 is not None:
-            self.h(sec, SEC_USER)
-            # 主文档中「用户场景」正文为首行缩进 2 字符，其余小节不缩进。
-            # **这里不加项目符号**：用户场景是叙述段落，加圆点就变成清单了。
-            self.bullets(用户场景 if isinstance(用户场景, (list, tuple)) else [用户场景],
+        if 业务说明 is not None:
+            self.h(sec, SEC_BIZ_DESC)
+            # 叙述段落 + 首行缩进 2 字符 + **不加项目符号**（加了就变成清单）。
+            self.bullets(业务说明 if isinstance(业务说明, (list, tuple)) else [业务说明],
                          indent=True, bullet=False)
+        if 业务规则 is not None:
+            self.h(sec, SEC_BIZ_RULE)
+            self._labelled(SEC_BIZ_RULE, 业务规则, prefix=False)
+        if 使用角色 is not None:
+            self.h(sec, SEC_ROLE)
+            self._labelled(SEC_ROLE, 使用角色, prefix=False)
         if 权限说明 is not None:
             self.h(sec, SEC_PERM)
             self.bullets(权限说明 if isinstance(权限说明, (list, tuple)) else [权限说明])
-        if 功能描述 is not None:
+        if 功能说明 is not None:
             self.h(sec, SEC_FUNC)
-            for key in FUNC_KEYS:
-                if key not in 功能描述:
-                    continue
-                val = 功能描述[key]
-                if key in ('数据来源', '状态划分'):
-                    if isinstance(val, (list, tuple)) and val and isinstance(val[0], (list, tuple)):
-                        self.p('%s：' % key)
-                        self.table(val)            # 二维 → 状态/来源表格
-                        continue
-                    items = list(val) if isinstance(val, (list, tuple)) else [val]
-                    if len(items) == 1:            # 单项 → 与原文一致，标签与内容同行
-                        self.p('%s：%s' % (key, items[0]))
-                    else:
-                        self.p('%s：' % key)
-                        self.bullets(items)
-                elif key in ('操作说明', '二级页面', '字段说明'):
-                    self.p('%s：' % key)
-                    if val:
-                        self.table(val)
-                elif key == '界面原型图':
-                    # 三种写法都收：
-                    # · 文字（`'无'` / `'（此处插入页面截图）'`）→ 原样写一行；
-                    # · 图片路径（或 `{'图片':…, '图注':…}`）→ 直接插图；
-                    # · **上面两种组成的列表** —— 一个功能点常有多个入口 / 多个状态（原始文件 / AI 批注、
-                    #   首次确认 / 修改态…），逐张插，图注各写各的。
-                    items = list(val) if isinstance(val, (list, tuple)) else [val]
-                    if any(isinstance(x, dict) or (x and os.path.isfile(str(x))) for x in items):
-                        for x in items:
-                            if isinstance(x, dict):
-                                fig = dict(x)
-                                self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
-                            elif x and os.path.isfile(str(x)):
-                                self.figure(x, 图注='界面原型图')
-                    else:
-                        self.p('界面原型图：' + (val or '（此处插入页面截图）'))
-                elif key == '字段逻辑':
-                    if isinstance(val, (list, tuple)) and val and isinstance(val[0], (list, tuple)):
-                        self.p('字段逻辑：')
-                        self.table(val)            # 二维 → 表格
-                    else:
-                        items = list(val) if isinstance(val, (list, tuple)) else [val]
-                        self.p('字段逻辑：%s' % (items[0] if len(items) == 1 else ''))
-                        if len(items) > 1:
-                            self.bullets(items)
-        if 补充说明 is not None:
-            self.h(sec, SEC_EXTRA)
-            self.bullets(补充说明 if isinstance(补充说明, (list, tuple)) else [补充说明])
+            self._func_section(功能说明)
+        if 页面字段说明 is not None:
+            self.h(sec, SEC_FIELD)
+            self._labelled(SEC_FIELD, 页面字段说明, widths=(5.0, 10.0),
+                           header=FIELD_HEADER, prefix=False)
+        if 输入输出 is not None:
+            self.h(sec, SEC_IO)
+            self._io_section(输入输出)
 
     # ---------- 输出 ----------
     def save(self, path):
@@ -775,22 +903,39 @@ EXAMPLE = dict(
         ('h1', '底稿系统标准产品需求'),
         ('h2', 'WEB端需求'),
         ('h3', '首页'),
+        # ── 需求点：七节式（业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出）──
         ('req', dict(
             title='首页－底稿待办',
-            # 用户场景 = 叙述段落（不加项目符号）
-            用户场景=['为当前登录用户提供底稿待办处理，并可通过待办详情查看并处理项目的底稿任务待办。'],
-            # 权限说明 / 补充说明 = 逐条列 → 自动加项目符号
+            # ① 业务说明 = **叙述段落**（首行缩进 2 字符，不加项目符号）
+            业务说明=['为当前登录用户提供底稿待办处理，并可通过待办详情查看并处理项目的底稿任务待办。'],
+            # ② 业务规则 = 逐条列（自动加项目符号）/ 单条一行 / 二维 → 表格
+            业务规则=['待办仅展示当前登录用户有权处理的底稿目录，无权限的目录不出现在列表中。',
+                      '待办状态与底稿任务状态保持一致，底稿任务提交后待办自动消失。'],
+            # ③ 使用角色 = 逐条列（原来挤在「权限说明/使用人员」里的角色名，现在独立成节）
+            使用角色=['项目业务人员', '项目负责人', '质控人员'],
+            # ④ 权限说明 = **三要素**（使用人员已由「使用角色」承担，不再重复）
             权限说明=['菜单权限：登录用户均有首页权限', '功能权限：不涉及',
-                      '列表数据权限：所有需要当前登录用户处理的底稿目录', '使用人员：系统管理员'],
-            功能描述={
-                '数据来源': ['底稿详情页所有需处理的底稿目录'],
-                '状态划分': ['无'],
-                '操作说明': DETAIL([['提交', '按钮', '勾选需要提交的底稿目录，点击提交按钮可进行提交操作'],
-                                    ['更多操作', '下拉选择', '可进行底稿目录索引、附件引用等操作']]),
+                      '列表数据权限：所有需要当前登录用户处理的底稿目录'],
+            # ⑤ 功能说明 = 功能概述 + 二级页面 + 操作说明 + 界面原型图（顺序固定，按需给）
+            功能说明={
+                '功能概述': '首页以待办卡片形式汇总当前用户的底稿任务，点击可进入待办详情逐项处理。',
+                '操作说明': [   # 三列表，表头自动补；不写字面表头也行
+                    ['提交', '按钮', '勾选需要提交的底稿目录，点击提交按钮可进行提交操作'],
+                    ['更多操作', '下拉选择', '可进行底稿目录索引、附件引用等操作'],
+                ],
+                # 也可传图片路径（或 dict / 列表，多入口多状态各一张）：'界面原型图': r'…/ui_home_todo.png'
                 '界面原型图': '（此处插入页面截图）',
-                '字段逻辑': ['不涉及'],
             },
-            补充说明=['无'],
+            # ⑥ 页面字段说明 = 表（字段名称 | 规则/说明），表头自动补；简写可给 '不涉及'
+            页面字段说明=[['待办数量', '统计当前用户待处理底稿目录数，"0" 时置灰并显示"暂无待办"'],
+                          ['截止时间', '取底稿任务的计划完成时间，超过当天 24:00 显示为红色']],
+            # ⑦ 输入、输出（v1.3 新增）= 两段 + 两张三列表；表头自动补，来源/去向必须写清
+            输入输出={
+                '输入': [['待处理底稿目录', '底稿系统推导', '按当前登录用户的底稿权限过滤'],
+                         ['底稿任务计划完成时间', '底稿详情页人工录入', '用于待办排序与超期标红']],
+                '输出': [['已提交底稿目录', '去向：底稿详情页', '提交后写入项目底稿目录，状态改为"已提交"'],
+                         ['待办处理留痕', '去向：底稿系统日志', '记录处理人、处理时间与动作']],
+            },
         )),
         # —— 「本章节暂未收录的需求」这类段落级清单，用 bullets 块（真实项目符号）——
         ('h3', '本章节暂未收录的需求'),
@@ -815,8 +960,9 @@ EXAMPLE = dict(
         # ('h2', '需求总览'),
         # ('table', [['条目', '需求名称', '新系统主要落点'], ['1.0', '××对接增加字段', '系统对接说明']]),
         # ('h2', '功能需求'),
-        # ('req', dict(title='××', 用户场景=[...], 权限说明=[...], 功能描述={...},
-        #              补充说明=['定制需求梳理清单原始条目（第 4 部分）'], level=3)),
+        # ('req', dict(title='××', 业务说明=[...], 业务规则=[...], 使用角色=[...], 权限说明=[...],
+        #              功能说明={...}, 页面字段说明=[...], 输入输出={'输入': [...], '输出': [...]},
+        #              level=3)),
     ],
 )
 
