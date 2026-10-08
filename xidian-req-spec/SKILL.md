@@ -2,19 +2,26 @@
 name: xidian-req-spec
 display_name: 投行系统需求规格说明书写作
 display_name_en: Investment Banking Requirements Spec Writer
-description: 编写、补写或整理西点信息（顶点软件）投行类管理系统的《需求规格说明书》/需求文档。当用户提到“需求规格说明书”“需求文档”“需求说明书”“PRD”“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖底稿系统、自律报送系统、函证系统等 WEB端/助手端/手机端/客户端 需求。含生成脚本 build_req_spec.py（封面/修改历史/菜单目录/七节式需求点/三列明细表）与四条交付物硬要求：目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
-description_zh: 投行类管理系统《需求规格说明书》写作规范与 Word 生成器。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
-description_en: "Requirements-specification writing standard plus Word generator for investment-banking management systems. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
+description: 编写、补写或整理西点信息（顶点软件）投行类管理系统的《需求规格说明书》/需求文档。当用户提到“需求规格说明书”“需求文档”“需求说明书”“PRD”“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖单端与多端两种形态：H1 系统名按本次开发的功能来定，端别层（WEB端/移动端/助手端/客户端）按需、功能只落一个端时不设。含生成脚本 build_req_spec.py（封面/修改历史/菜单目录/七节式需求点/三列明细表）与四条交付物硬要求：目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
+description_zh: 投行类管理系统《需求规格说明书》写作规范与 Word 生成器。目录结构按需裁剪：H1 系统名按本次开发的功能定，端别层（WEB端/移动端/助手端/客户端）只在同一系统跨多端且各端需求不同时才设，功能只落一个端时整层省掉，定制化需求章默认不写。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
+description_en: "Requirements-specification writing standard plus Word generator for investment-banking management systems. The outline is trimmed on demand: the H1 system name follows the functionality actually being developed, the device/channel layer (web, mobile, assistant, desktop client) appears only when one system spans several channels with differing requirements, and the customization chapter is omitted by default. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
 category: writing
-version: "1.3.0"
+version: "1.4.0"
 author: 西点信息 · WorkBuddy
 agent_created: true
 ---
 
 # 需求规格说明书写作规范（西点信息 · 投行类系统）
 
-本技能沉淀自《开源证券工作底稿科技管理系统v4.0升级》需求规格说明书（v4.0.5，3187 段 / 221 表）。
+本技能沉淀自一份投行类管理系统的需求规格说明书（实测 v4.0.5，3187 段 / 221 表）。
 后续所有需求文档按此格式产出，保证与既有文档风格一致、可直接并入主文档。
+
+> **目录结构按需裁剪（v1.4）** —— 三处不要写死：
+> ① **H1 系统名按本次开发的功能来定**（写 `<系统名>标准产品需求`），不要沿用模板来源文档的系统名；
+> ② **端别层（`H2 WEB端需求` 这类）默认不设** —— 只有同一系统跨多个端且各端需求不同才加，
+>    功能只落一个端时整层省掉、一级功能模块直接挂 H1（功能点随之从 H4 上移到 H3）；
+> ③ **定制化需求章默认不写** —— 只有确有特殊定义、或明确属于定制功能时才追加。
+> 详见「文档骨架」与 `references/01-文档整体结构.md` 第三～六节。
 
 > **v1.3 起需求点结构为「七节式」**（`业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出`），
 > 替代 v4.0.5 及更早文档用的「四段式」。**同一份文档内不要混用两套结构**；要把新章节并入仍在用四段式的主文档时，
@@ -40,7 +47,9 @@ agent_created: true
 1. **需求点采用"七节式"**：`业务说明 → 业务规则 → 使用角色 → 权限说明 → 功能说明 → 页面字段说明 → 输入、输出`，顺序固定，无内容的节可整节省略（见 `references/02-需求点模板.md`）。**业务说明 / 功能说明 / 输入、输出 三节不能省。**
 2. **「输入、输出」必须成对写**：输入 = 这个功能点**运行需要**哪些数据（表 `数据项 | 来源 | 说明`），输出 = 它**产生或改变**哪些数据（表 `数据项 | 去向 | 说明`）。只写单向的"数据来源"是旧四段式写法，**不算完成**。
 3. **操作/字段明细一律用三列表**：`名称 | 类型 | 规则/说明`（112 张表、281 个"按钮"条目实测）。不要用散文描述按钮行为。
-4. **标题层级与【菜单目录】强对应**：H1 大板块 → H2 端别 → H3 一级功能模块 → H4 功能点（页面级）→ H5 七节式小节。禁止跳级。
+4. **标题层级与【菜单目录】强对应**：`H1 系统 →〔H2 端别〕→ 一级功能模块 → 功能点（页面级）→ 七节式小节`，禁止跳级。
+   **系统名按本次开发的功能来定**（写 `<系统名>标准产品需求`，不要沿用别的系统的名字）；
+   **端别层是按需的** —— 只有同一系统跨多个端且各端需求不同才设，功能只落一个端时整层不要（见下方骨架与 `references/01`）。
 
 ## 文档骨架（自上而下）
 
@@ -50,21 +59,28 @@ agent_created: true
 编写说明      3 条固定说明（原样保留）
 目录（TOC 域，**打开文档即按当前正文自动重排**，不必手动 F9）
 H1 菜单目录   +  表：一级菜单 | 二级菜单 | 三级菜单
-H1 底稿系统标准产品需求
-    H2 底稿3.0升级4.0变化概览 / WEB端需求 / 助手端需求 / 手机端需求 / 客户端需求
-        H3 一级功能模块（首页、项目管理、工作底稿管理、底稿统计分析、底稿任务基础维护、系统设置…）
-            H4 功能点（首页－底稿待办、项目列表、项目详情－项目看板…）
-                H5 业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出
-H1 自律报送系统标准产品需求
-    H2 WEB端需求 → H3 首页 / 项目报送管理 / 常规报送统计分析 / 常规报送记录 / 常规报送记录列表—详情页 …
-H1 定制化需求
-    H2 定制化需求引言（H3 编写目的 / 项目背景）
-    H2 需求总览    表：条目 | 需求名称 | 新系统主要落点
-    H2 系统对接需求  H3 各对接项 → 模块：xxx / 需求说明：
-    H2 功能需求     H3 需求名 → H5 七节式
+
+┌─ 默认形态：功能只落一个端，**不设端别层** ────────────────────
+H1 <系统名称>标准产品需求          ← 系统名按本次开发的功能定
+    H2 <版本>变化概览              ← 仅大版本升级时写；非功能点，不要挂功能点
+    H2 一级功能模块（首页 / ××管理 / ××统计分析 / ××基础维护 / 系统设置 …）
+        H3 功能点（页面级）
+            H4 业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出
+
+┌─ 多端形态：同一系统跨多个端且各端需求不同时才用 ───────────────
+H1 <系统名称>标准产品需求
+    H2 <端别>需求（WEB端 / 移动端 / 助手端 / 客户端 …；本期没需求的端不写）
+        H3 一级功能模块 → H4 功能点（页面级）→ H5 七节式
 ```
 
-H1 的数量按项目裁剪（只有底稿就只留第 1 个 H1），但**各章的先后顺序与命名不要改**。
+**裁剪口径**（详见 `references/01-文档整体结构.md` 第五、六节）
+
+- **系统**：本次需求涉及几个系统就留几个 `H1 <系统名>标准产品需求`，只涉及一个就留一个；
+- **端别层**：只落一个端 → 不设端别层（H2 直接是一级功能模块）；跨多端 → 只写本期有需求的端；
+- **定制化需求章**：**默认不写**。只有该功能确有特殊定义、或明确属于定制功能才追加这一章；
+  能并进标准产品功能点写的（如"多封函证共用一个快递面单"这类形态差异）一律并进去，不另立定制章。
+  不写时**连引言、需求总览、空标题一起省**（空标题会白占一个自动编号）；
+- **裁剪只删章节**，不要改章节名、不要重排顺序、不要手写序号（序号自动）。
 
 **「定制化需求」是按需章节**：项目没有定制内容就**整章不写** —— 连"定制化需求引言""需求总览"一起省，**不要留空标题**（空标题还会白占一个自动编号）。判断口径：一条需求如果本来就落在标准产品功能点上（比如"多封函证共用一个面单"这种形态差异），就并进对应功能点写，不另立定制章。
 
@@ -79,7 +95,8 @@ python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"
 - 以 `assets/需求规格说明书_模板.docx` 为底（已剥离正文，完整保留原文档的 styles.xml、numbering.xml、页眉页脚、多级标题自动编号）；**标题序号 1. / 1.1. / 1.1.1. / 1.1.1.1. 全自动，不要手写序号**；
 - 传入 SPEC 字典即可生成，示例见文件末尾 `EXAMPLE`；
 - 关键 API：`h1..h6` / `p` / `table` / `kv` / `bullets` / `fig` / `req(...)`（一次生成**七节式**）；
-  `req(..., level=4)` 默认产出 `H4 功能点 + H5 七节式`；当【菜单目录】的一级菜单本身就是功能点时传 `level=3`（产出 `H3 + H4 七节式`）；多页模块下传 `level=5`（七节落到 H6）。
+  `req(..., level=)` 传的是**功能点**的层级，按目录形态选：**单端（不设端别层）`3`** → 功能点 H3 + 七节 H4；
+  **多端（有端别层）`4`**（默认）→ 功能点 H4 + 七节 H5；多页模块再 +1 传 `5`；定制化需求章传 `3`。
   七节的入参名即节名：`业务说明` / `业务规则` / `使用角色` / `权限说明` / `功能说明` / `页面字段说明` / `输入输出`（注意「输入、输出」的参数名是 `输入输出`）。
   **旧四段式的键名（用户场景/功能描述/补充说明…）会直接报 `ValueError` 并给出迁移指引** —— 四段式的「补充说明」在七节式里没有一一对应项，静默映射会写错文档。迁移对照见 `references/02-需求点模板.md` 第九节。
 - 已知易踩坑：模板前置有一个空标题段同时承载分节符，脚本会自动摘掉其标题样式（不能删，否则页面设置丢失）；`findall` 请用 `body.findall(W)` 而非 `W+'p'`（`W` 已含 `}p`）。
@@ -161,7 +178,9 @@ python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"
 
 ## 自检清单（交付前逐条过）
 
-- [ ] 每个 H4 功能点都能在【菜单目录】里找到对应菜单，反之亦然（菜单与需求点不重复、不遗漏）
+- [ ] **H1 系统名是本次开发的系统** —— 不是照抄模板来源文档的系统名；涉及几个系统就几个 H1
+- [ ] **端别层按需**：功能只落一个端 → 不设端别层（H2 直接是一级功能模块）；设了端别层 → 只列本期有需求的端，没有需求的端不留空标题
+- [ ] 每个功能点都能在【菜单目录】里找到对应菜单，反之亦然（菜单与需求点不重复、不遗漏）
 - [ ] 每个功能点都有 `业务说明` / `功能说明` / `输入、输出` 这三节（**不能省**）；有权限差异的必须写 `权限说明`
 - [ ] **七节顺序固定**、节名未改写：业务说明 → 业务规则 → 使用角色 → 权限说明 → 功能说明 → 页面字段说明 → 输入、输出
 - [ ] **「输入、输出」成对写全**：输入表 `数据项|来源|说明`、输出表 `数据项|去向|说明` 都在，且**来源/去向写的是"人工录入 / 哪个系统对接 / 系统推导 / 去向：哪个页面"这一层**，不是技术实现（接口名、表名、SQL）
@@ -175,7 +194,7 @@ python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"
 - [ ] **每张表都有可见框线** —— 含从模板继承的**菜单目录表**（它自身是 `val="none"`，必须显式覆盖），表格数应与正文一一对上
 - [ ] **逐条列是真实项目符号**（numbering，不是手打"●"），且**条目内没有残留手写序号**（"● 1、…"是两层标记）；**业务说明 / 功能概述没有圆点**；单条内容不加圆点
 - [ ] **节标题下没有多余的标签行** —— `业务规则` / `使用角色` / `页面字段说明` 三节正文不写"业务规则："这类重复标签（`二级页面`/`操作说明`/`输入`/`输出` 例外，它们是节内子要素/分段）
-- [ ] 无定制内容时**不存在「定制化需求」章**（连空标题也没有）
+- [ ] **默认不存在「定制化需求」章** —— 只有该功能确有特殊定义、或明确属于定制功能才追加；不写时连引言、需求总览、空标题一起省
 - [ ] **XML 元素顺序自检**：pPr 里 `numPr` 在 `spacing`/`ind` 之前、tblPr 里 `tblBorders` 在 `tblLayout` 之前、settings 里 `updateFields` 在 `compat` 之前
 - [ ] 生成后**用 python-docx 读回一遍**（能读 ≠ Word 一定能开，但读不回一定有问题）
 
@@ -183,10 +202,10 @@ python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"
 
 | 文件 | 内容 |
 |---|---|
-| `references/01-文档整体结构.md` | 封面/修改历史/编写说明/菜单目录/三大章的完整骨架与裁剪规则 |
+| `references/01-文档整体结构.md` | 封面/修改历史/编写说明/菜单目录 + **正文结构（系统名按需、端别层按需、单端/多端两种形态）** + 层级对照 + 裁剪规则 + 定制化需求按需章节 |
 | `references/02-需求点模板.md` | **七节式**模板 + 每节的固定要素与边界口径（业务说明 vs 功能说明、使用角色 vs 权限说明…）+ 原文逐字范例 + **与旧四段式的对照表** |
 | `references/03-样式与编号规范.md` | 样式、字体、页面、多级自动编号、表格版式与**全边框**、项目符号、**插图尺寸与图注**、目录自动更新、元素顺序 |
 | `references/04-表格与词汇库.md` | 明细表规范、状态表、**输入/输出表的来源与去向用词表**、`类型` 列词表、权限句式、常用表述、项目符号用法 |
 | `assets/需求规格说明书_模板.docx` | 空模板（含全部样式与自动编号），可直接另存使用。**注意其中两个"坑"：菜单目录表无边框、菜单目录表里带着另一份文档的 52 行菜单、目录域里缓存着另一份文档的条目** —— 脚本已全部处理 |
-| `scripts/build_req_spec.py` | 字典驱动生成 docx（v1.1：目录自动更新 / 表格全边框 / 项目符号 / 清模板遗留行；v1.2：插图；**v1.3：需求点由四段式改为七节式 + 输入、输出节**） |
+| `scripts/build_req_spec.py` | 字典驱动生成 docx（v1.1：目录自动更新 / 表格全边框 / 项目符号 / 清模板遗留行；v1.2：插图；v1.3：需求点由四段式改为七节式 + 输入、输出节；**v1.4：目录结构按需裁剪 —— 系统名自定、端别层按需、定制化需求章默认不写**） |
 | `scripts/split_image_for_docx.py` | 把**过高的图**（差于 1:2.2）拆成上下两张，好在 A4 正文区里保住字号 |
