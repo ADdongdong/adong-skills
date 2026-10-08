@@ -7,6 +7,12 @@
 另修两处模板遗留：菜单目录表与修改历史表里的**上一份文档的行**、目录域里的**旧条目缓存**。
 （这三条同时写进了 SKILL.md 与 references/03、04。）
 
+版本 v1.2（2026-10-08）—— **插图**：`figure()` / `('fig', {...})` 块，图注用「列出段落1」样式、
+图片居中并按正文区**宽 15cm / 高 20.5cm** 双向封顶等比缩放（纵向流程图按高度反算宽度，
+否则一张图跨两三页）；`req(...)` 的 `界面原型图` 也支持直接传图片路径。
+图源建议先用 skill `mermaid转图片` 把 Markdown 里的 ```mermaid 块渲染成 PNG
+（`render_mermaid.py <md> --out <图目录> --format png --scale 3`）。
+
 用法：
     from build_req_spec import build
     build(SPEC, r'D:\\out\\XX需求规格说明书V1.0.docx')
@@ -23,7 +29,8 @@ SPEC 结构见文件末尾 EXAMPLE。核心特点：
 """
 import copy, os, re, shutil, sys, tempfile
 from docx import Document
-from docx.shared import Cm, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm, Pt, RGBColor
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -44,6 +51,41 @@ FUNC_KEYS = ['数据来源', '状态划分', '二级页面', '操作说明', '�
 DETAIL_HEADER = ['名称', '类型', '规则/说明']
 # 【菜单目录】表标准表头
 MENU_HEADER = ['一级菜单', '二级菜单', '三级菜单']
+
+# ---- 插图（v1.2）----
+IMG_CAPTION_SID = '25'      # 「列出段落1」样式（styleId 25）—— 主文档的图注就用它
+MAX_IMG_W_CM = 15.0         # 正文区宽度（A4 纵向减左右页边距）
+MAX_IMG_H_CM = 20.5         # 单页可用高度余量（A4 29.7cm − 上下页边距 − 图注）
+
+
+def _image_px(path):
+    """读图片像素尺寸；读不到返回 None（python-docx 自带图片头解析，无需 Pillow）。"""
+    try:
+        from docx.image.image import Image as _DocxImage
+        im = _DocxImage.from_file(str(path))
+        w = float(getattr(im, 'px_width', None) or im.width)
+        h = float(getattr(im, 'px_height', None) or im.height)
+        return (w, h) if w > 0 and h > 0 else None
+    except Exception:
+        return None
+
+
+def _fit_cm(path):
+    """按正文区尺寸等比缩放，返回 `(宽cm, 高cm)`；算不出比例时只给宽度、由 Word 等比缩放。
+
+    **纵向流程图必须按高度封顶**（实测：`flowchart TB` 长链路的图宽高比能到 1:1.8，
+    按 15cm 宽铺开就是 27cm 高 —— 一张图横跨两三页，读者得翻页对照）。所以：
+    先按最大宽度算高度，超过最大高度就**改按高度反算宽度**。
+    """
+    px = _image_px(path)
+    if not px:
+        return MAX_IMG_W_CM, None
+    ratio = px[1] / px[0]
+    w, h = MAX_IMG_W_CM, MAX_IMG_W_CM * ratio
+    if h > MAX_IMG_H_CM:
+        h = MAX_IMG_H_CM
+        w = h / ratio
+    return round(w, 2), round(h, 2)
 
 
 # tblPr 子元素的 schema 顺序。**顺序错，Word 打开会报"文档已损坏"** ——
@@ -564,6 +606,45 @@ class Builder:
             else:
                 (self.p_indent if indent else self.p)(it)
 
+    def figure(self, 图片, 图注=None, 宽度=None, 说明=None):
+        """**插一张图**（v1.2）：**图注在图片上方**（「列出段落1」样式、冒号结尾）+ 图片居中。
+
+        参数与 `req()` 一样用中文键：`('fig', dict(图注='…', 图片=r'…'))`。
+
+        规范见 `references/03-样式与编号规范.md` 第六节。三条尺寸约定：
+        · 宽上限 **15cm**（A4 纵向正文区）；
+        · 高上限 **20.5cm** —— 纵向流程图超过就**改按高度反算宽度**（否则一张图跨两三页）；
+        · 图注里**不写"图 4.5-1"这类编号**：标题编号是样式自动生成的，手写图号一旦插删章节就对不上。
+          用「回函管理业务数据分工：」这种**描述性图注**（主文档即如此）。
+
+        `图片` 不存在时插入灰色占位文字并打印警告，**不让整篇文档生成失败**。
+        """
+        if 图注:
+            cap = str(图注).strip()
+            if not cap.endswith(('：', ':')):
+                cap += '：'
+            p = self.doc.add_paragraph(cap, style=_sty(self.doc, IMG_CAPTION_SID))
+            fmt_para(p, line=LINE)
+            for r in p.runs:
+                fmt_run(r)
+        p = self.doc.add_paragraph()
+        fmt_para(p, line=LINE)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if not 图片 or not os.path.isfile(str(图片)):
+            r = p.add_run('[图表未找到：%s]' % (图片,))
+            fmt_run(r, color=RGBColor(0x99, 0x99, 0x99))
+            print('⚠ 图片不存在，已插入占位：', 图片)
+            return p
+        w_cm, h_cm = _fit_cm(图片) if 宽度 is None else (float(宽度), None)
+        run = p.add_run()
+        run.add_picture(str(图片), width=Cm(w_cm), height=(Cm(h_cm) if h_cm else None))
+        if 说明:
+            np_ = self.doc.add_paragraph(str(说明), style=_sty(self.doc, 'Normal'))
+            fmt_para(np_, line=LINE)
+            for r in np_.runs:
+                fmt_run(r)
+        return p
+
     # ---------- 需求点 ----------
     def req(self, title, 用户场景=None, 权限说明=None, 功能描述=None, 补充说明=None, level=4):
         """
@@ -609,7 +690,14 @@ class Builder:
                     if val:
                         self.table(val)
                 elif key == '界面原型图':
-                    self.p('界面原型图：' + (val or '（此处插入页面截图）'))
+                    # 传图片路径（或 {'图片':…, '图注':…}）→ **直接插图**；否则仍按文字写（"无" / 待补）
+                    if isinstance(val, dict):
+                        fig = dict(val)
+                        self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
+                    elif val and os.path.isfile(str(val)):
+                        self.figure(val, 图注='界面原型图')
+                    else:
+                        self.p('界面原型图：' + (val or '（此处插入页面截图）'))
                 elif key == '字段逻辑':
                     if isinstance(val, (list, tuple)) and val and isinstance(val[0], (list, tuple)):
                         self.p('字段逻辑：')
@@ -653,6 +741,8 @@ def build(spec, path):
             b.p(blk[1])
         elif kind == 'bullets':         # 段落级逐条列（真实项目符号）
             b.bullets(blk[1])
+        elif kind == 'fig':             # 插图：('fig', dict(图注=…, 图片=…, 宽度=…))
+            b.figure(**blk[1])
         elif kind == 'table':
             b.table(blk[1], blk[2] if len(blk) > 2 else None)
         elif kind == 'req':
@@ -695,6 +785,13 @@ EXAMPLE = dict(
         ('p', '以下内容本次未收录，后续版本补充：'),
         ('bullets', ['助手端 / 手机端 / 客户端需求（本期仅 WEB 端）',
                      '各功能点的界面原型图（原型见原型工程）']),
+        # —— 插图：图片路径不存在时会插灰色占位并打警告，不会让整篇文档生成失败 ——
+        # ('h3', '业务流程'),
+        # ('p', '回函管理的业务链路：……。下面三张图分别是……。'),
+        # ('fig', dict(图注='回函管理业务数据分工（AI 读取 / 人工定性 / 系统推导）',
+        #              图片=r'D:/proj/docs/figures/mermaid_0.png')),
+        # 也可以只给宽度（此时不再按高度封顶，自己确认不会跨页）：('fig', dict(图片=…, 宽度=12))
+
         # —— 定制化需求：**只有项目确有定制内容时才写**；没有就整章不写（含引言 / 需求总览），
         #     不要留空标题（空标题还会白占一个自动编号）。确有定制内容时照下面写：
         # ('h1', '定制化需求'),
