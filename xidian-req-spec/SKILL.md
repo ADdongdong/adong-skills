@@ -1,6 +1,13 @@
 ---
 name: xidian-req-spec
-description: 编写、补写或整理西点信息（顶点软件）投行类管理系统的《需求规格说明书》/需求文档。当用户提到"需求规格说明书""需求文档""需求说明书""PRD"“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖底稿系统、自律报送系统、函证系统等 WEB端/助手端/手机端/客户端 需求。含生成脚本 `build_req_spec.py`（封面/修改历史/菜单目录/**七节式**需求点/三列明细表）与四条交付物硬要求：**目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）**。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
+display_name: 投行系统需求规格说明书写作
+display_name_en: Investment Banking Requirements Spec Writer
+description: 编写、补写或整理西点信息（顶点软件）投行类管理系统的《需求规格说明书》/需求文档。当用户提到“需求规格说明书”“需求文档”“需求说明书”“PRD”“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖底稿系统、自律报送系统、函证系统等 WEB端/助手端/手机端/客户端 需求。含生成脚本 build_req_spec.py（封面/修改历史/菜单目录/七节式需求点/三列明细表）与四条交付物硬要求：目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
+description_zh: 投行类管理系统《需求规格说明书》写作规范与 Word 生成器。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
+description_en: "Requirements-specification writing standard plus Word generator for investment-banking management systems. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
+category: writing
+version: "1.3.0"
+author: 西点信息 · WorkBuddy
 agent_created: true
 ---
 
