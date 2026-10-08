@@ -695,12 +695,19 @@ class Builder:
                     if val:
                         self.table(val)
                 elif key == '界面原型图':
-                    # 传图片路径（或 {'图片':…, '图注':…}）→ **直接插图**；否则仍按文字写（"无" / 待补）
-                    if isinstance(val, dict):
-                        fig = dict(val)
-                        self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
-                    elif val and os.path.isfile(str(val)):
-                        self.figure(val, 图注='界面原型图')
+                    # 三种写法都收：
+                    # · 文字（`'无'` / `'（此处插入页面截图）'`）→ 原样写一行；
+                    # · 图片路径（或 `{'图片':…, '图注':…}`）→ 直接插图；
+                    # · **上面两种组成的列表** —— 一个功能点常有多个入口 / 多个状态（原始文件 / AI 批注、
+                    #   首次确认 / 修改态…），逐张插，图注各写各的。
+                    items = list(val) if isinstance(val, (list, tuple)) else [val]
+                    if any(isinstance(x, dict) or (x and os.path.isfile(str(x))) for x in items):
+                        for x in items:
+                            if isinstance(x, dict):
+                                fig = dict(x)
+                                self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
+                            elif x and os.path.isfile(str(x)):
+                                self.figure(x, 图注='界面原型图')
                     else:
                         self.p('界面原型图：' + (val or '（此处插入页面截图）'))
                 elif key == '字段逻辑':
