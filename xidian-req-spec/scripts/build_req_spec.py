@@ -34,6 +34,11 @@ from docx.shared import Cm, Pt, RGBColor
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
+try:                                   # Windows 控制台默认 GBK：日志里有中文/符号会直接抛异常
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, '..', 'assets', '需求规格说明书_模板.docx')
 

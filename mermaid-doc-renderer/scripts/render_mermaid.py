@@ -162,6 +162,35 @@ def run_chromium(html_path, extra_args):
     return subprocess.run(cmd, capture_output=True, timeout=90)
 
 
+def needed_window_height(dom, window_w=1800, pad=64, fallback=1400, cap=12000):
+    """从 `--dump-dom` 的 `<svg>` 推算**截图需要多大的窗口高度**。
+
+    **为什么必须算**（v1.2 修的一个真 bug）：旧版 headless 的 `--screenshot` **只截窗口，不截整页**
+    —— 窗口高度写死 1400px，而纵向流程图（`flowchart TB` 长链路）渲染出来常有两三千 px 高，
+    于是**图的下半截被静默切掉**。实测症状很隐蔽：PNG 能出、也不是空白、看不到任何报错，
+    只是**内容少了一块**；判断依据是 **PNG 的宽高比对不上 SVG 的 viewBox 宽高比**。
+    （这类错一旦进文档，没人会去数"这张图是不是少了两个框"，必须在这里拦住。）
+    """
+    m = re.search(r'<svg[^>]*>', dom or '')
+    if not m:
+        return fallback
+    tag = m.group(0)
+    vb = re.search(r'viewBox="([^"]+)"', tag)
+    mw = re.search(r'max-width:\s*([\d.]+)px', tag)
+    if not vb:
+        return fallback
+    try:
+        parts = [float(t) for t in vb.group(1).replace(',', ' ').split()]
+    except ValueError:
+        return fallback
+    if len(parts) != 4 or parts[2] <= 0:
+        return fallback
+    # SVG 实际渲染宽度 = min(窗口宽 − 内边距, svg 的 max-width)
+    rendered_w = min(window_w - 32, float(mw.group(1)) if mw else window_w)
+    h = parts[3] * (rendered_w / parts[2]) + pad
+    return int(min(max(h, 600), cap))
+
+
 def check_status_and_svg(dom):
     """从 DOM 的 <title> 实际运行时值判断渲染状态（注意：dump-dom 会包含
     内联 script 源码，裸搜 'MMD_READY' 会误命中 JS 字面量，必须用 <title> 标签）"""
@@ -278,11 +307,16 @@ def render_one(mermaid_code, idx, out_dir, fmt='png', scale=2, width=None, trim=
             print(f'  [{idx}] -> {name_base}.svg size=vector')
             return final
 
-        # ---- 第二遍：高清位图截图（DSF 缩放，放大窗口确保图不被截断）----
+        # ---- 第二遍：高清位图截图（DSF 缩放 + **按图高动态设窗口**，否则长图底部被截断）----
         png_path = os.path.join(tmp_dir, name_base + '.png')
+        win_h = needed_window_height(dom)
+        print(f'  [{idx}] 截图窗口 1800x{win_h}（按图高算，避免纵向长图被切）')
+        if win_h >= 12000:
+            print(f'  [{idx}] ⚠ 图过高（≥12000px），底部可能仍被截断 —— 建议把图拆成两张，或缩小字号')
         try:
             run_chromium(html_path, [
                 f'--virtual-time-budget={budget_ms}',
+                f'--window-size=1800,{win_h}',
                 f'--force-device-scale-factor={scale}',
                 f'--screenshot={png_path}'])
         except Exception as e:
