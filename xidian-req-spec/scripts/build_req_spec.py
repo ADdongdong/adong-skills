@@ -10,8 +10,13 @@ SPEC 结构见文件末尾 EXAMPLE。核心特点：
 - 以 assets/需求规格说明书_模板.docx 为底，完整继承原文档样式与多级标题自动编号
   （heading 1..6 = styleId 2..7，编号 1. / 1.1. / 1.1.1. / 1.1.1.1. 自动生成，无需手写序号）
 - 需求点用 ("req", {...}) 一次性生成「用户场景 / 权限说明 / 功能描述 / 补充说明」四段式
+- **目录（TOC 域）自动更新**：清掉模板带来的旧缓存条目 + 置 settings 的 updateFields，
+  在 Word/WPS 中打开即按当前正文重排，**不需要手动 F9**（见 _clear_toc_cache）
+- **每一张表都带全边框**：显式写 tblBorders（模板的菜单目录表本身是无边框的，
+  只套 Table Grid 样式压不住，见 _force_borders）
+- **逐条列用真实项目符号**（numbering 定义，不手打"●"）；用户场景保持叙述段落（见 bullets / bullet）
 """
-import os, shutil, sys, tempfile
+import copy, os, re, shutil, sys, tempfile
 from docx import Document
 from docx.shared import Cm, Pt
 from docx.oxml.ns import qn
@@ -32,6 +37,60 @@ SEC_EXTRA = '补充说明'
 FUNC_KEYS = ['数据来源', '状态划分', '二级页面', '操作说明', '界面原型图', '字段说明', '字段逻辑']
 # 「名称 / 类型 / 规则/说明」明细表标准表头
 DETAIL_HEADER = ['名称', '类型', '规则/说明']
+# 【菜单目录】表标准表头
+MENU_HEADER = ['一级菜单', '二级菜单', '三级菜单']
+
+
+# tblPr 子元素的 schema 顺序。**顺序错，Word 打开会报"文档已损坏"** ——
+# python-docx 1.2 的 CT_TblPr 只暴露了 tblStyle / tblLayout / jc / bidiVisual 的 get_or_add_*，
+# tblW / tblBorders 这些得自己按这个顺序插。
+TBLPR_SEQ = (
+    'w:tblStyle', 'w:tblpPr', 'w:tblOverlap', 'w:bidiVisual', 'w:tblStyleRowBandSize',
+    'w:tblStyleColBandSize', 'w:tblW', 'w:jc', 'w:tblCellSpacing', 'w:tblInd',
+    'w:tblBorders', 'w:shd', 'w:tblLayout', 'w:tblCellMar', 'w:tblLook',
+    'w:tblCaption', 'w:tblDescription', 'w:tblPrChange',
+)
+
+
+def _tbl_pr_set(tblPr, tag, **attrs):
+    """在 tblPr 里放一个 `<tag>`：**先删旧的，再按 schema 顺序插**（返回新元素）。"""
+    for el in tblPr.findall(qn(tag)):
+        tblPr.remove(el)
+    e = OxmlElement(tag)
+    for k, v in attrs.items():
+        e.set(qn(k), v)
+    tail = {qn(t) for t in TBLPR_SEQ[TBLPR_SEQ.index(tag) + 1:]}
+    for child in tblPr:
+        if child.tag in tail:
+            child.addprevious(e)
+            return e
+    tblPr.append(e)
+    return e
+
+
+def _para_of(el):
+    """往上找所属段落（域的 run 常被包在 `w:hyperlink` 里）。"""
+    p = el.getparent()
+    while p is not None and p.tag != W:
+        p = p.getparent()
+    return p
+
+
+def _field_runs(body):
+    """把正文里**与域有关**的 run 按文档顺序摊平：`[(run, 'begin'|'separate'|'end'|'instr', 文本), …]`。
+
+    处理目录/域必须按这个顺序做配对：段落结构（域跨段、子域嵌套）靠它才能算清。
+    """
+    seq = []
+    for r in body.iter(qn('w:r')):
+        fc = r.find(qn('w:fldChar'))
+        if fc is not None:
+            seq.append((r, fc.get(qn('w:fldCharType')), ''))
+            continue
+        it = r.find(qn('w:instrText'))
+        if it is not None:
+            seq.append((r, 'instr', (it.text or '').strip()))
+    return seq
 
 
 # ---- 与主文档一致的直接排版参数（实测自 v4.0.5 document.xml）----
@@ -99,20 +158,38 @@ def _set_cell(cell, text, bold=False):
     fmt_run(p.add_run(str(text)), bold=bold)
 
 
+def _force_borders(t):
+    """给表格写**显式全边框**（`tblBorders`，六个方向 single）。
+
+    **为什么不只靠 `tblStyle = 'Table Grid'`**（v1.1 修）：
+    · 模板里那张**菜单目录表本来是无边框的** —— 它的 `tblBorders` 六向全是 `val="none"`，
+      而**直接格式比样式更"具体"**，光套 `Table Grid` 样式压不住它，必须把 `none` 换掉；
+    · 文档里混着"样式给的框线"与"直接格式给的框线"，一旦某张表被复制粘贴过就说不清了。
+
+    所以统一在收尾时给**每一张**表都写死边框：`single` + `sz=4`（0.5pt，与主文档表格一致；
+    `sz=6` 会明显偏粗）+ `color=auto`（跟随文字色）。
+    """
+    b = _tbl_pr_set(t._tbl.tblPr, 'w:tblBorders')
+    for tag in ('w:top', 'w:left', 'w:bottom', 'w:right', 'w:insideH', 'w:insideV'):
+        e = OxmlElement(tag)
+        e.set(qn('w:val'), 'single'); e.set(qn('w:sz'), '4')
+        e.set(qn('w:space'), '0'); e.set(qn('w:color'), 'auto')
+        b.append(e)
+
+
 def _fix_table(t, widths):
+    """统一表格版式：固定列宽 + 表宽 100% + 全边框。"""
     t.autofit = False
     tblPr = t._tbl.tblPr
-    for tag in ('w:tblW', 'w:tblLayout'):
-        for el in tblPr.findall(qn(tag)):
-            tblPr.remove(el)
-    e = OxmlElement('w:tblW'); e.set(qn('w:type'), 'pct'); e.set(qn('w:w'), '5000'); tblPr.append(e)
-    e = OxmlElement('w:tblLayout'); e.set(qn('w:type'), 'fixed'); tblPr.append(e)
+    _tbl_pr_set(tblPr, 'w:tblW', **{'w:type': 'pct', 'w:w': '5000'})
+    _tbl_pr_set(tblPr, 'w:tblLayout', **{'w:type': 'fixed'})
     grid = t._tbl.find(qn('w:tblGrid'))
     if grid is not None:
         for gc in list(grid):
             grid.remove(gc)
-        for w in widths:
-            gc = OxmlElement('w:gridCol'); gc.set(qn('w:w'), str(int(w * 567))); grid.append(gc)
+        for wd in widths:
+            gc = OxmlElement('w:gridCol'); gc.set(qn('w:w'), str(int(wd * 567))); grid.append(gc)
+    _force_borders(t)
 
 
 class Builder:
@@ -121,6 +198,9 @@ class Builder:
         shutil.copy2(template, self._tmp)
         self.doc = Document(self._tmp)
         self._clear_skeleton()
+        self._clear_toc_cache()          # 目录：清掉模板带来的旧条目
+        self._auto_update_fields()       # 目录：打开文档即自动重排（不必手动 F9）
+        self._bullet_numid_value = None  # 项目符号的 numId 缓存（见 _bullet_numid）
 
     # ---------- 基础 ----------
     def _clear_skeleton(self):
@@ -155,6 +235,200 @@ class Builder:
             ppr.remove(st)
             for np in ppr.findall(qn('w:numPr')):
                 ppr.remove(np)
+
+    # ---------- 目录（TOC 域） ----------
+    def _clear_toc_cache(self, levels=None):
+        """**目录：清掉模板带过来的旧缓存结果，并把域标成"待更新"。**
+
+        模板 `assets/需求规格说明书_模板.docx` 的目录域里存着**另一份文档的条目**
+        （"1. 引言 / 1.1 编写目的 …"）。不清掉的话，凡是不自动更新域的阅读器（在线预览、
+        部分 WPS）打开就会显示这些**与本文档毫不相干**的条目 —— 比"空目录"更容易让人
+        以为文档写错了。清空后只剩「域起止 + `TOC \\o "1-3" \\h \\u` 指令」，
+        由 `_auto_update_fields()` 让 Word/WPS 打开时按当前正文重排。
+
+        实现要点（直接改 XML 的坑）：
+        · 目录缓存**跨多个段落**，每条一目；且**首条与域起点同段、末段与域终点同段** ——
+          所以要分三处清：独占的整段删掉、起点段删 `separate` 之后的、终点段删 `end` 之前的；
+        · 域的配平用**深度计数**（`begin` +1 / `end` -1 回到 0 即本域），别用"往后找第一个 end"，
+          因为域里嵌着 HYPERLINK / PAGEREF 这些子域，第一个 end 是子域的。
+        """
+        seq = _field_runs(self.doc.element.body)
+        begin = sep = None
+        for i, (r, kind, val) in enumerate(seq):
+            if kind == 'instr' and val.upper().startswith('TOC'):
+                if levels:
+                    self._set_toc_switch(r, levels)
+                for j in range(i - 1, -1, -1):
+                    if seq[j][1] == 'begin':
+                        begin = j
+                        break
+                for j in range(i + 1, len(seq)):
+                    if seq[j][1] == 'separate':
+                        sep = j
+                        break
+                break
+        if begin is None or sep is None:
+            return
+        depth, end = 0, None
+        for j in range(begin, len(seq)):
+            if seq[j][1] == 'begin':
+                depth += 1
+            elif seq[j][1] == 'end':
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+        if end is None or end <= sep:
+            return
+        sep_run, end_run = seq[sep][0], seq[end][0]
+        p_sep, p_end = _para_of(sep_run), _para_of(end_run)
+        # ① 域内独占的整段（一条目一段）整段删掉
+        node = p_sep.getnext()
+        while node is not None and node is not p_end:
+            nxt = node.getnext()
+            if node.tag in (W, T):
+                node.getparent().remove(node)
+            node = nxt
+        # ② 起点段：separate 之后的（首条缓存）删掉
+        node = sep_run.getnext()
+        while node is not None:
+            nxt = node.getnext()
+            p_sep.remove(node)
+            node = nxt
+        # ③ 终点段：end 之前的（末条缓存）删掉，**保留 end 与段落样式**
+        if p_end is not p_sep:
+            for node in list(p_end):
+                if node is end_run:
+                    break
+                if node.tag == qn('w:pPr'):
+                    continue
+                p_end.remove(node)
+        seq[begin][0].find(qn('w:fldChar')).set(qn('w:dirty'), 'true')
+
+    def _set_toc_switch(self, instr_run, levels):
+        """改目录的收录层级：`\\o "1-3"` → `\\o "1-4"` 等（默认沿用主文档的 1-3）。"""
+        it = instr_run.find(qn('w:instrText'))
+        it.text = re.sub(r'\\o\s+"[^"]*"', '\\o "%s"' % levels, it.text)
+        return it.text
+
+    def toc_levels(self, levels):
+        """对外：指定目录收录到几级标题（如 `'1-4'` 让 H4 功能点也进目录）。"""
+        for r, kind, val in _field_runs(self.doc.element.body):
+            if kind == 'instr' and val.upper().startswith('TOC'):
+                self._set_toc_switch(r, levels)
+                return True
+        return False
+
+    def _auto_update_fields(self):
+        """settings.xml 里置 `w:updateFields=true` —— 打开文档时自动更新域（含目录）。
+
+        **位置坑**：`w:updateFields` 在 CT_Settings 的元素顺序里夹在
+        `w:savePreviewPicture … alwaysMergeEmptyNamespace` 与
+        `w:hdrShapeDefaults / w:footnotePr / w:endnotePr / w:compat` 之间，
+        **不能随手 append 到 settings 末尾** —— 顺序错 Word 会报"文档已损坏"。
+        这里拿顺序上紧跟其后、且必然存在的 `w:compat` 当锚点，插到它前面。
+        """
+        settings = self.doc.settings.element
+        for el in settings.findall(qn('w:updateFields')):
+            el.set(qn('w:val'), 'true')
+            return
+        e = OxmlElement('w:updateFields')
+        e.set(qn('w:val'), 'true')
+        anchor = None
+        for tag in ('w:compat', 'w:docVars', 'w:rsids', 'w:mathPr', 'w:themeFontLang',
+                    'w:clrSchemeMapping', 'w:shapeDefaults', 'w:decimalSymbol', 'w:listSeparator'):
+            anchor = settings.find(qn(tag))
+            if anchor is not None:
+                break
+        if anchor is not None:
+            anchor.addprevious(e)
+        else:
+            settings.append(e)
+
+    # ---------- 项目符号 ----------
+    def _bullet_numid(self):
+        """取项目符号用的 `numId`（缓存一次）。见 `_find_or_make_bullet`。"""
+        if self._bullet_numid_value is None:
+            self._bullet_numid_value = self._find_or_make_bullet() or ''
+        return self._bullet_numid_value or None
+
+    def _find_or_make_bullet(self):
+        """**优先复用模板里现成的 bullet 定义** —— 缩进（`left=420 hanging=420`）与圆点样式
+        跟主文档完全一致，不用自己造。
+
+        模板里有好几种项目符号（`\\uf06c` 实心圆 / `\\uf0d8` 方块 / `\\uf0b2` 方点），
+        **优先挑实心圆** —— 中文商务文档的项目符号惯例就是实心圆，方块更像"子级标记"。
+        模板里连 bullet 定义都没有时**克隆**一份（新的 abstractNumId / numId，不动原有定义）；
+        连可克隆的源都没有则返回 `None`（调用处退回普通段落）。
+        """
+        numbering = self.doc.part.numbering_part.element
+        circles, others, src, src_circle = set(), set(), None, None
+        for an in numbering.findall(qn('w:abstractNum')):
+            lvl0 = None
+            for lvl in an.findall(qn('w:lvl')):
+                if (lvl.get(qn('w:ilvl')) or '0') == '0':
+                    lvl0 = lvl
+            if lvl0 is None:
+                continue
+            fmt = lvl0.find(qn('w:numFmt'))
+            if fmt is None or fmt.get(qn('w:val')) != 'bullet':
+                continue
+            aid = an.get(qn('w:abstractNumId'))
+            lt = lvl0.find(qn('w:lvlText'))
+            is_circle = lt is not None and (lt.get(qn('w:val')) or '') == '\uf06c'
+            (circles if is_circle else others).add(aid)
+            if src is None:
+                src = an
+            if is_circle and src_circle is None:
+                src_circle = an
+        for want in (circles, others):
+            if not want:
+                continue
+            for num in numbering.findall(qn('w:num')):
+                ref = num.find(qn('w:abstractNumId'))
+                if ref is not None and ref.get(qn('w:val')) in want:
+                    return num.get(qn('w:numId'))
+        if src_circle is not None:
+            src = src_circle
+        if src is None:
+            return None
+        new_an = copy.deepcopy(src)
+        for tag in ('w:nsid', 'w:tmpl'):      # 文档级标识，跟着复制会撞车
+            for el in new_an.findall(qn(tag)):
+                new_an.remove(el)
+        aid = str(max(int(x.get(qn('w:abstractNumId'))) for x in numbering.findall(qn('w:abstractNum'))) + 1)
+        new_an.set(qn('w:abstractNumId'), aid)
+        first_num = numbering.find(qn('w:num'))
+        if first_num is not None:
+            first_num.addprevious(new_an)     # abstractNum 必须排在所有 w:num 之前
+        else:
+            numbering.append(new_an)
+        nid = str(max(int(x.get(qn('w:numId'))) for x in numbering.findall(qn('w:num'))) + 1)
+        new_num = OxmlElement('w:num')
+        new_num.set(qn('w:numId'), nid)
+        ref = OxmlElement('w:abstractNumId')
+        ref.set(qn('w:val'), aid)
+        new_num.append(ref)
+        numbering.append(new_num)
+        return nid
+
+    def bullet(self, text):
+        """一条**项目符号**（真实编号列表，不是手打的"●"）：圆点样式与缩进由模板的
+        bullet 定义提供（左 420 悬挂 420）。
+
+        用在**逐条并列**的内容上：权限说明 / 补充说明 / 数据来源 / 状态划分 / 字段逻辑。
+        **用户场景不加** —— 它是叙述性段落，加了圆点会读成清单，反而不像"场景"。
+        """
+        p = self._add(text, 'Normal')
+        nid = self._bullet_numid()
+        if nid is None:
+            return p
+        ppr = p._p.get_or_add_pPr()
+        numpr = ppr.get_or_add_numPr()        # 按 schema 顺序插（必须在 w:spacing / w:ind 之前）
+        ilvl = OxmlElement('w:ilvl'); ilvl.set(qn('w:val'), '0')
+        numid = OxmlElement('w:numId'); numid.set(qn('w:val'), nid)
+        numpr.append(ilvl); numpr.append(numid)
+        return p
 
     def _add(self, text, style_key, first_line=None, line=LINE):
         p = self.doc.add_paragraph(text, style=_sty(self.doc, style_key))
@@ -196,9 +470,14 @@ class Builder:
         set_at(7, 系统名); set_at(8, 版本); set_at(17, 公司); set_at(18, 日期)
 
     def history(self, rows):
-        """文档修改历史表：[[版本号,修改日期,编写人,评审人,批准人,修改内容], ...]"""
-        tbls = self.doc.tables
-        t = tbls[0]
+        """文档修改历史表：[[版本号,修改日期,编写人,评审人,批准人,修改内容], ...]
+
+        与 `menu_table` 同理：**保留表头行、清掉其余行再追加**（模板表里带着上一版的记录，
+        直接追加会变成"旧记录 + 新记录"）。
+        """
+        t = self.doc.tables[0]
+        for tr in t._tbl.findall(qn('w:tr'))[1:]:
+            t._tbl.remove(tr)
         for r in rows:
             cells = t.add_row().cells
             for i, v in enumerate(r[:len(cells)]):
@@ -206,9 +485,21 @@ class Builder:
         _fix_table(t, [1.8, 2.4, 1.8, 1.8, 1.8, 5.4])
 
     def menu_table(self, rows):
-        """菜单目录表：[[一级菜单,二级菜单,三级菜单], ...]（含表头行）"""
+        """菜单目录表：[[一级菜单,二级菜单,三级菜单], ...]（可含表头行）
+
+        **模板里那张表带着底稿系统的整套菜单（52 行）**，而这里是"追加"语义 ——
+        不先清掉就会得到「底稿菜单 + 本系统菜单」两份。所以：**保留表头行、清掉其余行，再追加**
+        （传进来的表头行与模板表头重复，跳过）。
+
+        注意在 **XML 层**删行（`w:tr`）：python-docx 的 `table.rows` 视图与 XML 不完全同步，
+        有合并单元格时容易看漏。
+        """
         t = self.doc.tables[1]
+        for tr in t._tbl.findall(qn('w:tr'))[1:]:
+            t._tbl.remove(tr)
         for r in rows:
+            if list(r)[:3] == MENU_HEADER:
+                continue
             cells = t.add_row().cells
             for i, v in enumerate(r[:len(cells)]):
                 _set_cell(cells[i], v)
@@ -230,27 +521,44 @@ class Builder:
         """「标签：内容」单行 —— 权限说明 / 功能描述内部要素的标准句式。"""
         return self.p('%s：%s' % (label, value) if value else '%s：' % label)
 
-    def bullets(self, items, indent=False):
+    def bullets(self, items, indent=False, bullet=True):
+        """逐条列。
+
+        `bullet=True`（默认）→ **真实项目符号**（用 numbering 定义，圆点与悬挂缩进交给 Word 排）；
+        `bullet=False` → 普通段落（`indent=True` 时首行缩进 2 字符）。
+        **用户场景用 `bullet=False`**：它是叙述性段落，加圆点会被读成清单，反而不像"场景"。
+
+        **只有一条时不加圆点**（`len(items) == 1` → 普通段落）：单条内容写成一句话更自然，
+        「● 无」「● 不涉及」这类只有一个圆点跟着两个字的排版也会显得怪。
+        """
+        items = list(items)
+        use_bullet = bullet and len(items) > 1
         for it in items:
-            (self.p_indent if indent else self.p)(it)
+            if use_bullet:
+                self.bullet(it)
+            else:
+                (self.p_indent if indent else self.p)(it)
 
     # ---------- 需求点 ----------
     def req(self, title, 用户场景=None, 权限说明=None, 功能描述=None, 补充说明=None, level=4):
         """
         生成一个完整需求点：
             h{level}   功能点名称（默认 level=4；当【菜单目录】的一级菜单本身即功能点时用 level=3）
-              h{level+1} 用户场景      → 段落列表
-              h{level+1} 权限说明      → 段落列表（菜单权限/功能权限/列表数据权限/使用人员）
+              h{level+1} 用户场景      → **叙述段落**（首行缩进 2 字符，不加项目符号）
+              h{level+1} 权限说明      → 逐条列（**项目符号**；菜单权限/功能权限/列表数据权限/使用人员）
               h{level+1} 功能描述      → {'数据来源':[], '状态划分':[], '二级页面':表, '操作说明':表,
                                          '界面原型图':str, '字段逻辑':表/[], '字段说明':表}
-              h{level+1} 补充说明      → 段落列表（默认「无」）
+                                        （多条目 → 项目符号；二维列表 → 表格）
+              h{level+1} 补充说明      → 逐条列（**项目符号**，默认「无」）
         """
         sec = level + 1
         self.h(level, title)
         if 用户场景 is not None:
             self.h(sec, SEC_USER)
-            # 主文档中「用户场景」正文为首行缩进 2 字符，其余小节不缩进
-            self.bullets(用户场景 if isinstance(用户场景, (list, tuple)) else [用户场景], indent=True)
+            # 主文档中「用户场景」正文为首行缩进 2 字符，其余小节不缩进。
+            # **这里不加项目符号**：用户场景是叙述段落，加圆点就变成清单了。
+            self.bullets(用户场景 if isinstance(用户场景, (list, tuple)) else [用户场景],
+                         indent=True, bullet=False)
         if 权限说明 is not None:
             self.h(sec, SEC_PERM)
             self.bullets(权限说明 if isinstance(权限说明, (list, tuple)) else [权限说明])
@@ -310,12 +618,16 @@ def build(spec, path):
         b.history(spec['文档修改历史'])
     if spec.get('菜单目录'):
         b.menu_table(spec['菜单目录'])
+    if spec.get('目录层级'):            # 可选：'1-4' 让 H4 功能点也进目录（默认沿用主文档的 1-3）
+        b.toc_levels(spec['目录层级'])
     for blk in spec.get('body', []):
         kind = blk[0]
         if kind in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
             b.h(int(kind[1]), blk[1])
         elif kind == 'p':
             b.p(blk[1])
+        elif kind == 'bullets':         # 段落级逐条列（真实项目符号）
+            b.bullets(blk[1])
         elif kind == 'table':
             b.table(blk[1], blk[2] if len(blk) > 2 else None)
         elif kind == 'req':
@@ -330,14 +642,17 @@ DETAIL = lambda rows: [DETAIL_HEADER] + rows
 EXAMPLE = dict(
     封面=dict(系统名='工作底稿科技管理系统', 版本='需求说明书v4.1', 公司='西安西点信息技术有限公司', 日期='2026年9月'),
     文档修改历史=[['V1.0', '2026-09-16', '×××', '', '', '初稿']],
-    菜单目录=[['一级菜单', '二级菜单', '三级菜单'], ['首页', '', ''], ['项目管理', '我的项目', '']],
+    # 目录层级='1-4',   # 可选：让 H4 功能点也进目录（默认沿用主文档的 1-3）
+    菜单目录=[MENU_HEADER, ['首页', '', ''], ['项目管理', '我的项目', '']],
     body=[
         ('h1', '底稿系统标准产品需求'),
         ('h2', 'WEB端需求'),
         ('h3', '首页'),
         ('req', dict(
             title='首页－底稿待办',
+            # 用户场景 = 叙述段落（不加项目符号）
             用户场景=['为当前登录用户提供底稿待办处理，并可通过待办详情查看并处理项目的底稿任务待办。'],
+            # 权限说明 / 补充说明 = 逐条列 → 自动加项目符号
             权限说明=['菜单权限：登录用户均有首页权限', '功能权限：不涉及',
                       '列表数据权限：所有需要当前登录用户处理的底稿目录', '使用人员：系统管理员'],
             功能描述={
@@ -350,9 +665,24 @@ EXAMPLE = dict(
             },
             补充说明=['无'],
         )),
-        ('h1', '定制化需求'),
-        ('h3', '需求总览'),
-        ('table', [['条目', '需求名称', '新系统主要落点'], ['1.0', '××对接增加字段', '系统对接说明']]),
+        # —— 「本章节暂未收录的需求」这类段落级清单，用 bullets 块（真实项目符号）——
+        ('h3', '本章节暂未收录的需求'),
+        ('p', '以下内容本次未收录，后续版本补充：'),
+        ('bullets', ['助手端 / 手机端 / 客户端需求（本期仅 WEB 端）',
+                     '各功能点的界面原型图（原型见原型工程）']),
+        # —— 定制化需求：**只有项目确有定制内容时才写**；没有就整章不写（含引言 / 需求总览），
+        #     不要留空标题（空标题还会白占一个自动编号）。确有定制内容时照下面写：
+        # ('h1', '定制化需求'),
+        # ('h2', '定制化需求引言'),
+        # ('h3', '编写目的'),
+        # ('p', '本章节描述……'),
+        # ('h3', '项目背景'),
+        # ('p', '……'),
+        # ('h2', '需求总览'),
+        # ('table', [['条目', '需求名称', '新系统主要落点'], ['1.0', '××对接增加字段', '系统对接说明']]),
+        # ('h2', '功能需求'),
+        # ('req', dict(title='××', 用户场景=[...], 权限说明=[...], 功能描述={...},
+        #              补充说明=['定制需求梳理清单原始条目（第 4 部分）'], level=3)),
     ],
 )
 
