@@ -2,6 +2,11 @@
 """
 按《开源证券工作底稿科技管理系统v4.0升级》需求规格说明书规范生成 docx。
 
+版本 v1.1（2026-10-08）—— 相对 v1.0 补齐三件"用户明确要求、但原脚本靠人肉补"的事：
+① 目录（TOC 域）自动更新；② 每张表显式全边框；③ 逐条列用真实项目符号。
+另修两处模板遗留：菜单目录表与修改历史表里的**上一份文档的行**、目录域里的**旧条目缓存**。
+（这三条同时写进了 SKILL.md 与 references/03、04。）
+
 用法：
     from build_req_spec import build
     build(SPEC, r'D:\\out\\XX需求规格说明书V1.0.docx')
@@ -70,6 +75,24 @@ def _tbl_pr_set(tblPr, tag, **attrs):
 
 def _para_of(el):
     """往上找所属段落（域的 run 常被包在 `w:hyperlink` 里）。"""
+    p = el.getparent()
+    while p is not None and p.tag != W:
+        p = p.getparent()
+    return p
+
+
+# 条目开头的**手写序号**：`1、` `2.` `3）` `(4)` `（5）`
+LIST_NO_RE = re.compile(r'^\s*(?:\d+\s*[、.．)）]|[(（]\s*\d+\s*[)）])\s*')
+
+
+def _strip_list_no(text):
+    """去掉条目前的**手写序号**。
+
+    与项目符号同时出现会变成两层标记（"● 1、列表排序规则…"），所以**加圆点的场合**顺手去掉。
+    `p()` 写的普通段落不动 —— 那里保留手写序号是对的（主文档正文就是 `1、…` 的写法）。
+    若某条序号**被正文引用**（如"见第 4 点"），就别用 bullets，改用 `p()` 逐条写。
+    """
+    return LIST_NO_RE.sub('', str(text))
     p = el.getparent()
     while p is not None and p.tag != W:
         p = p.getparent()
@@ -418,8 +441,10 @@ class Builder:
 
         用在**逐条并列**的内容上：权限说明 / 补充说明 / 数据来源 / 状态划分 / 字段逻辑。
         **用户场景不加** —— 它是叙述性段落，加了圆点会读成清单，反而不像"场景"。
+
+        条目**开头的手写序号（`1、`）会被去掉** —— 不然会叠成"● 1、…"两层标记（见 `_strip_list_no`）。
         """
-        p = self._add(text, 'Normal')
+        p = self._add(_strip_list_no(text), 'Normal')
         nid = self._bullet_numid()
         if nid is None:
             return p
