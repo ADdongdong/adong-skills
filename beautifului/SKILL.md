@@ -15,6 +15,13 @@ description: >
   只想要配色、排版、阴影方案（那类用 better-colors / better-typography / beautiful-shadows / baseline-ui）。
 agent_created: true
 version: 1.0.0
+display_name: "AI 原生 UI 组件库"
+display_name_en: "AI-Native UI Component Library"
+description_zh: "Beautiful UI（beautifului.dev，MIT）21 个 AI 原生 UI 组件的 React 原码与零依赖单文件 HTML 移植版，附断网可用预览页和场景到组件的推荐引擎。"
+description_en: "Beautiful UI (beautifului.dev, MIT): 21 AI-native UI primitives shipped as both React source and zero-dependency single-file HTML, with an offline preview page and scenario-to-component recommendation engine."
+author: "哈哈栋"
+visibility: "public"
+category: "web-ui"
 ---
 
 # Beautiful UI 组件库
@@ -57,7 +64,7 @@ Beautiful UI 关注的是**当 AI 开始思考、用工具、改数据、提建�
 
 ### 轨道 A：React 项目（React 19 + Tailwind v4）
 
-读 `references/react-integration.md`。**关键前提：官网 registry 域名在本机不可达**，
+读 `references/react-integration.md`。**关键前提：官网 registry 域名不保证可达**，
 所以不要跑 `npx shadcn add https://www.beautifului.dev/r/...`，用离线路径：
 
 1. **推荐**：从 `assets/upstream/components/{primitives,atoms}/` 手拷 `.tsx`，
@@ -104,7 +111,7 @@ Beautiful UI 关注的是**当 AI 开始思考、用工具、改数据、提建�
 
 ## 已知坑（都在文档里展开了）
 
-- **`www.beautifului.dev` 与 `api.github.com` 在本机不可达** → 别用官网 registry 命令，用离线路径。
+- **`www.beautifului.dev` 与 `api.github.com` 不保证可达** → 别依赖官网 registry 命令，用离线路径。
 - **`@theme inline` 里的 `--radius-*` / `--ease-*` / `--font-*` 必须搬进 `:root`**，
   否则圆角与缓动曲线静默丢失。详见 `references/foundation-tokens.md`。
 - **`--shadow-btn/card/raised/overlay` 依赖 `shadow-plugin` 的 `--shadow-xs…lg`**，必须内联字面值。

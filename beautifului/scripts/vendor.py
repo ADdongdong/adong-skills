@@ -30,7 +30,8 @@ REPO = "slev12397/beautiful-ui"
 JSD_BASE = "https://cdn.jsdelivr.net/gh"
 DATA_API = "https://data.jsdelivr.com/v1/packages/gh"
 
-# 不依赖沙箱代理：本机 127.0.0.1:13715 已失效
+# 显式禁用代理走直连：环境里配置的代理未必可用，直连 jsdelivr 更可靠。
+# （可用 HTTPS_PROXY 环境变量覆盖你自己的代理设置。）
 _NO_PROXY = urllib.request.ProxyHandler({})
 
 _CTX = ssl.create_default_context()

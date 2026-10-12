@@ -2,10 +2,10 @@
 
 上游是 **React 19 + Tailwind CSS v4 + TypeScript** 的 shadcn registry。
 
-## ⚠️ 先看这一条：官网 registry 在本机不可达
+## ⚠️ 先看这一条：官网 registry 域名不保证可达
 
 上游每个 registry 条目的 `registryDependencies` 都指向
-`https://www.beautifului.dev/r/foundation.json`，而**这个域名在本机解析/连接失败**。
+`https://www.beautifului.dev/r/foundation.json`，而**这个域名存在解析/连接失败的情况**。
 所以直接跑官方 README 里的命令会卡住：
 
 ```bash

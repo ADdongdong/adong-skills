@@ -28,15 +28,24 @@ const ONLY = argOf('--only', null);
 const SCALE = Number(argOf('--scale', '2'));
 
 function loadPlaywright() {
+  // 候选顺序：显式环境变量 → Node 自带解析 → $NODE_PATH → ~ 下的 WorkBuddy 托管运行时。
+  // 托管路径用 os.homedir() 推导，**不写字面量用户名**，换机器也能命中。
+  const home = require('os').homedir();
   const cands = [
     process.env.PW_PATH,
     'playwright',
-    'C:/Users/10355/.workbuddy/binaries/node/workspace/node_modules/playwright',
+    process.env.NODE_PATH ? path.join(process.env.NODE_PATH, 'playwright') : null,
+    path.join(home, '.workbuddy', 'binaries', 'node', 'workspace', 'node_modules', 'playwright'),
   ].filter(Boolean);
   for (const c of cands) {
     try { return require(c); } catch { /* try next */ }
   }
-  throw new Error('找不到 playwright');
+  throw new Error(
+    '找不到 playwright。请任选一种方式：\n' +
+    '  · 在本目录 npm i playwright（或全局装）\n' +
+    '  · 设 PW_PATH=<playwright 所在目录>\n' +
+    '  · 设 NODE_PATH=<含 playwright 的 node_modules 目录>'
+  );
 }
 
 /**
@@ -351,7 +360,8 @@ async function main() {
   }
 
   await browser.close();
-  console.log(`[verify] 截图输出: ${SHOT_DIR}`);
+  // 只打印相对路径：绝对路径会被 self_test.py 抄进报告，把本机用户名带给别人
+  console.log(`[verify] 截图输出: ${path.relative(SKILL, SHOT_DIR) || SHOT_DIR}`);
   console.log(`[verify] 失败 ${bad} / ${targets.length}`);
   return bad === 0 ? 0 : 1;
 }

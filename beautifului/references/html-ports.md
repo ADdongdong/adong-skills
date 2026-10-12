@@ -469,11 +469,12 @@
 
 ```bash
 cd <skill 目录>
-PY="C:/Users/10355/.workbuddy/binaries/python/versions/3.14.3/python.exe"
-"$PY" scripts/build_ports.py           # 重新组装全部移植件并刷新本文件
-# 渲染验证 + 截图（需绕开沙箱代理）
-NODE_PATH="C:/Users/10355/.workbuddy/binaries/node/workspace/node_modules" \
-  "C:/Users/10355/.workbuddy/binaries/node/versions/22.22.2-6/node.exe" scripts/verify_ports.cjs
+python scripts/build_ports.py            # 重新组装全部移植件并刷新本文件
+NODE_PATH=$(npm root -g) node scripts/verify_ports.cjs   # 渲染验证 + 截图到 _verify/
 ```
+
+> 脚本会自动找运行时：优先 `$NODE_BIN` / `$NODE_PATH`，其次 PATH 上的 `node`，
+> 最后回落到 `~/.workbuddy/binaries/` 下的托管运行时。
+> 若渲染验证需要浏览器而当前环境受限，可先跳过它。
 
 改上游之后的完整重生成流程见 `README.md`。

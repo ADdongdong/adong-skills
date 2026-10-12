@@ -119,22 +119,19 @@ body += '<tr class="records-row ' + cls + '">';        // 变量插在 class 值
 ## 5. 命令
 
 ```bash
-PY="C:/Users/10355/.workbuddy/binaries/python/versions/3.14.3/python.exe"
-NODE="C:/Users/10355/.workbuddy/binaries/node/versions/22.22.2-6/node.exe"
-
 # 组装单个（也会做类名覆盖检查）
-"$PY" -u scripts/build_ports.py --only <slug>
+python -u scripts/build_ports.py --only <slug>
 
 # 渲染验证 + 截图到 _verify/<slug>.{light,dark}.png
-NODE_PATH="C:/Users/10355/.workbuddy/binaries/node/workspace/node_modules" \
-  "$NODE" scripts/verify_ports.cjs --only <slug>
+NODE_PATH=$(npm root -g) node scripts/verify_ports.cjs --only <slug>
 ```
 
 **必须做到**：build 输出「未覆盖类 0」，verify 输出 `OK`。
 然后**用 Read 工具看 `_verify/<slug>.light.png`**，确认视觉真的对（空白/错位/字太小都算失败）。
 
-注意：这些命令需要网络被禁用的沙箱之外才能跑（Playwright 启动浏览器）。若沙箱拦截，
-把命令重试时开启「跳过沙箱」。Google Fonts 外链在离线时会失败，验证脚本已刻意忽略该噪声。
+注意：脚本会自动找运行时（`$NODE_BIN` / `$NODE_PATH` → PATH 上的 `node` → `~/.workbuddy/binaries/`）。
+Playwright 需要启动浏览器，若当前沙箱拦住了，重试时开启「跳过沙箱」。
+Google Fonts 外链在离线时会失败，验证脚本已刻意忽略该噪声。
 
 ## 6. 质量红线
 

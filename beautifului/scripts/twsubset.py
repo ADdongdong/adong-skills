@@ -26,6 +26,7 @@ import glob
 import os
 import re
 import sys
+import tempfile
 from collections import OrderedDict
 
 SPACING_REM = 0.25
@@ -1042,10 +1043,12 @@ def main() -> int:
     handled = len(allc) - len(unhandled)
     print(f"files={len(files)} classes={len(allc)} handled={handled} unhandled={len(unhandled)}")
     if args.report:
-        out = "C:/Users/10355/.workbuddy/tmp_bui/unhandled.txt"
+        # 写系统临时目录，不要硬编码某个人的绝对路径
+        out = os.path.join(tempfile.gettempdir(), "beautifului-unhandled.txt")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", encoding="utf-8") as fh:
             fh.write("\n".join(unhandled))
+        print("报告写入: %s" % out)
         print("\n".join(f"  ? {c}" for c in unhandled))
     return 0
 

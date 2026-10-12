@@ -97,20 +97,23 @@ beautifului/
 
 ```bash
 cd <这个 skill 目录>
-PY="C:/Users/10355/.workbuddy/binaries/python/versions/3.14.3/python.exe"
-NODE="C:/Users/10355/.workbuddy/binaries/node/versions/22.22.2-6/node.exe"
 
-"$PY" scripts/vendor.py            # 重新拉上游（会更新 PROVENANCE.json）
-"$PY" scripts/extract.py           # 落地 registry 内嵌的 app/beautifui/*.css
-"$PY" scripts/make_foundation.py   # 重新生成 foundation.standalone.css（带令牌断言）
-"$PY" scripts/build_ports.py       # 重新组装全部移植件
-"$PY" scripts/build_preview.py     # 重新生成预览页
-NODE_PATH="C:/Users/10355/.workbuddy/binaries/node/workspace/node_modules" \
-  "$NODE" scripts/verify_ports.cjs # 渲染验证 + 截图到 _verify/
+python scripts/vendor.py            # 重新拉上游（会更新 PROVENANCE.json）
+python scripts/extract.py           # 落地 registry 内嵌的 app/beautifui/*.css
+python scripts/make_foundation.py   # 重新生成 foundation.standalone.css（带令牌断言）
+python scripts/build_ports.py       # 重新组装全部移植件 + 刷新 references/html-ports.md
+python scripts/build_preview.py     # 重新生成预览页
+python scripts/self_test.py         # 全套自测
+NODE_PATH=$(npm root -g) node scripts/verify_ports.cjs   # 渲染验证 + 截图到 _verify/
 ```
 
-> ⚠️ 本机 `www.beautifului.dev` 与 `api.github.com` **不可达**，`raw.githubusercontent.com` 时通时断。
-> `vendor.py` 走的是 `cdn.jsdelivr.net`（实测稳定）。所有联网命令需绕开沙箱代理。
+> 脚本会自行定位运行时：优先 `$NODE_BIN` / `$NODE_PATH`，其次 PATH 上的 `node`，
+> 最后回落到 `~/.workbuddy/binaries/` 下的托管运行时 —— 换机器不用改代码。
+
+> ⚠️ **若** `www.beautifului.dev` 或 `api.github.com` 不可达（两者都可能发生，官网域名尤其如此），
+> 官方 registry 命令与 GitHub API 都用不了。`vendor.py` 因此走 `cdn.jsdelivr.net`，实测最稳。
+> 沙箱默认代理有时是失效的，联网命令若报 `Failed to connect ... over proxy`，
+> 需显式禁用代理（`curl --noproxy '*'`）并在沙箱外执行。
 
 ## 许可证
 

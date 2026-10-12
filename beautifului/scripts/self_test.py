@@ -20,13 +20,45 @@ import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime
 
+
+def _resolve_node() -> str:
+    """定位 node 可执行文件。
+
+    顺序：$NODE_BIN → PATH 上的 node → WorkBuddy 托管运行时。
+    托管路径一律用 ~ 推导，**不写字面量用户名** —— 这样在本机可用，
+    换一台机器（同样的 WorkBuddy 布局）也不用改代码。
+    """
+    env = os.environ.get("NODE_BIN")
+    if env and os.path.exists(env):
+        return env
+    found = shutil.which("node")
+    if found:
+        return found
+    versions = os.path.expanduser("~/.workbuddy/binaries/node/versions")
+    if os.path.isdir(versions):
+        cands = sorted(glob.glob(os.path.join(versions, "*", "node.exe")), reverse=True)
+        if cands:
+            return cands[0]
+    return "node"          # 交给 PATH 解析，失败时 D 组会如实报错
+
+
+def _resolve_node_path() -> str:
+    """定位 node_modules（playwright 装在这里）。空串表示不额外设 NODE_PATH。"""
+    env = os.environ.get("NODE_PATH")
+    if env and os.path.isdir(env):
+        return env
+    cand = os.path.expanduser("~/.workbuddy/binaries/node/workspace/node_modules")
+    return cand if os.path.isdir(cand) else ""
+
+
 PY = sys.executable
-NODE = "C:/Users/10355/.workbuddy/binaries/node/versions/22.22.2-6/node.exe"
-NODE_PATH = "C:/Users/10355/.workbuddy/binaries/node/workspace/node_modules"
+NODE = _resolve_node()
+NODE_PATH = _resolve_node_path()
 
 EXPECTED_SLUGS = [
     "loading-state", "thinking-state", "streaming-text", "approval-card", "tool-chips",
@@ -102,8 +134,12 @@ class Report:
             "",
             "```bash",
             "cd <skill 目录>",
-            f'"{PY}" scripts/self_test.py',
+            "python scripts/self_test.py",
             "```",
+            "",
+            "> 脚本会自行定位 node 与 playwright：优先 `$NODE_BIN` / `$NODE_PATH`，"
+            "其次 PATH 上的 `node`，最后回落到 `~/.workbuddy/binaries/` 下的托管运行时；",
+            "> 都不行时用 `--no-browser` 跳过渲染验证（D 组）。",
             "",
         ]
         return "\n".join(out)
@@ -223,7 +259,10 @@ def main() -> int:
     if args.no_browser:
         d.append((True, "已跳过（--no-browser）"))
     else:
-        env = dict(os.environ, NODE_PATH=NODE_PATH)
+        # NODE_PATH 解析不到就不设，让 verify_ports.cjs 自己按候选顺序找 playwright
+        env = dict(os.environ)
+        if NODE_PATH:
+            env["NODE_PATH"] = NODE_PATH
         cmd = [NODE, os.path.join(root, "scripts", "verify_ports.cjs")]
         try:
             pr = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=900,
