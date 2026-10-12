@@ -1,0 +1,332 @@
+<!-- title: Sidebar Nav -->
+<!--@classes: translate-x-0 opacity-100 pointer-events-auto opacity-0 pointer-events-none -translate-x-1 bg-hover-2 group-hover/glide:bg-transparent text-ink rotate-180 -->
+<!-- 来源：components/primitives/SidebarNav.tsx（上游 MIT）
+     保真：几何 224px 展开 / 52px 收起、内层固定 224px 树被外壳裁剪、
+           「两种状态下每个 rail 图标都居中在 x=26」——逐字保留；
+           SIDEBAR_MOTION(duration 280 / copyDuration 180 / copyOffset 8 /
+           easing cubic-bezier(0.16,1,0.3,1)) 与 CHAT_SEARCH_MOTION(180/28) 照搬；
+           折叠、工作区菜单、聊天搜索、聊天历史过滤、GlideMenu 滑动高亮全部保留。
+     依赖降级：上游 import 的付费图标库 @central-icons-react（12 个图标）已替换为
+           **lucide（ISC）等价图标的内联 SVG**，视觉略有差异（线条更简洁）。
+           映射：Popsicle2→ice-cream-cone、ChevronDownSmall→chevron-down、
+           MagnifyingGlass→search、CrossSmall→x、EditBig→square-pen、
+           Home→home、UserAdd→user-plus、Checkmark1Small→check、
+           PlusMedium→plus、SettingsGear1→settings、
+           SidebarLeftArrow→panel-left-close（展开态 rotate-180）、
+           ArrowBoxLeft→log-out。
+     GlideMenu（primitives/GlideMenu.tsx）已内联为 initGlide()。
+     @classes 声明的是 JS 里分支/动态产生的类（导航选中态、搜索开合态、
+     折叠时展开控件的 rotate-180）。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>侧边导航</strong> — 可折叠的工作区 / 聊天导航树。展开 224px、收起 52px，
+    收起时靠裁剪保持每个 rail 图标居中（x=26）。含工作区切换菜单、聊天搜索、
+    聊天历史与滑动高亮（GlideMenu）——鼠标在行间移动时高亮块会「滑」过去。
+    <em>付费图标已替换为 lucide 等价图标。</em>
+  </p>
+  <div id="sb-host"></div>
+</div>
+
+<script>
+(function () {
+  /* ── lucide 等价图标（ISC）——替换 @central-icons-react（付费） ── */
+  function svg(inner, size, extra) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra ? ' class="' + extra + '"' : '') + '>' + inner + '</svg>';
+  }
+  var I = {
+    home: function (s) { return svg('<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', s); },
+    userAdd: function (s) { return svg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>', s); },
+    editBig: function (s) { return svg('<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>', s); },
+    chevronDown: function (s) { return svg('<path d="m6 9 6 6 6-6"/>', s); },
+    search: function (s) { return svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', s); },
+    cross: function (s) { return svg('<path d="M18 6 6 18M6 6l12 12"/>', s); },
+    check: function (s) { return svg('<path d="M20 6 9 17l-5-5"/>', s); },
+    plus: function (s) { return svg('<path d="M5 12h14M12 5v14"/>', s); },
+    settings: function (s) { return svg('<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>', s); },
+    sidebar: function (s, extra) { return svg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>', s, extra); },
+    logOut: function (s) { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>', s); },
+    popsicle: function (s) { return svg('<path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/>', s); }
+  };
+
+  var WORKSPACE = { key: "creamery", name: "Creamery Ops", monogram: "C" };
+  var NAV_ITEMS = [
+    { key: "home", label: "Home", icon: I.home(18) },
+    { key: "invite", label: "Invite users", icon: I.userAdd(18), count: "3/10" }
+  ];
+  var DEFAULT_RECENTS = [
+    { id: "suppliers", label: "Supplier records" },
+    { id: "todos", label: "Urgent to-dos this morning" },
+    { id: "flavor", label: "Flavor page ticket" },
+    { id: "workload", label: "Workload summary" },
+    { id: "offboarding", label: "Off-board a supplier" },
+    { id: "restock", label: "Batch restock function" },
+    { id: "edits", label: "Propose flavor edits" },
+    { id: "subway", label: "Subway surfing" }
+  ];
+
+  var SIDEBAR_MOTION = { expandedWidth: 224, collapsedWidth: 52, duration: 280, copyDuration: 180, copyOffset: 8, easing: "cubic-bezier(0.16, 1, 0.3, 1)" };
+  var CHAT_SEARCH_MOTION = { duration: 180, closedWidth: 28, easing: "cubic-bezier(0.16, 1, 0.3, 1)" };
+
+  var GLIDE_STYLE = 'top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease';
+
+  /* ── state ── */
+  var collapsed = false;
+  var currentNav = "chats";
+  var activeTitle = null;
+  var workspaceOpen = false;
+  var searchOpen = false;
+  var query = "";
+
+  /* ── markup ── */
+  function railButton(icon, label, active, count, navKey) {
+    return '<button data-row type="button" ' + (navKey ? 'data-nav="' + navKey + '" ' : '') + 'class="sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98] '
+      + (active ? "bg-hover-2 group-hover/glide:bg-transparent" : "") + '">'
+      + '<span class="flex size-5 shrink-0 items-center justify-center ' + (active ? "text-ink" : "text-ink-2") + '">' + icon + '</span>'
+      + '<span class="sidebar-copy ml-1.5 min-w-0 flex-1 truncate text-[14px] font-medium ' + (active ? "text-ink" : "text-ink-2") + '">' + label + '</span>'
+      + (count ? '<span class="sidebar-copy mr-2 shrink-0 text-[12px] font-medium tabular-nums text-ink-3">' + count + '</span>' : '')
+      + '</button>';
+  }
+
+  function railHTML() {
+    var h = railButton(I.editBig(18), "New chat", false, null, "chats");
+    NAV_ITEMS.forEach(function (item) {
+      h += railButton(item.icon, item.label, currentNav === item.key, item.count, item.key);
+    });
+    return h;
+  }
+
+  function recentButton(item, active) {
+    return '<button data-row type="button" data-recent="' + item.id + '" title="' + item.label + '" class="sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98] '
+      + (active ? "bg-hover-2 group-hover/glide:bg-transparent" : "") + '">'
+      + '<span class="sidebar-copy min-w-0 flex-1 truncate text-[14px] font-medium ' + (active ? "text-ink" : "text-ink-2") + '">' + item.label + '</span>'
+      + '</button>';
+  }
+
+  function asideHTML() {
+    return '<aside data-sidebar-collapsed="false" aria-label="Workspace navigation" class="relative flex shrink-0 overflow-hidden transition-[width] h-[600px]" '
+      + 'style="width:' + SIDEBAR_MOTION.expandedWidth + 'px;transition-duration:' + SIDEBAR_MOTION.duration + 'ms;transition-timing-function:' + SIDEBAR_MOTION.easing + ';'
+      + '--sidebar-copy-duration:' + SIDEBAR_MOTION.copyDuration + 'ms;--sidebar-copy-offset:' + SIDEBAR_MOTION.copyOffset + 'px;--sidebar-easing:' + SIDEBAR_MOTION.easing + '">'
+      + '<div class="flex min-h-0 w-[224px] shrink-0 flex-col">'
+      +   '<div class="relative mb-2.5 h-10 shrink-0">'
+      +     '<button data-workspace-trigger type="button" aria-expanded="false" class="sidebar-workspace-control absolute left-2 top-1 flex h-8 w-[164px] items-center rounded-[8px] px-2 text-left transition-[background-color,transform] duration-100 hover:bg-hover-2 active:scale-[0.99]">'
+      +       '<span class="sidebar-logo flex size-5 shrink-0 items-center justify-center text-ink">' + I.popsicle(18) + '</span>'
+      +       '<span class="sidebar-copy ml-1.5 min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2">' + WORKSPACE.name + '</span>'
+      +       '<span class="sidebar-copy ml-1 flex shrink-0 text-ink-3">' + I.chevronDown(16) + '</span>'
+      +     '</button>'
+      +     '<button type="button" aria-label="Collapse sidebar" data-collapse class="sidebar-collapse-control absolute right-2 top-1 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color] duration-150 hover:bg-hover-2 hover:text-ink">' + I.sidebar(18) + '</button>'
+      +     '<button type="button" aria-label="Expand sidebar" data-expand class="sidebar-expand-control absolute left-2 top-0.5 flex size-9 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color] duration-150 hover:bg-hover-2 hover:text-ink">' + I.sidebar(18, "rotate-180") + '</button>'
+      +   '</div>'
+      /* primary nav — gliding hover */
+      +   '<div data-glide-root data-row-selector="[data-row]" class="group/glide relative flex flex-col gap-px">'
+      +     '<span aria-hidden data-glide-layer class="pointer-events-none absolute sidebar-glide-highlight rounded-[7px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +     '<div data-rail-rows class="contents">' + railHTML() + '</div>'
+      +   '</div>'
+      +   '<div class="mt-3 min-h-0 flex-1 overflow-y-auto">'
+      +     '<div class="sidebar-copy relative mx-2 mb-1 h-8">'
+      +       '<div data-chats-label aria-hidden="false" class="absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-3 transition-[opacity,transform] translate-x-0 opacity-100" style="transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms;transition-timing-function:' + CHAT_SEARCH_MOTION.easing + '">'
+      +         I.chevronDown(16) + '<span>Chats</span>'
+      +       '</div>'
+      +       '<button type="button" aria-label="Search chats" aria-expanded="false" data-search-open class="absolute right-0 top-0 z-10 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color,transform] hover:bg-hover-2 hover:text-ink active:scale-[0.96] opacity-100" style="transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms">' + I.search(16) + '</button>'
+      +       '<div data-search-field class="absolute right-0 top-0 z-20 flex h-8 items-center overflow-hidden rounded-[8px] bg-field text-ink-3 shadow-hairline transition-[width,opacity] focus-within:text-ink-2 pointer-events-none opacity-0" style="width:' + CHAT_SEARCH_MOTION.closedWidth + 'px;transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms;transition-timing-function:' + CHAT_SEARCH_MOTION.easing + '">'
+      +         '<span class="ml-2 flex shrink-0 items-center justify-center">' + I.search(15) + '</span>'
+      +         '<input data-search-input type="text" placeholder="Search chats" aria-label="Search chat history" class="ml-1.5 min-w-0 flex-1 bg-transparent text-[13px] font-medium text-ink outline-none placeholder:text-ink-3">'
+      +         '<button type="button" aria-label="Close chat search" data-search-close class="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-ink-3 transition-[background-color,color,transform] duration-150 hover:bg-hover-2 hover:text-ink active:scale-[0.96]">' + I.cross(16) + '</button>'
+      +       '</div>'
+      +     '</div>'
+      +     '<div data-glide-root data-row-selector="[data-row]" class="group/glide relative flex flex-col gap-px">'
+      +       '<span aria-hidden data-glide-layer class="pointer-events-none absolute sidebar-glide-highlight rounded-[7px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="sidebar-copy mx-2 mt-3 w-[208px] border-t border-line pt-3">'
+      +     '<button type="button" data-footer class="flex h-8 w-full items-center justify-center gap-1.5 rounded-control bg-hover-2 text-[12.5px] font-medium text-ink transition-[background-color,transform] duration-150 hover:bg-line-strong active:scale-[0.98]">Upgrade</button>'
+      +   '</div>'
+      + '</div>'
+      + '</aside>';
+  }
+
+  var host = document.getElementById('sb-host');
+  host.innerHTML = asideHTML();
+
+  var aside = host.querySelector('aside');
+  var railRows = host.querySelector('[data-rail-rows]');
+  var recentsRoot = host.querySelector('[data-glide-root][data-row-selector]');
+  /* the recents glide root is the 2nd glide root */
+  var glideRoots = host.querySelectorAll('[data-glide-root]');
+  var recentsGlideRoot = glideRoots[1];
+
+  /* ── GlideMenu (inlined from primitives/GlideMenu.tsx) ── */
+  function initGlide(root) {
+    var sel = root.getAttribute('data-row-selector') || '[data-menu-row]';
+    var layer = root.querySelector('[data-glide-layer]');
+    function moveTo(target) {
+      if (!(target instanceof Element)) return;
+      var row = target.closest(sel);
+      if (!row || !root.contains(row)) return;
+      var cr = root.getBoundingClientRect();
+      var rr = row.getBoundingClientRect();
+      layer.style.top = (rr.top - cr.top) + 'px';
+      layer.style.height = rr.height + 'px';
+      layer.style.opacity = '1';
+    }
+    root.addEventListener('mouseover', function (event) { moveTo(event.target); });
+    root.addEventListener('mouseleave', function () { layer.style.opacity = '0'; });
+    root.addEventListener('focusin', function (event) { moveTo(event.target); });
+    root.addEventListener('focusout', function (event) { if (!root.contains(event.relatedTarget)) layer.style.opacity = '0'; });
+  }
+  initGlide(host.querySelector('[data-glide-root]'));
+  initGlide(recentsGlideRoot);
+
+  /* ── recents rendering / filtering ── */
+  function renderRecents() {
+    var q = query.trim().toLowerCase();
+    var visible = DEFAULT_RECENTS.filter(function (r) { return r.label.toLowerCase().indexOf(q) >= 0; });
+    var html = visible.map(function (item) {
+      return recentButton(item, item.label === activeTitle);
+    }).join('');
+    if (query && visible.length === 0) {
+      html += '<div class="sidebar-copy mx-2 px-2 py-2 text-[12.5px] text-ink-3">No chats found</div>';
+    }
+    /* replace everything after the glide layer */
+    var nodes = recentsGlideRoot.querySelectorAll(':scope > *:not([data-glide-layer])');
+    for (var i = 0; i < nodes.length; i++) nodes[i].remove();
+    recentsGlideRoot.insertAdjacentHTML('beforeend', html);
+    recentsGlideRoot.querySelector('[data-glide-layer]').style.opacity = '0';
+  }
+  renderRecents();
+
+  /* ── workspace menu (portal) ── */
+  function workspaceMenuHTML(top, left) {
+    function row(h, iconCls, icon, label, extra) {
+      return '<button data-menu-row type="button" class="relative z-10 flex ' + h + ' w-full items-center gap-1.5 rounded-[8px] px-2 text-left">'
+        + '<span class="' + iconCls + '">' + icon + '</span>'
+        + '<span class="min-w-0 flex-1 truncate text-[13.5px] text-ink">' + label + '</span>'
+        + (extra || '') + '</button>';
+    }
+    return '<div data-workspace-menu class="fixed z-50 w-64 rounded-[14px] bg-surface p-1.5 shadow-overlay" '
+      + 'style="top:' + top + 'px;left:' + left + 'px;animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div data-glide-root data-row-selector="[data-menu-row]" class="relative flex flex-col gap-px">'
+      +   '<span aria-hidden data-glide-layer class="pointer-events-none absolute inset-x-0 rounded-[8px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +   '<button data-menu-row type="button" class="relative z-10 flex h-10 w-full items-center gap-1.5 rounded-[8px] px-2 text-left">'
+      +     '<span class="flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-ink text-[11px] font-semibold text-surface">' + WORKSPACE.monogram + '</span>'
+      +     '<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink">' + WORKSPACE.name + '</span>'
+      +     '<span class="shrink-0 text-ink">' + I.check(18) + '</span>'
+      +   '</button>'
+      +   '<div class="my-1 h-px bg-line"></div>'
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.plus(16), "New workspace")
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.settings(16), "Workspace settings")
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.userAdd(16), "Invite team members")
+      +   '<div class="my-1 h-px bg-line"></div>'
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.logOut(16), "Sign out")
+      + '</div></div>';
+  }
+
+  function openWorkspace() {
+    var trigger = host.querySelector('[data-workspace-trigger]');
+    var rect = trigger.getBoundingClientRect();
+    var div = document.createElement('div');
+    div.innerHTML = workspaceMenuHTML(rect.bottom + 6, rect.left);
+    var menu = div.firstChild;
+    document.body.appendChild(menu);
+    initGlide(menu.querySelector('[data-glide-root]'));
+    workspaceOpen = true;
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+  function closeWorkspace() {
+    var menu = document.querySelector('[data-workspace-menu]');
+    if (menu) menu.remove();
+    workspaceOpen = false;
+    var trigger = host.querySelector('[data-workspace-trigger]');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('pointerdown', function (event) {
+    if (!workspaceOpen) return;
+    var t = event.target;
+    if (!t.closest('[data-workspace-trigger]') && !t.closest('[data-workspace-menu]')) closeWorkspace();
+  });
+
+  /* ── collapse ── */
+  function setCollapsed(next) {
+    collapsed = next;
+    aside.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false');
+    aside.style.width = (collapsed ? SIDEBAR_MOTION.collapsedWidth : SIDEBAR_MOTION.expandedWidth) + 'px';
+    var wb = host.querySelector('[data-workspace-trigger]');
+    wb.setAttribute('aria-hidden', collapsed);
+    wb.setAttribute('tabindex', collapsed ? '-1' : '0');
+    var col = host.querySelector('[data-collapse]');
+    col.setAttribute('aria-hidden', collapsed);
+    col.setAttribute('tabindex', collapsed ? '-1' : '0');
+    var exp = host.querySelector('[data-expand]');
+    exp.setAttribute('aria-hidden', !collapsed);
+    exp.setAttribute('tabindex', collapsed ? '0' : '-1');
+  }
+  host.querySelector('[data-workspace-trigger]').addEventListener('click', function () {
+    if (workspaceOpen) closeWorkspace(); else openWorkspace();
+  });
+  host.querySelector('[data-collapse]').addEventListener('click', function () {
+    closeWorkspace();
+    setSearch(false);
+    setCollapsed(true);
+  });
+  host.querySelector('[data-expand]').addEventListener('click', function () { setCollapsed(false); });
+
+  /* ── chat search (CHAT_SEARCH_MOTION storyboard) ── */
+  function setSearch(open) {
+    searchOpen = open;
+    var label = host.querySelector('[data-chats-label]');
+    var openBtn = host.querySelector('[data-search-open]');
+    var field = host.querySelector('[data-search-field]');
+    label.className = 'absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-3 transition-[opacity,transform] ' + (open ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100");
+    label.setAttribute('aria-hidden', open);
+    openBtn.className = 'absolute right-0 top-0 z-10 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color,transform] hover:bg-hover-2 hover:text-ink active:scale-[0.96] ' + (open ? "pointer-events-none opacity-0" : "opacity-100");
+    openBtn.setAttribute('aria-expanded', open);
+    field.className = 'absolute right-0 top-0 z-20 flex h-8 items-center overflow-hidden rounded-[8px] bg-field text-ink-3 shadow-hairline transition-[width,opacity] focus-within:text-ink-2 ' + (open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0");
+    field.style.width = open ? '100%' : CHAT_SEARCH_MOTION.closedWidth + 'px';
+    if (open) {
+      var input = host.querySelector('[data-search-input]');
+      input.focus();
+    }
+  }
+  host.querySelector('[data-search-open]').addEventListener('click', function () { setSearch(true); });
+  host.querySelector('[data-search-close]').addEventListener('click', function () {
+    setSearch(false);
+    query = "";
+    host.querySelector('[data-search-input]').value = "";
+    renderRecents();
+  });
+  var searchInput = host.querySelector('[data-search-input]');
+  searchInput.addEventListener('input', function () { query = searchInput.value; renderRecents(); });
+  searchInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      setSearch(false);
+      query = "";
+      searchInput.value = "";
+      renderRecents();
+    }
+  });
+
+  /* ── rail / recents click handling ── */
+  host.querySelector('[data-rail-rows]').addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-row]');
+    if (!btn) return;
+    var navKey = btn.getAttribute('data-nav');
+    if (navKey) currentNav = navKey;
+    if (btn.getAttribute('data-nav') === null) currentNav = "chats"; /* New chat */
+    if (btn.getAttribute('data-nav') === 'chats') activeTitle = null;
+    /* re-render rail active states */
+    railRows.innerHTML = railHTML();
+    renderRecents();
+  });
+  /* keep the New chat button also selecting chats */
+  recentsGlideRoot.addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-recent]');
+    if (!btn) return;
+    currentNav = "chats";
+    activeTitle = btn.getAttribute('title');
+    railRows.innerHTML = railHTML();
+    renderRecents();
+  });
+
+  setCollapsed(false);
+  setSearch(false);
+})();
+</script>

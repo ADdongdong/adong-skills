@@ -1,0 +1,2874 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Records Table — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ══ records-table.css（上游 registry 内嵌，不在 git 树里）══ */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — RecordsTable
+ * The full CRM grid, spreadsheet gutter, and AI column (~800 lines).
+ * Copy this block only alongside RecordsTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.records-shell {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.06);
+}
+
+/* fill mode: the shell stretches to fill its container and drops its own
+ * border/radius/shadow so it reads as part of the surrounding card rather
+ * than a container-in-a-container. The grid body flexes to fill height. */
+.records-shell.is-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.records-shell.is-fill .records-scroll {
+  max-height: none;
+  flex: 1;
+}
+
+.records-toolbar {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.records-toolbar-left,
+.records-toolbar-right,
+.records-company-header,
+.records-quiet-button,
+.records-secondary-button,
+.records-primary-button,
+.records-select-button,
+.records-strength,
+.records-link,
+.records-add-calculation {
+  display: inline-flex;
+  align-items: center;
+}
+
+.records-toolbar-left,
+.records-toolbar-right {
+  gap: 4px;
+}
+
+.records-toolbar-right {
+  flex-shrink: 0;
+}
+
+.records-select-button,
+.records-quiet-button,
+.records-secondary-button,
+.records-primary-button {
+  height: 32px;
+  gap: 7px;
+  border-radius: var(--radius-control);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 140ms var(--ease-out-strong), color 140ms var(--ease-out-strong), transform 140ms var(--ease-out-strong), box-shadow 140ms var(--ease-out-strong);
+}
+
+.records-select-button {
+  gap: 8px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.records-select-button:hover,
+.records-quiet-button:hover,
+.records-secondary-button:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.records-quiet-button {
+  color: var(--ink-2);
+}
+
+.records-quiet-button.is-active {
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+}
+
+.records-secondary-button {
+  border: 1px solid var(--tooltip-border);
+  color: var(--ink-2);
+  box-shadow: none;
+}
+
+.records-primary-button {
+  margin-left: 3px;
+  background: var(--accent);
+  color: oklch(1 0 0);
+  box-shadow: none;
+}
+
+.records-primary-button:hover {
+  filter: saturate(0.9) brightness(1.04);
+}
+
+.records-quiet-button:active,
+.records-secondary-button:active,
+.records-primary-button:active,
+.records-select-button:active,
+.records-add-calculation:active {
+  transform: scale(0.96);
+}
+
+.records-database-icon {
+  display: inline-flex;
+  color: var(--green);
+}
+
+.records-filter-wrap {
+  position: relative;
+}
+
+.records-filter-dot {
+  width: 5px;
+  height: 5px;
+  margin-left: -2px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+.records-filter-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 190px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  animation: pop-in 160ms var(--ease-out-strong) both;
+  transform-origin: top left;
+}
+
+.records-sort-menu {
+  left: -48px;
+}
+
+.records-filter-label {
+  padding: 5px 8px 6px;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.records-filter-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  border-radius: var(--radius-chip);
+  padding: 7px 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  text-align: left;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.records-filter-menu button:hover,
+.records-filter-menu button.is-selected {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.records-menu-check {
+  width: 13px;
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.records-scroll {
+  max-height: 438px;
+  overflow: auto;
+  overscroll-behavior: none;
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-gutter: stable;
+}
+
+.records-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.records-table {
+  width: 100%;
+  min-width: 990px;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  table-layout: fixed;
+}
+
+.records-company-col { width: 270px; }
+.records-category-col { width: 275px; }
+.records-last-col { width: 190px; }
+.records-strength-col { width: 210px; }
+.records-link-col { width: 175px; }
+
+.records-table th,
+.records-table td {
+  border-right: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.records-table tr > :last-child {
+  border-right: 0;
+}
+
+.records-table thead th {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  height: 35px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.records-header-cell {
+  padding: 0;
+}
+
+.records-resize-handle {
+  position: absolute;
+  z-index: 12;
+  top: 0;
+  right: -6px;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.records-resize-handle::after {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 5px;
+  width: 2px;
+  border-radius: 99px;
+  background: var(--accent);
+  content: "";
+  opacity: 0;
+  transform: scaleY(0.65);
+  transition: opacity 120ms ease-out, transform 150ms var(--ease-out-strong);
+}
+
+.records-resize-handle:hover::after,
+.records-resize-handle.is-resizing::after {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.records-header-cell.records-sticky-cell {
+  z-index: 7;
+}
+
+.records-header-button,
+.records-company-header {
+  width: 100%;
+  height: 35px;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.records-company-header {
+  padding-left: 6px;
+}
+
+.records-header-button {
+  display: flex;
+  align-items: center;
+  color: var(--ink-2);
+  text-align: left;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.records-header-button:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.records-header-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.records-sort {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 120ms ease-out, transform 160ms var(--ease-out-strong);
+}
+
+.records-header-button:hover .records-sort,
+.records-sort.is-visible {
+  opacity: 1;
+}
+
+.records-company-header {
+  display: flex;
+}
+
+.records-company-header > span:not(.records-checkbox-box) {
+  white-space: nowrap;
+}
+
+.records-add-field {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--ink-3);
+  opacity: 0;
+  transition: opacity 120ms ease-out, color 120ms ease-out;
+}
+
+.records-company-header:hover .records-add-field,
+.records-add-field:focus-visible {
+  opacity: 1;
+}
+
+.records-add-field:hover {
+  color: var(--ink);
+}
+
+.records-checkbox {
+  position: relative;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-chip);
+}
+
+.records-checkbox input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.records-checkbox-box {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(0.845 0.011 247.953);
+  border-radius: 6px;
+  color: oklch(0.446 0.018 251.343);
+  background: oklch(1 0 0);
+  transition: border-color 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out, transform 140ms var(--ease-out-strong);
+}
+
+.records-checkbox:hover .records-checkbox-box {
+  border-color: oklch(0.773 0.016 251.194);
+  background: oklch(0.966 0.003 228.784);
+}
+
+.records-checkbox:active .records-checkbox-box {
+  transform: scale(0.96);
+}
+
+.records-checkbox input:focus-visible + .records-checkbox-box {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.records-checkbox-box.is-active {
+  border-color: var(--accent);
+  color: oklch(1 0 0);
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.records-checkbox-dash {
+  width: 8px;
+  height: 1.5px;
+  border-radius: 99px;
+  background: oklch(1 0 0);
+}
+
+.dark .records-checkbox-box {
+  border-color: oklch(0.45 0.017 254.711);
+  color: oklch(0.917 0.007 247.901);
+  background: oklch(0.346 0.015 252.294);
+}
+
+.dark .records-checkbox:hover .records-checkbox-box {
+  border-color: oklch(0.521 0.019 254);
+  background: oklch(0.391 0.016 251.761);
+}
+
+.dark .records-checkbox-box.is-active {
+  border-color: var(--accent);
+  color: oklch(1 0 0);
+  background: var(--accent);
+}
+
+.dark .records-checkbox-dash {
+  background: oklch(1 0 0);
+}
+
+.records-cell {
+  height: 35px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.records-sticky-cell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: 5px 0 8px -10px oklch(0 0 0 / 0.4);
+}
+
+.records-company-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 6px;
+  overflow: visible;
+}
+
+.records-row > .records-cell {
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.records-row:hover > .records-cell {
+  background: var(--hover);
+}
+
+.records-row.is-selected > .records-cell {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+/* ── spreadsheet gutter ──────────────────────────────────
+ * Row numbers at rest; the checkbox takes their place on
+ * hover or once the row is selected. */
+.records-rownum {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.records-row .records-checkbox {
+  display: none;
+}
+
+.records-row:hover .records-rownum,
+.records-row.is-selected .records-rownum {
+  display: none;
+}
+
+.records-row:hover .records-checkbox,
+.records-row.is-selected .records-checkbox {
+  display: inline-flex;
+}
+
+/* ── selected column — the property being configured ───── */
+.records-table th.is-colsel {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+th.is-colsel .records-header-button,
+th.is-colsel .records-company-header,
+th.is-colsel .records-header-icon {
+  color: var(--accent-ink);
+}
+
+.records-table td.is-colsel {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.records-row:hover > td.is-colsel {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.records-row.is-selected > td.is-colsel {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+/* ── AI column calculating state ─────────────────────────── */
+.records-calc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.records-pulse {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: records-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes records-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.records-company-mark {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink-2);
+  background: var(--field);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.records-company-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-company-name.has-link:hover,
+.records-company-name.has-link:focus-visible {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.records-tags {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.records-tags-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  gap: 4px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.records-tags-measure > span {
+  display: inline-flex;
+}
+
+.records-tag {
+  display: inline-flex;
+  height: 23px;
+  max-width: 115px;
+  align-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--tag-base) 32%, var(--surface));
+  border-radius: 8px;
+  padding: 0 7px;
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 18%, var(--surface));
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-more-tag {
+  display: inline-flex;
+  height: 23px;
+  align-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 7px;
+  color: var(--ink-3);
+  background: var(--inset);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.records-more-tag {
+  border-color: var(--line-strong);
+  color: var(--ink-3);
+  background: var(--inset);
+}
+
+.records-muted {
+  color: var(--ink-3);
+}
+
+.records-strength {
+  gap: 8px;
+  color: var(--ink-2);
+}
+
+.records-strength-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+.records-link {
+  max-width: 100%;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--accent-ink);
+  text-overflow: ellipsis;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  transition: color 120ms ease-out, text-decoration-color 120ms ease-out;
+}
+
+.records-link-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-link svg {
+  flex-shrink: 0;
+}
+
+.records-link:hover,
+.records-link:focus-visible {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+.records-table tfoot td {
+  position: sticky;
+  z-index: 4;
+  bottom: 0;
+  height: 35px;
+  background: var(--inset);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.records-table tfoot .records-sticky-cell {
+  z-index: 6;
+  background: var(--inset);
+}
+
+.records-calculation-label {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.records-footer-value {
+  display: inline-flex;
+  height: 35px;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.records-calculation-number {
+  margin-right: 3px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.records-add-calculation {
+  height: 35px;
+  gap: 6px;
+  color: var(--ink-3);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  transition: color 120ms ease-out, transform 140ms var(--ease-out-strong);
+}
+
+.records-add-calculation:hover {
+  color: var(--ink);
+}
+
+.records-average {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+}
+
+.records-calculation-row-secondary td {
+  position: sticky;
+  bottom: 35px;
+  background: color-mix(in srgb, var(--inset) 70%, var(--surface));
+}
+
+.records-calculation-row-secondary .records-sticky-cell {
+  position: sticky;
+  background: color-mix(in srgb, var(--inset) 70%, var(--surface));
+}
+
+.records-footer {
+  display: flex;
+  min-height: 35px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+
+.records-footer strong {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.records-footer-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.records-shell:hover .records-footer-hint {
+  opacity: 1;
+}
+
+.records-scroll-cue {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .records-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .records-toolbar-left,
+  .records-toolbar-right {
+    width: 100%;
+  }
+
+  .records-toolbar-right {
+    justify-content: flex-end;
+  }
+
+  .records-footer-hint {
+    display: none;
+  }
+}
+
+/* ── filter table electric status colors ─────────────────── */
+
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-[background-color,transform]"] {
+  transition-property: background-color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[box-shadow]"] {
+  transition-property: box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-colors"] {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-transform"] {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-100"] {
+  transition-duration: 100ms;
+}
+
+[class~="duration-150"] {
+  transition-duration: 150ms;
+}
+
+[class~="-inset-x-1.5"] {
+  left: calc(0.375rem * -1);
+  right: calc(0.375rem * -1);
+}
+
+[class~="-mx-1.5"] {
+  margin-left: calc(0.375rem * -1);
+  margin-right: calc(0.375rem * -1);
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="active:scale-[0.96]"]:active {
+  scale: 0.96;
+}
+
+[class~="active:scale-[0.98]"]:active {
+  scale: 0.98;
+}
+
+[class~="bg-accent"] {
+  background-color: var(--accent);
+}
+
+[class~="bg-accent-tint"] {
+  background-color: var(--accent-tint);
+}
+
+[class~="bg-hover"] {
+  background-color: var(--hover);
+}
+
+[class~="bg-inset"] {
+  background-color: var(--inset);
+}
+
+[class~="bg-line"] {
+  background-color: var(--line);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="bg-white"] {
+  background-color: white;
+}
+
+[class~="border"] {
+  border-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-accent"] {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="border-line-strong"] {
+  border-color: var(--line-strong);
+  border-style: solid;
+}
+
+[class~="border-t"] {
+  border-top-width: 1px;
+  border-style: solid;
+}
+
+[class~="cursor-text"] {
+  cursor: text;
+}
+
+[class~="disabled:opacity-60"]:disabled {
+  opacity: 0.6;
+}
+
+[class~="fixed"] {
+  position: fixed;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="flex-1"] {
+  flex: 1 1 0%;
+}
+
+[class~="flex-col"] {
+  flex-direction: column;
+}
+
+[class~="focus:shadow-[0_0_0_2px_var(--accent)]"]:focus {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="gap-0.5"] {
+  gap: 0.125rem;
+}
+
+[class~="gap-1"] {
+  gap: 0.25rem;
+}
+
+[class~="gap-1.5"] {
+  gap: 0.375rem;
+}
+
+[class~="gap-2"] {
+  gap: 0.5rem;
+}
+
+[class~="gap-2.5"] {
+  gap: 0.625rem;
+}
+
+[class~="gap-px"] {
+  gap: 1px;
+}
+
+[class~="h-4.5"] {
+  height: 1.125rem;
+}
+
+[class~="h-8"] {
+  height: 2rem;
+}
+
+[class~="h-9"] {
+  height: 2.25rem;
+}
+
+[class~="h-[35px]"] {
+  height: 35px;
+}
+
+[class~="h-px"] {
+  height: 1px;
+}
+
+[class~="hover:bg-hover"]:hover {
+  background-color: var(--hover);
+}
+
+[class~="hover:text-ink"]:hover {
+  color: var(--ink);
+}
+
+[class~="inset-x-0"] {
+  left: 0rem;
+  right: 0rem;
+}
+
+[class~="invisible"] {
+  visibility: hidden;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="justify-between"] {
+  justify-content: space-between;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="leading-none"] {
+  line-height: 1;
+}
+
+[class~="leading-relaxed"] {
+  line-height: 1.625;
+}
+
+[class~="left-0.5"] {
+  left: 0.125rem;
+}
+
+[class~="left-full"] {
+  left: 100%;
+}
+
+[class~="max-w-[220px]"] {
+  max-width: 220px;
+}
+
+[class~="max-w-[92px]"] {
+  max-width: 92px;
+}
+
+[class~="max-w-full"] {
+  max-width: 100%;
+}
+
+[class~="min-h-[88px]"] {
+  min-height: 88px;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="ml-5"] {
+  margin-left: 1.25rem;
+}
+
+[class~="mt-2"] {
+  margin-top: 0.5rem;
+}
+
+[class~="mt-2.5"] {
+  margin-top: 0.625rem;
+}
+
+[class~="mt-3"] {
+  margin-top: 0.75rem;
+}
+
+[class~="my-1"] {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+[class~="outline-none"] {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+[class~="p-1.5"] {
+  padding: 0.375rem;
+}
+
+[class~="p-3"] {
+  padding: 0.75rem;
+}
+
+[class~="pb-1"] {
+  padding-bottom: 0.25rem;
+}
+
+[class~="pb-1.5"] {
+  padding-bottom: 0.375rem;
+}
+
+[class~="pb-2"] {
+  padding-bottom: 0.5rem;
+}
+
+[class~="pointer-events-none"] {
+  pointer-events: none;
+}
+
+[class~="pt-0.5"] {
+  padding-top: 0.125rem;
+}
+
+[class~="pt-1"] {
+  padding-top: 0.25rem;
+}
+
+[class~="pt-2"] {
+  padding-top: 0.5rem;
+}
+
+[class~="pt-3"] {
+  padding-top: 0.75rem;
+}
+
+[class~="px-1.5"] {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+[class~="px-2"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[class~="px-3"] {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+[class~="py-0.5"] {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+
+[class~="py-1"] {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+[class~="py-2.5"] {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="right-0"] {
+  right: 0rem;
+}
+
+[class~="rotate-90"] {
+  rotate: 90deg;
+}
+
+[class~="rounded-[10px]"] {
+  border-radius: 10px;
+}
+
+[class~="rounded-[12px]"] {
+  border-radius: 12px;
+}
+
+[class~="rounded-[14px]"] {
+  border-radius: 14px;
+}
+
+[class~="rounded-[5px]"] {
+  border-radius: 5px;
+}
+
+[class~="rounded-[6px]"] {
+  border-radius: 6px;
+}
+
+[class~="rounded-[7px]"] {
+  border-radius: 7px;
+}
+
+[class~="rounded-[8px]"] {
+  border-radius: 8px;
+}
+
+[class~="rounded-[9px]"] {
+  border-radius: 9px;
+}
+
+[class~="rounded-full"] {
+  border-radius: 9999px;
+}
+
+[class~="shadow-btn"] {
+  box-shadow: var(--shadow-btn);
+}
+
+[class~="shadow-hairline"] {
+  box-shadow: var(--shadow-hairline);
+}
+
+[class~="shadow-overlay"] {
+  box-shadow: var(--shadow-overlay);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-3.5"] {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+[class~="size-4"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+[class~="size-6"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+[class~="size-7"] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+[class~="text-[11.5px]"] {
+  font-size: 11.5px;
+}
+
+[class~="text-[11px]"] {
+  font-size: 11px;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-[13.5px]"] {
+  font-size: 13.5px;
+}
+
+[class~="text-[13px]"] {
+  font-size: 13px;
+}
+
+[class~="text-accent"] {
+  color: var(--accent);
+}
+
+[class~="text-accent-ink"] {
+  color: var(--accent-ink);
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-left"] {
+  text-align: left;
+}
+
+[class~="text-transparent"] {
+  color: transparent;
+}
+
+[class~="text-white"] {
+  color: white;
+}
+
+[class~="top-0"] {
+  top: 0rem;
+}
+
+[class~="top-0.5"] {
+  top: 0.125rem;
+}
+
+[class~="top-[30px]"] {
+  top: 30px;
+}
+
+[class~="truncate"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[class~="w-7.5"] {
+  width: 1.875rem;
+}
+
+[class~="w-[210px]"] {
+  width: 210px;
+}
+
+[class~="w-[220px]"] {
+  width: 220px;
+}
+
+[class~="w-[230px]"] {
+  width: 230px;
+}
+
+[class~="w-[260px]"] {
+  width: 260px;
+}
+
+[class~="w-[320px]"] {
+  width: 320px;
+}
+
+[class~="w-[680px]"] {
+  width: 680px;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="z-10"] {
+  z-index: 10;
+}
+
+[class~="z-30"] {
+  z-index: 30;
+}
+
+[class~="z-50"] {
+  z-index: 50;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Records Table -->
+<!--@classes: invisible rotate-90 text-accent text-ink text-ink-2 text-white border-accent bg-accent border-line-strong text-transparent -->
+<!-- 状态钩子类（is-colsel / is-resizing / is-visible / is-selected / is-active）与
+     records-* 一样由 records-table.css 定义，不在此声明，避免被工具类编译器重复处理。 -->
+<!-- 来源：components/primitives/RecordsTable.tsx（上游 MIT），依赖 primitives/GlideMenu.tsx（已内联为 initGlide）
+     保真：DOM 层级与 .records-* 类逐条对应；标签配色走 --tag-base + color-mix（明暗自动适配）；
+           排序、列宽拖拽、列选择(is-colsel)、行选择、属性弹窗（Type/Tool/Grounding/Inputs/
+           prompt/Go calculate/Pin/More settings）、+ 新属性菜单、表格选项菜单全部保留；
+           「Add calculation」计算列的逐行扫过动画（每 110ms 解一行 + records-pulse 脉冲）
+           与 AI 列（Competitors）生命周期一致照搬。
+     简化（已在注释标注）：
+       ① 跳过上游「首次渲染后 measure 各列实际宽度再锁定」的一步——在 680px 宽的外壳里
+          table 受 min-width:990px 约束，各列等于 colgroup 的默认宽度，锁定与否结果相同；
+       ② prompt 用 contenteditable 呈现，但不回写用户输入（上游也只是展示 meta.prompt）。
+     付费依赖：无（图标全部上游自绘内联）。
+     @classes 声明的是 JS 三元/状态产生的分支类（is-* 状态类、排序箭头 rotate、
+       类型/工具图标配色、InputPicker 勾选框态）。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>Records Table</strong> — CRM 风格的 AI 电子表格网格。列即「属性」：点表头打开配置弹窗
+    （类型 / 工具 / grounding / 输入 / 提示词 / Go calculate），点 <code>+</code> 表头新增一个 AI 列，
+    点「Add calculation」所在的计算列会逐行求解（每行一次脉冲扫过）。含排序、列宽拖拽、
+    标签多色、关系强度、以及首列的横向粘附。
+  </p>
+  <div id="rt-host" class="w-[680px] max-w-full"></div>
+</div>
+
+<script>
+(function () {
+  /* ── data（上游 INITIAL_ROWS 逐字照搬，58 行）── */
+  var INITIAL_ROWS = [
+    { id: "aurora", name: "Aurora Scoops — Reykjavík", tags: ["Gelato", "Seasonal"], last: "9 days ago", strength: "strong", website: "aurora-scoops.example.com" },
+    { id: "kumo", name: "Kumo Creamery — Tokyo", tags: ["B2C", "Cafe", "Vegan"], last: "3 weeks ago", strength: "strong", website: "kumo-creamery.example.com" },
+    { id: "sol-nieve", name: "Sol y Nieve — Buenos Aires", tags: ["Gelato", "Local"], last: "2 months ago", strength: "weak", website: "sol-y-nieve.example.com" },
+    { id: "maple-orbit", name: "Maple Orbit — Montréal", tags: ["B2B", "Wholesale", "Seasonal"], last: "15 days ago", strength: "weak", website: "maple-orbit.example.com" },
+    { id: "blue-fig", name: "Blue Fig Gelato — Florence", tags: ["Gelato", "Cafe"], last: "over 1 year ago", strength: "veryweak", website: "blue-fig.example.com" },
+    { id: "sahara-swirl", name: "Sahara Swirl — Marrakech", tags: ["Sorbet", "Local"], last: "5 months ago", strength: "veryweak" },
+    { id: "cloudberry", name: "Cloudberry Cone — Helsinki", tags: ["Dairy-free", "Seasonal"], last: "No contact", strength: "none", website: "cloudberry-cone.example.com" },
+    { id: "palm-sugar", name: "Palm Sugar Creamery — Bangkok", tags: ["B2C", "Vegan"], last: "3 months ago", strength: "veryweak", website: "palm-sugar.example.com" },
+    { id: "cape-vanilla", name: "Cape Vanilla Co. — Cape Town", tags: ["Wholesale", "Imports"], last: "over 1 year ago", strength: "veryweak", website: "cape-vanilla.example.com" },
+    { id: "andes-snow", name: "Andes Snow Creamery — Quito", tags: ["Gelato", "Catering"], last: "almost 2 years ago", strength: "veryweak" },
+    { id: "tasman-sea", name: "Tasman Sea Gelato — Hobart", tags: ["Gelato", "Local"], last: "2 months ago", strength: "weak", website: "tasman-sea.example.com" },
+    { id: "silk-road", name: "Silk Road Sorbet — Tbilisi", tags: ["Sorbet", "Imports"], last: "about 1 month ago", strength: "weak", website: "silk-road.example.com" },
+    { id: "rosewater", name: "Rosewater Kulfi — Jaipur", tags: ["B2C", "Seasonal"], last: "2 months ago", strength: "veryweak" },
+    { id: "lumen", name: "Lumen Soft Serve — Copenhagen", tags: ["Dairy-free", "Cafe"], last: "8 months ago", strength: "weak", website: "lumen-soft-serve.example.com" },
+    { id: "cacao-norte", name: "Cacao Norte — Oaxaca", tags: ["B2B", "Local", "Wholesale"], last: "about 2 years ago", strength: "none", website: "cacao-norte.example.com" },
+    { id: "pine-pistachio", name: "Pine & Pistachio — Istanbul", tags: ["Gelato", "Catering"], last: "about 1 month ago", strength: "veryweak" },
+    { id: "ember-cone", name: "Ember Cone Company — Seoul", tags: ["B2C", "Vegan"], last: "15 days ago", strength: "weak", website: "ember-cone.example.com" },
+    { id: "coral-coast", name: "Coral Coast Sorbet — Honolulu", tags: ["Sorbet", "Local"], last: "9 days ago", strength: "strong", website: "coral-coast.example.com" },
+    { id: "sunbird", name: "Sunbird Gelateria — Lisbon", tags: ["Gelato", "Cafe"], last: "over 2 years ago", strength: "none", website: "sunbird.example.com" },
+    { id: "mooncake", name: "Mooncake Ice Cream — Singapore", tags: ["B2B", "Wholesale"], last: "about 1 month ago", strength: "veryweak", website: "mooncake-ice-cream.example.com" },
+    { id: "juniper", name: "Juniper & Cream — Vancouver", tags: ["Dairy-free", "Catering"], last: "No contact", strength: "none" },
+    { id: "mango-moon", name: "Mango Moon Gelato — Nairobi", tags: ["Sorbet", "Vegan"], last: "almost 2 years ago", strength: "veryweak", website: "mango-moon.example.com" },
+    { id: "fjord-fizz", name: "Fjord Fizz Ice — Oslo", tags: ["Dairy-free", "Seasonal"], last: "No contact", strength: "none" },
+    { id: "pampa", name: "Pampa Creamery — Córdoba", tags: ["B2C", "Local"], last: "12 months ago", strength: "veryweak", website: "pampa-creamery.example.com" },
+    { id: "lotus-leaf", name: "Lotus Leaf Scoops — Hanoi", tags: ["Vegan", "Cafe"], last: "15 days ago", strength: "weak" },
+    { id: "saffron-sky", name: "Saffron Sky Kulfi — Dubai", tags: ["Imports", "Catering"], last: "almost 2 years ago", strength: "veryweak", website: "saffron-sky.example.com" },
+    { id: "alpine-churn", name: "Alpine Churn — Zürich", tags: ["B2B", "Gelato", "Wholesale"], last: "4 days ago", strength: "strong", website: "alpine-churn.example.com" },
+    { id: "monsoon-mango", name: "Monsoon Mango — Mumbai", tags: ["Sorbet", "Vegan", "Catering"], last: "18 days ago", strength: "weak", website: "monsoon-mango.example.com" },
+    { id: "cedar-spoon", name: "Cedar Spoon — Beirut", tags: ["Cafe", "Local", "Seasonal"], last: "6 days ago", strength: "strong", website: "cedar-spoon.example.com" },
+    { id: "baltic-berry", name: "Baltic Berry — Tallinn", tags: ["Dairy-free", "Seasonal", "B2C"], last: "5 weeks ago", strength: "weak", website: "baltic-berry.example.com" },
+    { id: "delta-dairy", name: "Delta Dairy Works — New Orleans", tags: ["B2B", "Wholesale", "Local"], last: "2 days ago", strength: "strong", website: "delta-dairy.example.com" },
+    { id: "yuzu-yard", name: "Yuzu Yard — Kyoto", tags: ["Sorbet", "Cafe", "Seasonal"], last: "11 days ago", strength: "strong", website: "yuzu-yard.example.com" },
+    { id: "copper-cone", name: "Copper Cone — Melbourne", tags: ["Gelato", "Cafe", "B2C"], last: "about 1 month ago", strength: "weak", website: "copper-cone.example.com" },
+    { id: "mint-medina", name: "Mint Medina — Tunis", tags: ["Dairy-free", "Vegan", "Local"], last: "No contact", strength: "none" },
+    { id: "glacier-grove", name: "Glacier Grove — Anchorage", tags: ["Seasonal", "Local", "Catering"], last: "7 weeks ago", strength: "weak", website: "glacier-grove.example.com" },
+    { id: "orchard-cloud", name: "Orchard Cloud — Lyon", tags: ["Gelato", "Seasonal", "Cafe"], last: "5 days ago", strength: "strong", website: "orchard-cloud.example.com" },
+    { id: "tamarind-tide", name: "Tamarind Tide — Chennai", tags: ["Vegan", "Sorbet", "B2C"], last: "9 months ago", strength: "veryweak", website: "tamarind-tide.example.com" },
+    { id: "amber-scoop", name: "Amber Scoop — Prague", tags: ["Gelato", "B2B"], last: "over 1 year ago", strength: "none" },
+    { id: "boreal-batch", name: "Boreal Batch — Yellowknife", tags: ["Dairy-free", "Local", "Seasonal"], last: "8 days ago", strength: "strong", website: "boreal-batch.example.com" },
+    { id: "coconut-commons", name: "Coconut Commons — Manila", tags: ["Vegan", "B2C", "Cafe"], last: "24 days ago", strength: "weak", website: "coconut-commons.example.com" },
+    { id: "dolomite-dairy", name: "Dolomite Dairy — Bolzano", tags: ["Gelato", "Wholesale"], last: "3 days ago", strength: "strong", website: "dolomite-dairy.example.com" },
+    { id: "equator-cream", name: "Equator Cream — Kampala", tags: ["B2B", "Catering", "Local"], last: "10 months ago", strength: "veryweak", website: "equator-cream.example.com" },
+    { id: "hibiscus-house", name: "Hibiscus House — Accra", tags: ["Sorbet", "Cafe"], last: "6 weeks ago", strength: "weak", website: "hibiscus-house.example.com" },
+    { id: "lagoon-ladle", name: "Lagoon Ladle — Venice", tags: ["Gelato", "Seasonal", "Catering"], last: "7 days ago", strength: "strong", website: "lagoon-ladle.example.com" },
+    { id: "midnight-milk", name: "Midnight Milk — Tromsø", tags: ["Dairy-free", "Vegan", "Wholesale"], last: "No contact", strength: "none" },
+    { id: "nomad-nougat", name: "Nomad Nougat — Ulaanbaatar", tags: ["Imports", "B2B"], last: "almost 2 years ago", strength: "none", website: "nomad-nougat.example.com" },
+    { id: "olive-snow", name: "Olive Snow — Athens", tags: ["Gelato", "Cafe", "Local"], last: "4 days ago", strength: "strong", website: "olive-snow.example.com" },
+    { id: "pacific-pear", name: "Pacific Pear — Valparaíso", tags: ["Sorbet", "Seasonal"], last: "2 months ago", strength: "weak", website: "pacific-pear.example.com" },
+    { id: "quartz-cone", name: "Quartz Cone — Denver", tags: ["B2C", "Wholesale"], last: "10 days ago", strength: "strong", website: "quartz-cone.example.com" },
+    { id: "red-lantern", name: "Red Lantern Creamery — Taipei", tags: ["Cafe", "Vegan"], last: "about 1 month ago", strength: "weak", website: "red-lantern.example.com" },
+    { id: "salt-silk", name: "Salt & Silk — Muscat", tags: ["Imports", "Catering", "Gelato"], last: "8 months ago", strength: "veryweak", website: "salt-and-silk.example.com" },
+    { id: "tropic-churn", name: "Tropic Churn — San Juan", tags: ["Sorbet", "Local", "B2C"], last: "6 days ago", strength: "strong", website: "tropic-churn.example.com" },
+    { id: "umber-cream", name: "Umber Cream — Warsaw", tags: ["B2B", "Wholesale", "Cafe"], last: "5 weeks ago", strength: "weak", website: "umber-cream.example.com" },
+    { id: "vanilla-vale", name: "Vanilla Vale — Antananarivo", tags: ["Imports", "Local"], last: "No contact", strength: "none" },
+    { id: "willow-whip", name: "Willow Whip — Portland", tags: ["Dairy-free", "Vegan", "Cafe"], last: "3 days ago", strength: "strong", website: "willow-whip.example.com" },
+    { id: "zenith-gelato", name: "Zenith Gelato — Auckland", tags: ["Gelato", "Seasonal"], last: "3 weeks ago", strength: "weak", website: "zenith-gelato.example.com" },
+    { id: "apricot-atlas", name: "Apricot Atlas — Algiers", tags: ["Sorbet", "Imports"], last: "11 months ago", strength: "veryweak", website: "apricot-atlas.example.com" },
+    { id: "black-sesame", name: "Black Sesame Social — Bandung", tags: ["Vegan", "Cafe", "B2C"], last: "9 days ago", strength: "strong", website: "black-sesame.example.com" },
+    { id: "crimson-clover", name: "Crimson Clover — Brussels", tags: ["Gelato", "Wholesale", "Catering"], last: "2 months ago", strength: "weak", website: "crimson-clover.example.com" },
+    { id: "dragonfruit-dock", name: "Dragonfruit Dock — Shenzhen", tags: ["Sorbet", "B2B", "Wholesale"], last: "No contact", strength: "none" }
+  ];
+
+  var STRENGTH = {
+    strong: { label: "Very strong", color: "var(--green)", rank: 3 },
+    weak: { label: "Weak", color: "var(--orange)", rank: 2 },
+    veryweak: { label: "Very weak", color: "var(--red)", rank: 1 },
+    none: { label: "No communication", color: "var(--ink-3)", rank: 0 }
+  };
+
+  var TAG_PALETTE = {
+    amber: "oklch(0.76 0.13 70)", lime: "oklch(0.77 0.16 122)", yellow: "oklch(0.80 0.15 101)",
+    purple: "oklch(0.62 0.18 293)", orange: "oklch(0.71 0.16 48)", cyan: "oklch(0.72 0.10 221)",
+    red: "oklch(0.64 0.19 27)", magenta: "oklch(0.66 0.21 323)", green: "oklch(0.70 0.13 162)",
+    pink: "oklch(0.67 0.19 3)"
+  };
+  var TAG_COLORS = {
+    B2B: TAG_PALETTE.amber, B2C: TAG_PALETTE.lime, Cafe: TAG_PALETTE.red, Catering: TAG_PALETTE.magenta,
+    "Dairy-free": TAG_PALETTE.cyan, Gelato: TAG_PALETTE.purple, Imports: TAG_PALETTE.orange,
+    Local: TAG_PALETTE.green, Seasonal: TAG_PALETTE.yellow, Sorbet: TAG_PALETTE.pink,
+    Vegan: TAG_PALETTE.lime, Wholesale: TAG_PALETTE.amber
+  };
+
+  var AI_LABEL = "Competitors";
+  var COMPETITOR_POOL = ["Frost & Ladle", "Polar Pint Co.", "Meltwater Creamery", "Cirrus Scoops", "Golden Churn", "Velvet Freeze", "North Cone Collective", "Sundae Syndicate"];
+  function competitorsFor(i) { return COMPETITOR_POOL[i % 8] + ", " + COMPETITOR_POOL[(i + 3) % 8]; }
+
+  var DEFAULT_COLUMN_WIDTHS = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 };
+
+  function icon(inner, size, sw) {
+    size = size || 14; sw = sw || 1.8;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
+  var TYPE_GLYPHS = {
+    "Text": '<path d="M4 6h16M4 12h10M4 18h7"/>',
+    "File": '<g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></g>',
+    "Collection": '<g><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></g>',
+    "Single select": '<g><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.4 2.4 4.6-4.9"/></g>',
+    "Multi select": '<g><path d="M11 6h9M11 12h9M11 18h9"/><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17"/></g>',
+    "URL": '<g><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></g>',
+    "Reference": '<path d="M7 17 17 7M9 7h8v8"/>',
+    "JSON": '<g><path d="M8 4c-2 0-2 2-2 3s.5 3-2 3c2.5 0 2 2 2 3s0 3 2 3"/><path d="M16 4c2 0 2 2 2 3s-.5 3 2 3c-2.5 0-2 2-2 3s0 3-2 3"/></g>',
+    "File splitter": '<g><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g>',
+    "Date": '<g><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/></g>'
+  };
+  var TOOL_GLYPHS = {
+    model: '<path d="M12 3l1.7 5.1a2 2 0 0 0 1.2 1.2L20 11l-5.1 1.7a2 2 0 0 0-1.2 1.2L12 19l-1.7-5.1a2 2 0 0 0-1.2-1.2L4 11l5.1-1.7a2 2 0 0 0 1.2-1.2z"/>',
+    web: '<g><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 0 1 3.5 9 13.5 13.5 0 0 1-3.5 9 13.5 13.5 0 0 1-3.5-9A13.5 13.5 0 0 1 12 3z"/></g>',
+    user: '<g><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></g>'
+  };
+
+  var COLUMN_META = {
+    Company: { type: "Text", tool: "User input", toolKind: "user" },
+    Categories: { type: "Multi select", tool: "Sprinkles 5", toolKind: "model", inputs: "Company", prompt: { before: "Tag each ", chip: "Company", after: " with its market categories." } },
+    "Last interaction": { type: "Date", tool: "User input", toolKind: "user" },
+    "Connection strength": { type: "Single select", tool: "Sprinkles 5", toolKind: "model", inputs: "Last interaction", prompt: { before: "Score the relationship from ", chip: "Last interaction", after: "." } },
+    Links: { type: "URL", tool: "Web search", toolKind: "web", inputs: "Company", prompt: { before: "Find the website for ", chip: "Company", after: "." } },
+    "Competitors": { type: "Text", tool: "Web search", toolKind: "web", inputs: "Company", prompt: { before: "Find competitors for ", chip: "Company" } }
+  };
+  var NEW_PROPERTY_TYPES = ["Text", "File", "Collection", "Single select", "Multi select", "URL", "Reference", "JSON", "File splitter"];
+  var MODEL_OPTIONS = ["Sprinkles 5", "Sprinkles 4.2", "Sprinkles Mini"];
+  var INPUT_OPTIONS = ["Company", "Categories", "Last interaction", "Connection strength", "Links"];
+
+  var GLIDE_STYLE = 'top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease';
+
+  /* ── state ── */
+  var selected = [];
+  var sort = { key: "name", dir: 1 };
+  var columnWidths = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 };
+  var actionColumnWidth = 100;
+  var resizingColumn = null;
+  var prop = null, configMenu = null, grounding = false, groundingHelpOpen = false;
+  var columnOverrides = {}, inputSelections = {}, pinnedColumns = [], moreSettingsOpen = false;
+  var advancedSettings = { required: false, allowEmpty: true, confidence: false };
+  var addOpen = null, tableMenuOpen = null;
+  var aiAdded = false, aiDone = false;
+  var calc = null, calcTimer = null;
+  /* programmatic scrolls (revealing the new column) shouldn't close popovers */
+  var ignoreScroll = false;
+
+  var COL_KEYS = { "Company": "company", "Categories": "categories", "Last interaction": "last", "Connection strength": "strength", "Links": "links", "Competitors": "ai" };
+
+  function isSelected(id) { return selected.indexOf(id) > -1; }
+  function visibleRows() {
+    return INITIAL_ROWS.slice().sort(function (a, b) {
+      var v = sort.key === "name" ? a.name.localeCompare(b.name)
+        : sort.key === "last" ? a.last.localeCompare(b.last)
+          : STRENGTH[a.strength].rank - STRENGTH[b.strength].rank;
+      return v * sort.dir;
+    });
+  }
+  function isCalc(col, i) { return !!calc && calc.col === col && i >= calc.resolved; }
+
+  /* ── tag cell ───────────────────────────────────────────── */
+  function tagHTML(name) {
+    var base = TAG_COLORS[name] ? TAG_COLORS[name] : "var(--ink-3)";
+    return '<span class="records-tag" style="--tag-base:' + base + '">' + name + '</span>';
+  }
+  function fillTags(container, tags) {
+    var measure = '<div class="records-tags-measure" aria-hidden>'
+      + tags.map(function (t) { return '<span data-tag-measure>' + tagHTML(t) + '</span>'; }).join('')
+      + '<span data-more-measure class="records-more-tag">+' + tags.length + '</span></div>';
+    var available = container.clientWidth;
+    container.innerHTML = measure + tags.map(tagHTML).join('');
+    var widths = Array.prototype.map.call(container.querySelectorAll('[data-tag-measure]'), function (e) { return e.offsetWidth; });
+    var moreW = container.querySelector('[data-more-measure]').offsetWidth;
+    var used = 0, count = 0;
+    for (var i = 0; i < widths.length; i++) {
+      var nextUsed = used + (count > 0 ? 4 : 0) + widths[i];
+      var hiddenAfter = tags.length - (i + 1);
+      var totalWithOverflow = nextUsed + (hiddenAfter > 0 ? 4 + moreW : 0);
+      if (totalWithOverflow > available) break;
+      used = nextUsed; count++;
+    }
+    var hidden = tags.length - count;
+    container.innerHTML = measure + tags.slice(0, count).map(tagHTML).join('')
+      + (hidden > 0 ? '<span class="records-more-tag">+' + hidden + '</span>' : '');
+  }
+
+  /* ── small atoms ── */
+  function checkbox(id, checked, mixed, label) {
+    return '<label class="records-checkbox" title="' + label + '">'
+      + '<input type="checkbox" data-check="' + id + '"' + (checked ? ' checked' : '') + ' aria-label="' + label + '">'
+      + '<span class="records-checkbox-box ' + (checked || mixed ? "is-active" : "") + '">'
+      + (mixed ? '<span class="records-checkbox-dash"></span>'
+        : checked ? icon('<path d="m5 12 4 4L19 6"/>', 12) : '')
+      + '</span></label>';
+  }
+  function calcCell() { return '<span class="records-calc"><span class="records-muted">Calculating…</span><span class="records-pulse"></span></span>'; }
+  function miniSwitch(label, on, id) {
+    return '<button type="button" role="switch" aria-checked="' + on + '" aria-label="' + label + '" data-switch="' + id + '" class="relative h-4.5 w-7.5 shrink-0 rounded-full transition-colors duration-150" style="background:' + (on ? "var(--accent)" : "var(--line-strong)") + '">'
+      + '<span class="absolute top-0.5 left-0.5 size-3.5 rounded-full bg-white shadow-btn transition-transform duration-150" style="transform:translateX(' + (on ? "12px" : "0") + ');transition-timing-function:cubic-bezier(0.23,1,0.32,1)"></span></button>';
+  }
+  function chevronRight() { return icon('<path d="M9 6l6 6-6 6"/>', 12, 2.2); }
+  function sortIcon() { return icon('<path d="M12 5v14M5 12l7 7 7-7"/>', 12); }
+
+  /* ── header ─────────────────────────────────────────────── */
+  function headerCell(col, label, glyph, typeIcon, sortKey, minWidth) {
+    var sel = prop && prop.col === col ? "is-colsel" : "";
+    var key = COL_KEYS[col];
+    var resizing = resizingColumn === key ? "is-resizing" : "";
+    var sortHTML = sortKey
+      ? '<span role="button" tabindex="0" aria-label="Sort by ' + label + '" data-sort="' + sortKey + '" class="records-sort ' + (sort.key === sortKey ? "is-visible" : "") + '" style="' + (sort.key === sortKey && sort.dir === -1 ? "transform:rotate(180deg)" : "") + '">' + sortIcon() + '</span>'
+      : '';
+    return '<th class="records-header-cell ' + sel + '">'
+      + '<button type="button" class="records-header-button" data-openprop="' + col + '">'
+      + '<span class="records-header-icon">' + (typeIcon ? icon(glyph, 15) : glyph) + '</span>'
+      + '<span class="truncate">' + label + '</span>' + sortHTML
+      + '</button>'
+      + '<span role="separator" aria-orientation="vertical" aria-label="Resize ' + label + ' column" data-resize="' + key + '" data-min="' + (minWidth || 120) + '" class="records-resize-handle ' + resizing + '"></span>'
+      + '</th>';
+  }
+
+  function tableHTML() {
+    var rows = visibleRows();
+    var allSel = rows.length > 0 && rows.every(function (r) { return isSelected(r.id); });
+    var partial = !allSel && rows.some(function (r) { return isSelected(r.id); });
+    var w = columnWidths;
+    var tableWidth = w.company + w.categories + w.last + w.strength + w.links + (aiAdded ? w.ai : 0) + actionColumnWidth;
+
+    var head = '<thead><tr>'
+      + '<th class="records-header-cell records-sticky-cell ' + (prop && prop.col === "Company" ? "is-colsel" : "") + '">'
+      +   '<div class="records-company-header" style="cursor:pointer" data-openprop="Company">'
+      +     checkbox("all", allSel, partial, "Select all companies") + '<span>Company</span>'
+      +   '</div>'
+      +   '<span role="separator" aria-orientation="vertical" aria-label="Resize Company column" data-resize="company" data-min="180" class="records-resize-handle ' + (resizingColumn === "company" ? "is-resizing" : "") + '"></span>'
+      + '</th>'
+      + headerCell("Categories", "Categories", TYPE_GLYPHS["Multi select"], true, null, 120)
+      + headerCell("Last interaction", "Last interaction", TYPE_GLYPHS.Date, true, "last", 120)
+      + headerCell("Connection strength", "Connection strength", TYPE_GLYPHS["Single select"], true, "strength", 120)
+      + headerCell("Links", "Links", TYPE_GLYPHS.URL, true, null, 120)
+      + (aiAdded ? '<th class="records-header-cell ' + (prop && prop.col === AI_LABEL ? "is-colsel" : "") + '">'
+        + '<button type="button" class="records-header-button" data-openprop="' + AI_LABEL + '"><span class="records-header-icon">' + icon(TYPE_GLYPHS.Text, 15) + '</span><span class="truncate">' + AI_LABEL + '</span></button>'
+        + '<span role="separator" aria-orientation="vertical" aria-label="Resize ' + AI_LABEL + ' column" data-resize="ai" data-min="120" class="records-resize-handle ' + (resizingColumn === "ai" ? "is-resizing" : "") + '"></span></th>' : '')
+      + '<th class="records-header-cell"><div class="flex h-[35px] items-center gap-1 px-2">'
+      +   '<button type="button" aria-label="New property" data-recpop data-add class="flex size-7 items-center justify-center rounded-[7px] text-ink-2 transition-colors duration-100 hover:bg-hover hover:text-ink">' + icon('<path d="M12 5v14M5 12h14"/>', 15, 2) + '</button>'
+      +   '<button type="button" aria-label="Table options" aria-expanded="' + !!tableMenuOpen + '" data-recpop data-tablemenu class="flex size-7 items-center justify-center rounded-[7px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">'
+      +     '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>'
+      + '</div></th></tr></thead>';
+
+    var body = '<tbody data-sound-silent>';
+    rows.forEach(function (row, index) {
+      var selRow = isSelected(row.id);
+      var strength = STRENGTH[row.strength];
+      body += '<tr class="records-row ' + (selRow ? "is-selected" : "") + '">'
+        + '<td class="records-cell records-sticky-cell records-company-cell ' + (prop && prop.col === "Company" ? "is-colsel" : "") + '">'
+        +   '<span class="records-rownum">' + (index + 1) + '</span>'
+        +   checkbox("row:" + row.id, selRow, false, "Select " + row.name)
+        +   '<span class="records-company-mark">' + row.name.slice(0, 1).toUpperCase() + '</span>'
+        +   '<a href="' + (row.website ? "https://" + row.website : "#") + '"' + (row.website ? '' : ' onclick="return false"') + ' title="' + row.name + '" class="records-company-name ' + (row.website ? "has-link" : "") + '">' + row.name + '</a></td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Categories" ? "is-colsel" : "") + '" data-tags-row="' + row.id + '"></td>'
+        + '<td class="records-cell ' + (row.last === "No contact" ? "records-muted" : "") + ' ' + (prop && prop.col === "Last interaction" ? "is-colsel" : "") + '">' + (isCalc("Last interaction", index) ? calcCell() : row.last) + '</td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Connection strength" ? "is-colsel" : "") + '">' + (isCalc("Connection strength", index) ? calcCell() : '<span class="records-strength"><span class="records-strength-dot" style="background:' + strength.color + '"></span>' + strength.label + '</span>') + '</td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Links" ? "is-colsel" : "") + '">' + (isCalc("Links", index) ? calcCell() : row.website ? '<a class="records-link" href="https://' + row.website + '" title="' + row.website + '" target="_blank" rel="noreferrer"><span class="records-link-label">' + row.website + '</span>' + icon('<path d="M14 5h5v5M19 5l-8 8"/>', 12) + '</a>' : '<span class="records-muted">—</span>') + '</td>'
+        + (aiAdded ? '<td class="records-cell ' + (prop && prop.col === AI_LABEL ? "is-colsel" : "") + '">'
+          + (calc && calc.col === AI_LABEL ? (index < calc.resolved ? competitorsFor(index) : calcCell()) : aiDone ? competitorsFor(index) : '<span class="records-muted">—</span>') + '</td>' : '')
+        + '<td class="records-cell"></td></tr>';
+    });
+    body += '</tbody>';
+
+    var avg = Math.round(INITIAL_ROWS.reduce(function (s, r) { return s + STRENGTH[r.strength].rank; }, 0) / INITIAL_ROWS.length / 3 * 100);
+    var linkCount = INITIAL_ROWS.filter(function (r) { return r.website; }).length;
+    var foot = '<tfoot><tr class="records-calculation-row">'
+      + '<td class="records-cell records-sticky-cell"><span class="records-footer-value records-calculation-label"><span class="records-calculation-number">' + INITIAL_ROWS.length + '</span> count</span></td>'
+      + '<td class="records-cell"><button type="button" class="records-add-calculation">' + icon('<path d="M12 5v14M5 12h14"/>', 15) + 'Add calculation</button></td>'
+      + '<td class="records-cell records-muted"><span class="records-footer-value">—</span></td>'
+      + '<td class="records-cell"><span class="records-footer-value records-average"><span class="records-strength-dot" style="background:var(--orange)"></span>' + avg + '% average</span></td>'
+      + '<td class="records-cell"><span class="records-footer-value records-muted">' + linkCount + ' links</span></td>'
+      + (aiAdded ? '<td class="records-cell records-muted"><span class="records-footer-value">' + (aiDone ? INITIAL_ROWS.length + ' filled' : "—") + '</span></td>' : '')
+      + '<td class="records-cell"></td></tr></tfoot>';
+
+    return '<div class="records-shell">'
+      + '<div class="records-scroll" tabindex="0" aria-label="Companies table. Scroll horizontally and vertically to view all columns and records.">'
+      + '<table class="records-table" style="width:100%;min-width:' + tableWidth + 'px">'
+      + '<colgroup>'
+      +   '<col class="records-company-col" style="width:' + w.company + 'px">'
+      +   '<col class="records-category-col" style="width:' + w.categories + 'px">'
+      +   '<col class="records-last-col" style="width:' + w.last + 'px">'
+      +   '<col class="records-strength-col" style="width:' + w.strength + 'px">'
+      +   '<col class="records-link-col" style="width:' + w.links + 'px">'
+      +   (aiAdded ? '<col style="width:' + w.ai + 'px">' : '')
+      +   '<col style="width:' + actionColumnWidth + 'px">'
+      + '</colgroup>' + head + body + foot + '</table></div></div>';
+  }
+
+  /* ── popover pieces ─────────────────────────────────────── */
+  function glideWrap(inner, extraCls, highlight) {
+    return '<div data-glide-root data-row-selector="[data-menu-row]" class="relative ' + extraCls + '">'
+      + '<span aria-hidden data-glide-layer class="pointer-events-none absolute ' + highlight + '" style="' + GLIDE_STYLE + '"></span>'
+      + inner + '</div>';
+  }
+  function configPicker(label, options, selectedVal) {
+    var rows = options.map(function (o) {
+      return '<button data-menu-row type="button" role="menuitemradio" aria-checked="' + (selectedVal === o.label) + '" data-config-pick="' + o.label + '" class="relative z-10 flex h-8 w-full items-center gap-1.5 rounded-[8px] px-1.5 text-left text-[13px] font-medium text-ink">'
+        + '<span class="flex size-4 shrink-0 items-center justify-center text-ink-2">' + o.icon + '</span>'
+        + '<span class="min-w-0 flex-1 truncate">' + o.label + '</span>'
+        + '<span class="' + (selectedVal === o.label ? "text-ink" : "invisible") + '">' + icon('<path d="m5 12 4 4L19 6"/>', 14, 2.2) + '</span></button>';
+    }).join('');
+    return '<div role="menu" aria-label="' + label + '" class="absolute left-full top-0 z-30 ml-5 w-[210px] rounded-[12px] bg-surface p-1.5 shadow-overlay" style="animation:pop-in 140ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div class="px-2 pb-1 pt-0.5 text-[11.5px] font-medium text-ink-3">' + label + '</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover') + '</div>';
+  }
+  function inputPicker(selectedInputs, exclude) {
+    var rows = INPUT_OPTIONS.filter(function (o) { return o !== exclude; }).map(function (o) {
+      var checked = selectedInputs.indexOf(o) > -1;
+      return '<button data-menu-row type="button" role="menuitemcheckbox" aria-checked="' + checked + '" data-input-pick="' + o + '" class="relative z-10 flex h-8 w-full items-center gap-1.5 rounded-[8px] px-1.5 text-left text-[13px] font-medium text-ink">'
+        + '<span class="flex size-4 shrink-0 items-center justify-center rounded-[5px] border ' + (checked ? "border-accent bg-accent text-white" : "border-line-strong text-transparent") + '">' + icon('<path d="m5 12 4 4L19 6"/>', 11, 2.4) + '</span>'
+        + '<span class="min-w-0 flex-1 truncate">' + o + '</span></button>';
+    }).join('');
+    return '<div role="menu" aria-label="Calculation inputs" class="absolute left-full top-0 z-30 ml-5 w-[220px] rounded-[12px] bg-surface p-1.5 shadow-overlay" style="animation:pop-in 140ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div class="px-2 pb-1 pt-0.5 text-[11.5px] font-medium text-ink-3">Use values from</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover') + '</div>';
+  }
+  function configRow(label, child) {
+    return '<div class="relative flex h-8 items-center justify-between"><span class="text-[13px] text-ink-3">' + label + '</span>' + child + '</div>';
+  }
+  function toolIconHTML(kind) {
+    if (kind === "model") return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>' + TOOL_GLYPHS.model + '</svg>';
+    return icon(TOOL_GLYPHS[kind] || TOOL_GLYPHS.user, 14);
+  }
+
+  function popoverHTML() {
+    if (!prop) return '';
+    var base = COLUMN_META[prop.col] || {};
+    var meta = Object.assign({}, base, columnOverrides[prop.col] || {});
+    var selInputs = inputSelections[prop.col] || (meta.inputs ? [meta.inputs] : []);
+    var pinned = pinnedColumns.indexOf(prop.col) > -1;
+    var typeBtn = '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "type") + '" data-configmenu="type" class="flex items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] font-medium text-ink transition-colors duration-100 hover:bg-hover">'
+      + '<span class="text-ink-2">' + icon(TYPE_GLYPHS[meta.type] || TYPE_GLYPHS.Text, 14) + '</span>' + meta.type + '<span class="text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "type" ? configPicker("Property type", NEW_PROPERTY_TYPES.map(function (t) { return { label: t, icon: icon(TYPE_GLYPHS[t], 15) }; }), meta.type) : '');
+    var toolBtn = '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "tool") + '" data-configmenu="tool" class="flex items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] font-medium text-ink transition-colors duration-100 hover:bg-hover">'
+      + '<span class="' + (meta.toolKind === "model" ? "text-accent" : "text-ink-2") + '">' + toolIconHTML(meta.toolKind) + '</span>' + meta.tool + '<span class="text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "tool" ? configPicker("Model", MODEL_OPTIONS.map(function (m) { return { label: m, icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>' + TOOL_GLYPHS.model + '</svg>' }; }), meta.tool) : '');
+    var groundingRow = configRow("Grounding",
+      '<span class="flex items-center gap-2">' + miniSwitch("Grounding", grounding, "grounding")
+      + '<button type="button" aria-label="About grounding" aria-expanded="' + groundingHelpOpen + '" data-grounding-help class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">' + icon('<g><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></g>', 13) + '</button></span>')
+      + (groundingHelpOpen ? '<div class="absolute right-0 top-[30px] z-30 w-[230px] rounded-[10px] px-3 py-2.5 text-[12px] leading-relaxed shadow-overlay" style="color:var(--tooltip-fg);background:var(--tooltip-bg)" role="status">Grounding lets the model verify generated values against connected sources.</div>' : '');
+    var inputsRow = configRow("Inputs",
+      '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "inputs") + '" data-configmenu="inputs" class="flex max-w-[220px] items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] text-ink-2 transition-colors duration-100 hover:bg-hover hover:text-ink">'
+      + (selInputs.length
+        ? '<span class="flex min-w-0 items-center gap-1">' + selInputs.slice(0, 2).map(function (s) { return '<span class="max-w-[92px] truncate rounded-[5px] bg-accent-tint px-1.5 py-0.5 text-[12px] font-medium text-accent-ink">' + s + '</span>'; }).join('') + (selInputs.length > 2 ? '<span class="text-[11px] font-medium text-ink-3">+' + (selInputs.length - 2) + '</span>' : '') + '</span>'
+        : '<span>Select inputs</span>')
+      + '<span class="shrink-0 text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "inputs" ? inputPicker(selInputs, prop.col) : ''));
+    var prompt = '<div contenteditable="true" role="textbox" aria-label="' + prop.col + ' calculation prompt" aria-multiline="true" spellcheck="true" class="mt-2 min-h-[88px] cursor-text rounded-[10px] bg-inset p-3 text-[13px] leading-relaxed shadow-hairline outline-none transition-[box-shadow] duration-150 focus:shadow-[0_0_0_2px_var(--accent)]">'
+      + (meta.prompt
+        ? '<span class="text-ink">' + meta.prompt.before + (meta.prompt.chip ? '<span contenteditable="false" class="rounded-[5px] bg-accent-tint px-1.5 py-0.5 text-[12px] font-medium text-accent-ink">' + meta.prompt.chip + '</span>' : '') + (meta.prompt.after || '') + '</span>'
+        : '<span class="text-ink-3">Set a prompt (press @ to mention an input)</span>')
+      + '</div>';
+    var goBtn = '<button type="button" data-gocalc ' + (calc ? 'disabled ' : '') + 'class="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-[9px] text-[12.5px] font-medium text-ink shadow-btn transition-[background-color,transform] duration-150 hover:bg-hover active:scale-[0.98] disabled:opacity-60">'
+      + icon('<path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/>', 14, 1.9) + 'Go calculate</button>';
+    var pinRow = '<button data-menu-row type="button" aria-pressed="' + pinned + '" data-pin class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+      + '<span class="' + (pinned ? "text-accent" : "text-ink-2") + '">' + icon('<path d="M12 17v5M8 3h8l-1 7 3 3H6l3-3-1-7z"/>', 15) + '</span>' + (pinned ? "Unpin" : "Pin") + '</button>';
+    var moreRow = '<button data-menu-row type="button" aria-expanded="' + moreSettingsOpen + '" data-more class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+      + '<span class="' + (moreSettingsOpen ? "text-ink" : "text-ink-2") + '">' + icon('<g><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></g>', 15) + '</span>'
+      + '<span class="flex-1">More settings</span>'
+      + '<span class="text-ink-3 transition-transform duration-150 ' + (moreSettingsOpen ? "rotate-90" : "") + '">' + chevronRight() + '</span></button>';
+    var hideRow = prop.col === AI_LABEL
+      ? '<button data-menu-row type="button" data-hide-ai class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+        + '<span class="text-ink-2">' + icon('<g><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c7 0 10 7 10 7a16.3 16.3 0 0 1-2.1 3M6.6 6.6A16 16 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6M3 3l18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></g>', 15) + '</span>Hide from view</button>'
+      : '';
+    var moreSection = moreSettingsOpen
+      ? '<div class="mt-2 border-t border-line pt-2" style="animation:fade-up 160ms cubic-bezier(0.23,1,0.32,1) both">'
+        + '<div class="pb-1 text-[11.5px] font-medium text-ink-3">Behavior</div>'
+        + configRow("Required value", miniSwitch("Required value", advancedSettings.required, "required"))
+        + configRow("Allow empty results", miniSwitch("Allow empty results", advancedSettings.allowEmpty, "allowEmpty"))
+        + configRow("Show confidence", miniSwitch("Show confidence", advancedSettings.confidence, "confidence"))
+        + '</div>'
+      : '';
+    return '<div class="pb-2 text-[13.5px] font-medium text-ink">' + prop.col + '</div>'
+      + configRow("Type", typeBtn) + configRow("Tool", toolBtn) + groundingRow + inputsRow
+      + prompt + goBtn
+      + glideWrap(pinRow + moreRow + hideRow, 'mt-3 flex flex-col gap-0.5 border-t border-line pt-2', '-inset-x-1.5 rounded-[8px] bg-hover')
+      + moreSection;
+  }
+
+  function addMenuHTML() {
+    var rows = NEW_PROPERTY_TYPES.map(function (t) {
+      return '<button data-menu-row type="button" data-add-type="' + t + '" class="relative z-10 flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2 text-left text-[13px] text-ink">'
+        + '<span class="text-ink-2">' + icon(TYPE_GLYPHS[t], 15) + '</span>' + t + '</button>';
+    }).join('');
+    return '<div class="px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3">New property</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover');
+  }
+  function tableMenuHTML() {
+    function item(attr, label, glyph) {
+      return '<button data-menu-row type="button" ' + attr + ' class="relative z-10 flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2 text-left text-[13px] text-ink">'
+        + '<span class="text-ink-2">' + icon(glyph, 15) + '</span>' + label + '</button>';
+    }
+    return '<div class="px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3">Table options</div>'
+      + glideWrap(
+        item('data-tm-add', "Add property", '<path d="M12 5v14M5 12h14"/>')
+        + item('data-tm-compact', "Compact columns", '<path d="M4 8h16M7 4 3 8l4 4M17 4l4 4-4 4M4 16h16"/>')
+        + item('data-tm-reset', "Reset column widths", '<path d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6"/>')
+        + '<div class="my-1 h-px bg-line"></div>'
+        + item('data-tm-clear', "Clear selection", '<path d="M5 5l14 14M19 5 5 19"/>'),
+        'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover');
+  }
+
+  /* ── glide (inlined GlideMenu) ── */
+  function initGlide(root) {
+    if (!root || root.__glide) return;
+    root.__glide = true;
+    var sel = root.getAttribute('data-row-selector') || '[data-menu-row]';
+    var layer = root.querySelector('[data-glide-layer]');
+    function moveTo(target) {
+      if (!(target instanceof Element)) return;
+      var row = target.closest(sel);
+      if (!row || !root.contains(row)) return;
+      var cr = root.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      layer.style.top = (rr.top - cr.top) + 'px';
+      layer.style.height = rr.height + 'px';
+      layer.style.opacity = '1';
+    }
+    root.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    root.addEventListener('mouseleave', function () { layer.style.opacity = '0'; });
+    root.addEventListener('focusin', function (e) { moveTo(e.target); });
+    root.addEventListener('focusout', function (e) { if (!root.contains(e.relatedTarget)) layer.style.opacity = '0'; });
+  }
+
+  /* ── render ── */
+  var host = document.getElementById('rt-host');
+  var shellEl = document.createElement('div');
+  var popEl = null, addEl = null, menuEl = null;
+
+  function renderTable() {
+    shellEl.innerHTML = tableHTML();
+    initGlide(shellEl.querySelector('[data-glide-root]'));
+    /* programmatic scrolls (revealing the new column) shouldn't close popovers */
+    var scroller = shellEl.querySelector('.records-scroll');
+    if (scroller) scroller.addEventListener('scroll', function () {
+      if (ignoreScroll) { ignoreScroll = false; return; }
+      if (prop || addOpen || tableMenuOpen) { closeAllPops(); sync(); }
+    });
+  }
+  function postRenderTags() {
+    var cells = shellEl.querySelectorAll('[data-tags-row]');
+    for (var i = 0; i < cells.length; i++) {
+      var id = cells[i].getAttribute('data-tags-row');
+      var row = INITIAL_ROWS.filter(function (r) { return r.id === id; })[0];
+      if (row) fillTags(cells[i], row.tags);
+    }
+  }
+  function ensurePop() {
+    if (!prop) { if (popEl) { popEl.remove(); popEl = null; } return; }
+    var x = Math.min(prop.x, window.innerWidth - 336);
+    if (!popEl) {
+      popEl = document.createElement('div');
+      popEl.setAttribute('data-recpop', '');
+      popEl.className = 'fixed z-50 w-[320px] rounded-[14px] bg-surface px-3 pt-3 pb-1.5 shadow-overlay';
+      popEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      popEl.style.transformOrigin = 'top left';
+      document.body.appendChild(popEl);
+    }
+    popEl.style.top = prop.y + 'px';
+    popEl.style.left = x + 'px';
+    popEl.innerHTML = popoverHTML();
+    var g = popEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function ensureAdd() {
+    if (!addOpen) { if (addEl) { addEl.remove(); addEl = null; } return; }
+    if (!addEl) {
+      addEl = document.createElement('div');
+      addEl.setAttribute('data-recpop', '');
+      addEl.className = 'fixed z-50 w-[260px] rounded-[14px] bg-surface p-1.5 shadow-overlay';
+      addEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      addEl.style.transformOrigin = 'top left';
+      document.body.appendChild(addEl);
+    }
+    addEl.style.top = addOpen.y + 'px';
+    addEl.style.left = addOpen.x + 'px';
+    addEl.innerHTML = addMenuHTML();
+    var g = addEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function ensureTableMenu() {
+    if (!tableMenuOpen) { if (menuEl) { menuEl.remove(); menuEl = null; } return; }
+    if (!menuEl) {
+      menuEl = document.createElement('div');
+      menuEl.setAttribute('data-recpop', '');
+      menuEl.className = 'fixed z-50 w-[220px] rounded-[14px] bg-surface p-1.5 shadow-overlay';
+      menuEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      menuEl.style.transformOrigin = 'top right';
+      document.body.appendChild(menuEl);
+    }
+    menuEl.style.top = tableMenuOpen.y + 'px';
+    menuEl.style.left = tableMenuOpen.x + 'px';
+    menuEl.innerHTML = tableMenuHTML();
+    var g = menuEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function sync() {
+    renderTable();
+    postRenderTags();
+    ensurePop();
+    ensureAdd();
+    ensureTableMenu();
+  }
+
+  /* ── interactions ── */
+  host.appendChild(shellEl);
+
+  function closeAllPops() {
+    prop = null; configMenu = null; groundingHelpOpen = false; moreSettingsOpen = false; addOpen = null; tableMenuOpen = null;
+  }
+  document.addEventListener('pointerdown', function (event) {
+    if (!prop && !addOpen && !tableMenuOpen) return;
+    if (!event.target.closest('[data-recpop]')) { closeAllPops(); sync(); }
+  });
+
+  function openProp(col, el) {
+    var th = el.closest('th');
+    if (!th) return;
+    addOpen = null; tableMenuOpen = null; configMenu = null; groundingHelpOpen = false; moreSettingsOpen = false;
+    if (prop && prop.col === col) { prop = null; }
+    else {
+      var rect = th.getBoundingClientRect();
+      prop = { col: col, x: Math.min(rect.left, window.innerWidth - 336), y: rect.bottom + 6 };
+    }
+    ignoreScroll = true;
+    sync();
+  }
+
+  /* popovers are portaled to <body>, so delegate on document */
+  document.addEventListener('click', function (event) {
+    var t = event.target;
+    if (!t.closest || !t.closest('[data-openprop],[data-sort],[data-add],[data-tablemenu],[data-configmenu],[data-grounding-help],[data-more],[data-pin],[data-config-pick],[data-input-pick],[data-gocalc],[data-hide-ai],[data-add-type],[data-tm-add],[data-tm-compact],[data-tm-reset],[data-tm-clear],[data-switch]')) return;
+    if (t.closest('.records-checkbox')) return;
+    var sortBtn = t.closest('[data-sort]');
+    if (sortBtn) { var k = sortBtn.getAttribute('data-sort'); sort = sort.key === k ? { key: k, dir: sort.dir * -1 } : { key: k, dir: 1 }; sync(); return; }
+    var openB = t.closest('[data-openprop]');
+    if (openB) { openProp(openB.getAttribute('data-openprop'), openB); return; }
+    if (t.closest('[data-add]')) {
+      var r = t.closest('[data-add]').getBoundingClientRect();
+      tableMenuOpen = null; prop = null;
+      addOpen = addOpen ? null : { x: Math.min(r.left, window.innerWidth - 276), y: r.bottom + 6 };
+      ignoreScroll = true; sync(); return;
+    }
+    if (t.closest('[data-tablemenu]')) {
+      var rr = t.closest('[data-tablemenu]').getBoundingClientRect();
+      addOpen = null; prop = null;
+      tableMenuOpen = tableMenuOpen ? null : { x: Math.max(8, Math.min(rr.right - 220, window.innerWidth - 228)), y: rr.bottom + 6 };
+      ignoreScroll = true; sync(); return;
+    }
+    if (t.closest('[data-configmenu]')) {
+      var which = t.closest('[data-configmenu]').getAttribute('data-configmenu');
+      configMenu = configMenu === which ? null : which;
+      ensurePop(); return;
+    }
+    if (t.closest('[data-grounding-help]')) { groundingHelpOpen = !groundingHelpOpen; ensurePop(); return; }
+    if (t.closest('[data-more]')) { moreSettingsOpen = !moreSettingsOpen; ensurePop(); return; }
+    if (t.closest('[data-pin]')) {
+      var i = pinnedColumns.indexOf(prop.col);
+      if (i > -1) pinnedColumns.splice(i, 1); else pinnedColumns.push(prop.col);
+      ensurePop(); return;
+    }
+    var cp = t.closest('[data-config-pick]');
+    if (cp) {
+      var val = cp.getAttribute('data-config-pick');
+      var ov = columnOverrides[prop.col] || {};
+      if (configMenu === "type") ov.type = val;
+      else { ov.tool = val; ov.toolKind = "model"; }
+      columnOverrides[prop.col] = ov; configMenu = null; ensurePop(); return;
+    }
+    var ip = t.closest('[data-input-pick]');
+    if (ip) {
+      var v = ip.getAttribute('data-input-pick');
+      var cur = inputSelections[prop.col] || (COLUMN_META[prop.col] && COLUMN_META[prop.col].inputs ? [COLUMN_META[prop.col].inputs] : []);
+      cur = cur.slice();
+      var j = cur.indexOf(v);
+      if (j > -1) cur.splice(j, 1); else cur.push(v);
+      inputSelections[prop.col] = cur; ensurePop(); return;
+    }
+    if (t.closest('[data-gocalc]')) { startCalc(prop.col); return; }
+    if (t.closest('[data-hide-ai]')) { aiAdded = false; aiDone = false; prop = null; sync(); return; }
+    var at = t.closest('[data-add-type]');
+    if (at) {
+      addOpen = null; aiDone = false; aiAdded = true; sync();
+      /* after adding the AI column, scroll it into view and open its config
+         anchored to the new header (upstream pendingOpenAi) */
+      var th = shellEl.querySelector('[data-openprop="' + AI_LABEL + '"]');
+      if (th) {
+        var sc = shellEl.querySelector('.records-scroll');
+        if (sc) { ignoreScroll = true; sc.scrollLeft = sc.scrollWidth; }
+        var tr2 = th.closest('th').getBoundingClientRect();
+        prop = { col: AI_LABEL, x: Math.min(tr2.left, window.innerWidth - 336), y: tr2.bottom + 6 };
+      }
+      sync(); return;
+    }
+    if (t.closest('[data-tm-add]')) { var p0 = tableMenuOpen; tableMenuOpen = null; addOpen = { x: Math.min(p0.x, window.innerWidth - 276), y: p0.y }; sync(); return; }
+    if (t.closest('[data-tm-compact]')) { columnWidths = { company: 220, categories: 220, last: 155, strength: 180, links: 160, ai: 200 }; tableMenuOpen = null; sync(); return; }
+    if (t.closest('[data-tm-reset]')) { columnWidths = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 }; tableMenuOpen = null; sync(); return; }
+    if (t.closest('[data-tm-clear]')) { selected = []; tableMenuOpen = null; sync(); return; }
+    var sw = t.closest('[data-switch]');
+    if (sw) {
+      var id = sw.getAttribute('data-switch');
+      if (id === "grounding") grounding = !grounding;
+      else advancedSettings[id] = !advancedSettings[id];
+      ensurePop(); return;
+    }
+  });
+
+  document.addEventListener('change', function (event) {
+    var el = event.target.closest ? event.target.closest('[data-check]') : null;
+    if (!el) return;
+    var id = el.getAttribute('data-check');
+    var rows = visibleRows();
+    if (id === "all") {
+      var allSel = rows.every(function (r) { return isSelected(r.id); });
+      if (allSel) selected = selected.filter(function (s) { return !rows.some(function (r) { return r.id === s; }); });
+      else rows.forEach(function (r) { if (!isSelected(r.id)) selected.push(r.id); });
+    } else {
+      var rid = id.slice(4);
+      var k = selected.indexOf(rid);
+      if (k > -1) selected.splice(k, 1); else selected.push(rid);
+    }
+    sync();
+  });
+
+  document.addEventListener('pointerdown', function (event) {
+    var handle = event.target.closest ? event.target.closest('[data-resize]') : null;
+    if (!handle) return;
+    event.preventDefault();
+    var key = handle.getAttribute('data-resize');
+    var minWidth = Number(handle.getAttribute('data-min')) || 120;
+    closeAllPops();
+    var startX = event.clientX, startWidth = columnWidths[key];
+    var prevCursor = document.body.style.cursor, prevSel = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    resizingColumn = key; sync();
+    function move(e) { columnWidths[key] = Math.max(minWidth, startWidth + e.clientX - startX); sync(); }
+    function finish() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      document.body.style.cursor = prevCursor; document.body.style.userSelect = prevSel;
+      resizingColumn = null; sync();
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  });
+
+  function startCalc(col) {
+    calc = { col: col, resolved: 0 };
+    prop = null; configMenu = null;
+    if (calcTimer) { clearInterval(calcTimer); calcTimer = null; }
+    sync();
+    calcTimer = setInterval(function () {
+      if (!calc) { clearInterval(calcTimer); calcTimer = null; return; }
+      calc.resolved++;
+      if (calc.resolved > visibleRows().length) {
+        if (calc.col === AI_LABEL) aiDone = true;
+        calc = null; clearInterval(calcTimer); calcTimer = null;
+      }
+      sync();
+    }, 110);
+  }
+
+  sync();
+  /* re-measure tags once fonts settle (mirrors upstream ResizeObserver pass) */
+  window.addEventListener('load', function () { postRenderTags(); });
+  window.addEventListener('resize', function () { postRenderTags(); });
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

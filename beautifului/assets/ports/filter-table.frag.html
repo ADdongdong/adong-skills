@@ -1,0 +1,146 @@
+<!-- title: Filter Table -->
+<!--@classes:
+  w-full max-w-105
+  -mx-1 mb-1 flex items-center gap-1 overflow-x-auto px-1 py-1
+  flex h-6.5 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-[background-color,box-shadow,color] duration-200
+  bg-surface text-ink shadow-btn text-ink-2 hover:bg-hover
+  size-1.5 rounded-full
+  rounded-[4px] px-1 text-[10.5px] tabular-nums bg-field text-ink-2 text-ink-3
+  overflow-x-auto rounded-card bg-surface shadow-card
+  min-w-[420px]
+  grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.6fr)_minmax(0,0.95fr)_minmax(0,0.9fr)] border-b border-[var(--grid-line)] text-[12.5px] font-medium text-ink-2
+  border-r border-[var(--grid-line)] px-3 py-2
+  grid transition-[grid-template-rows,opacity] duration-300 overflow-hidden
+  border-b border-[var(--grid-line)] text-[13px] transition-colors duration-100 hover:bg-hover
+  flex min-w-0 items-center border-r border-[var(--grid-line)] px-3 py-2
+  truncate font-medium text-ink
+  flex items-center whitespace-nowrap border-r border-[var(--grid-line)] px-3 py-2 text-ink-2 tabular-nums
+  inline-flex h-[23px] shrink-0 items-center whitespace-nowrap rounded-[8px] border px-[7px] text-[13px] font-medium
+  flex min-w-0 items-center px-3 py-2 text-ink-2 truncate
+-->
+<!-- 来源：components/primitives/FilterTable.tsx（上游 MIT）
+     保真：状态芯片即时筛选行。每行是 grid-template-rows 1fr↔0fr + opacity 的
+           300ms 展开/收起（strong 曲线 cubic-bezier(0.23,1,0.32,1)），不整表重排。
+           芯片激活态 bg-surface text-ink shadow-btn，未激活 text-ink-2 hover:bg-hover；
+           计数角标激活 bg-field、未激活 text-ink-3。筛选点用上游硬编码 hex
+           （#f09a2f / #16a6c7 / #25a878），状态药丸用 foundation 的
+           .filter-status-todo/-progress/-done（其色由 --tag-base 经 color-mix 派生，
+           明暗两套自动切换）。表格 DOM 与 grid 列宽保持上游原样。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>筛选表格</strong> — 状态芯片直接筛选任务表。点 <code>All / To do / In Progress /
+    Completed</code> 冷切换，命中的行实时展开、其余收起（300ms 强曲线），芯片与计数角标同步高亮。
+    状态药丸走 <code>.filter-status-*</code>，其颜色由 <code>--tag-base</code> 经
+    <code>color-mix</code> 派生，浅色/暗色各一套。
+  </p>
+  <div id="filter-table-host"></div>
+</div>
+
+<script>
+/* ── 上游常量 1:1 ──────────────────────────────────────────── */
+var FT_FILTERS = [
+  { key: 'all', label: 'All', count: 5 },
+  { key: 'todo', label: 'To do', dot: '#f09a2f', count: 2 },
+  { key: 'progress', label: 'In Progress', dot: '#16a6c7', count: 2 },
+  { key: 'done', label: 'Completed', dot: '#25a878', count: 1 }
+];
+
+var FT_ROWS = [
+  { task: 'Restock mango sorbet', date: 'Dec 03', status: 'todo', owner: 'Mango Moon Gelato' },
+  { task: 'Churn black sesame', date: 'Sep 22', status: 'progress', owner: 'Kumo Creamery' },
+  { task: 'Print summer menu', date: 'Jan 02', status: 'todo', owner: 'Coral Coast Sorbet' },
+  { task: 'Taste-test batch 42', date: 'Nov 08', status: 'progress', owner: 'Maple Orbit' },
+  { task: 'Order waffle cones', date: 'Apr 14', status: 'done', owner: 'Aurora Scoops' }
+];
+
+var FT_COLS = { task: 'Task name', date: 'Date', status: 'Status', owner: 'Advisor' };
+
+var FT_PILLS = {
+  todo: { label: 'To do', cls: 'filter-status-todo' },
+  progress: { label: 'In Progress', cls: 'filter-status-progress' },
+  done: { label: 'Completed', cls: 'filter-status-done' }
+};
+
+var FT_GRID = 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.6fr)_minmax(0,0.95fr)_minmax(0,0.9fr)]';
+
+(function () {
+  var host = document.getElementById('filter-table-host');
+  var filter = 'all';
+
+  var chipsHtml = FT_FILTERS.map(function (f) {
+    var active = f.key === 'all';
+    return '<button type="button" data-chip="' + f.key + '" aria-pressed="' + (active ? 'true' : 'false') + '" class="flex h-6.5 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-[background-color,box-shadow,color] duration-200 '
+      + (active ? 'bg-surface text-ink shadow-btn' : 'text-ink-2 hover:bg-hover') + '">'
+      + (f.dot ? '<span class="size-1.5 rounded-full" style="background:' + f.dot + '"></span>' : '')
+      + f.label
+      + '<span data-count class="rounded-[4px] px-1 text-[10.5px] tabular-nums ' + (active ? 'bg-field text-ink-2' : 'text-ink-3') + '">' + f.count + '</span>'
+      + '</button>';
+  }).join('');
+
+  var headHtml = '<div class="' + FT_GRID + ' border-b border-[var(--grid-line)] text-[12.5px] font-medium text-ink-2">'
+    + '<span class="border-r border-[var(--grid-line)] px-3 py-2">' + FT_COLS.task + '</span>'
+    + '<span class="border-r border-[var(--grid-line)] px-3 py-2">' + FT_COLS.date + '</span>'
+    + '<span class="border-r border-[var(--grid-line)] px-3 py-2">' + FT_COLS.status + '</span>'
+    + '<span class="px-3 py-2">' + FT_COLS.owner + '</span>'
+    + '</div>';
+
+  var rowsHtml = FT_ROWS.map(function (row, i) {
+    var pill = FT_PILLS[row.status];
+    return '<div data-row="' + i + '" class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:1fr;opacity:1;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+      + '<div class="overflow-hidden">'
+      +   '<div class="' + FT_GRID + ' border-b border-[var(--grid-line)] text-[13px] transition-colors duration-100 hover:bg-hover">'
+      +     '<span class="flex min-w-0 items-center border-r border-[var(--grid-line)] px-3 py-2"><span class="truncate font-medium text-ink">' + row.task + '</span></span>'
+      +     '<span class="flex items-center whitespace-nowrap border-r border-[var(--grid-line)] px-3 py-2 text-ink-2 tabular-nums">' + row.date + '</span>'
+      +     '<span class="flex items-center border-r border-[var(--grid-line)] px-3 py-2"><span class="inline-flex h-[23px] shrink-0 items-center whitespace-nowrap rounded-[8px] border px-[7px] text-[13px] font-medium ' + pill.cls + '">' + pill.label + '</span></span>'
+      +     '<span class="flex min-w-0 items-center px-3 py-2 text-ink-2"><span class="truncate">' + row.owner + '</span></span>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  host.innerHTML =
+    '<div class="w-full max-w-105">'
+    + '<div class="-mx-1 mb-1 flex items-center gap-1 overflow-x-auto px-1 py-1" style="scrollbar-width:none">' + chipsHtml + '</div>'
+    + '<div aria-label="Scrollable task table" class="overflow-x-auto rounded-card bg-surface shadow-card" role="region" tabindex="0" style="scrollbar-width:none">'
+    +   '<div class="min-w-[420px]">' + headHtml + rowsHtml + '</div>'
+    + '</div>'
+    + '</div>';
+
+  function setFilter(key) {
+    filter = key;
+    /* chips */
+    var chips = host.querySelectorAll('[data-chip]');
+    for (var c = 0; c < chips.length; c++) {
+      var chip = chips[c];
+      var active = chip.getAttribute('data-chip') === key;
+      chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      chip.classList.toggle('bg-surface', active);
+      chip.classList.toggle('text-ink', active);
+      chip.classList.toggle('shadow-btn', active);
+      chip.classList.toggle('text-ink-2', !active);
+      chip.classList.toggle('hover:bg-hover', !active);
+      var count = chip.querySelector('[data-count]');
+      count.classList.toggle('bg-field', active);
+      count.classList.toggle('text-ink-2', active);
+      count.classList.toggle('text-ink-3', !active);
+    }
+    /* rows */
+    var rows = host.querySelectorAll('[data-row]');
+    for (var i = 0; i < rows.length; i++) {
+      var shown = key === 'all' || FT_ROWS[i].status === key;
+      var wrap = rows[i];
+      wrap.style.gridTemplateRows = shown ? '1fr' : '0fr';
+      wrap.style.opacity = shown ? '1' : '0';
+    }
+  }
+
+  var chips = host.querySelectorAll('[data-chip]');
+  for (var i = 0; i < chips.length; i++) {
+    chips[i].addEventListener('click', function () {
+      setFilter(this.getAttribute('data-chip'));
+    });
+  }
+
+  setFilter('all');
+})();
+</script>

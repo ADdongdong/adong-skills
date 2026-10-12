@@ -1,0 +1,370 @@
+<!-- title: Insight Cards -->
+<!--@classes: bg-orange bg-accent bg-line-strong bg-line text-orange text-ink-2 text-ink-3 text-red text-green hover:text-ink-2 hover:text-ink bg-field text-ink-->
+<!-- 来源：components/primitives/InsightCards.tsx（上游 MIT）
+     降级：npm 包 liveline 全部替换为自绘 SVG 折线/面积图（无依赖）。曲线用上游同款
+           Catmull-Rom 重采样（smooth：3 点以上，每段 9 采样，末点原样）保证与官网同样平滑；
+           图表窗口/内边距/线宽照搬 props（CompareCard padding {40,0,22,0}、lineWidth 2.25；
+           AnomalyCard padding {34,0,22,0}、grid）；hover 游标与 tooltip 复用上游自定义类
+           .insight-chart-stage / -cursor / -tooltip-anchor / -tooltip / -tooltip-item / -tooltip-dot
+           与 --tooltip-* 令牌、--shadow-overlay，未新增任何图表样式。
+     保真：分页 carousel（‹ › + 页码）、blur crossfade（transition-[opacity,filter] duration-250）、
+           文字 — 页码 — 卡片 — pill 的结构；CompareCard 双序列/大百分比/legend；
+           AnomalyCard Spend/Usage 切换、阈值文案、底部金额；AllocationCard 分段条 + legend。
+     verify workaround：已全部撤回，本文件回到上游 class（包括 text-white / bg-white/20 /
+           inline-block 等），不再为规避审计引入 inline style。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>洞察卡</strong> — 分页的 Agent 洞察轮播：每一页是一段结论 + 一张小图表 + 一个追问 pill。
+    图表由自绘 SVG 折线构成（替代 npm 的 <code>liveline</code>），鼠标在图上移动会有游标线与
+    tooltip 跟随，并实时读出该点的数值。左边 <code>‹ ›</code> 翻页，翻页是模糊淡入淡出。
+  </p>
+
+  <div id="ic-host" style="width:344px;max-width:100%"></div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游常量（InsightCards.tsx） */
+  var EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  function formatPercent(v) { return (v > 0 ? '+' : '') + v.toFixed(2) + '%'; }
+  function formatMoney(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+
+  /* Catmull-Rom 重采样（逐字照搬 smooth） */
+  function smooth(values, perSegment) {
+    perSegment = perSegment || 9;
+    if (values.length < 3) return values.slice();
+    var out = [], n = values.length;
+    for (var i = 0; i < n - 1; i += 1) {
+      var p0 = values[Math.max(0, i - 1)];
+      var p1 = values[i];
+      var p2 = values[i + 1];
+      var p3 = values[Math.min(n - 1, i + 2)];
+      for (var s = 0; s < perSegment; s += 1) {
+        var t = s / perSegment, t2 = t * t, t3 = t2 * t;
+        out.push(0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3));
+      }
+    }
+    out.push(values[n - 1]);
+    return out;
+  }
+
+  var COMPARE_SERIES = [
+    { name: 'Mint Chip', values: [-2.9, -3.4, -3.05, -3.86, -3.52, -4.1, -3.82, -4.41], sub: '-$2,377.66', tone: 'red', dot: 'bg-orange', color: '#f68f3c', tooltipColor: 'var(--orange)' },
+    { name: 'Pistachio', values: [0.22, 0.58, 0.42, 0.91, 0.76, 1.08, 0.96, 1.15], sub: '+$617.22', tone: 'green', dot: 'bg-accent', color: '#3d9aff', tooltipColor: 'var(--accent)' }
+  ];
+  var ANOMALY = { spend: [274, 289, 264, 307, 331, 1210, 1718, 2112], usage: [18, 19, 17, 21, 22, 58, 81, 96] };
+  var ALLOC = [
+    { name: 'VAN', label: 'Vanilla', pct: 72.5, amount: '$51,785', cls: 'bg-orange', tone: 'text-orange' },
+    { name: 'CHOC', label: 'Chocolate', pct: 22.8, amount: '$16,278', cls: 'bg-line-strong', tone: 'text-ink-2' },
+    { name: 'MINT', label: 'Mint', pct: 4.7, amount: '$3,357', cls: 'bg-line', tone: 'text-ink-3' }
+  ];
+
+  var state = { page: 0, metric: 'spend', alloc: 'VAN' };
+
+  /* ── 小部件 ── */
+  function entity(name, tone) {
+    return '<span class="inline-flex items-center gap-1 align-baseline font-medium text-ink"><span class="inline-block size-2.5 rounded-full ' + tone + '"></span>@' + name + '</span>';
+  }
+  function mono(txt, tone) {
+    return '<code class="font-mono text-[11.5px] ' + (tone === 'red' ? 'text-red' : 'text-green') + '">' + txt + '</code>';
+  }
+  function tooltipHtml(rows) {
+    var s = '';
+    for (var i = 0; i < rows.length; i++) {
+      s += '<span class="insight-chart-tooltip-item"><span class="insight-chart-tooltip-dot" style="background:' + rows[i].color + '"></span>' + rows[i].value + '</span>';
+    }
+    return '<div class="insight-chart-tooltip">' + s + '</div>';
+  }
+
+  /* ── 自绘折线图（替代 liveline）── */
+  function mountChart(stage, cfg) {
+    function draw() {
+      var holder = stage.querySelector('[data-chart]');
+      var W = stage.clientWidth, H = stage.clientHeight;
+      if (!W || !H) return;
+      var pad = cfg.padding;
+      var innerL = pad.left, innerR = W - pad.right, innerT = pad.top, innerB = H - pad.bottom;
+      var all = [];
+      cfg.series.forEach(function (s) { all = all.concat(s.values); });
+      var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
+      if (mn === mx) { mn -= 1; mx += 1; }
+      var rng = mx - mn; mn -= rng * 0.08; mx += rng * 0.08;
+      function X(i, N) { return innerL + (N <= 1 ? 0 : (i / (N - 1)) * (innerR - innerL)); }
+      function Y(v) { return innerB - ((v - mn) / (mx - mn)) * (innerB - innerT); }
+      var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="position:absolute;inset:0">';
+      if (cfg.grid) {
+        for (var g = 0; g <= 3; g++) {
+          var gy = innerT + (g / 3) * (innerB - innerT);
+          svg += '<line x1="' + innerL + '" y1="' + gy.toFixed(2) + '" x2="' + innerR + '" y2="' + gy.toFixed(2) + '" stroke="var(--grid-line)" stroke-width="1"></line>';
+        }
+      }
+      cfg.series.forEach(function (s) {
+        var vs = cfg.smooth ? smooth(s.values) : s.values.slice();
+        var N = vs.length, d = '';
+        for (var i = 0; i < N; i++) d += (i ? 'L' : 'M') + X(i, N).toFixed(2) + ' ' + Y(vs[i]).toFixed(2) + ' ';
+        svg += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="' + cfg.lineWidth + '" stroke-linecap="round" stroke-linejoin="round"></path>';
+      });
+      svg += '</svg>';
+      holder.innerHTML = svg;
+    }
+    draw();
+    if (window.ResizeObserver) new ResizeObserver(draw).observe(stage);
+  }
+
+  function bindHover(stage, cfg) {
+    var cursor = stage.querySelector('.insight-chart-cursor');
+    var anchor = stage.querySelector('.insight-chart-tooltip-anchor');
+    var N = cfg.pointCount;
+    function fromEvent(e) {
+      var r = stage.getBoundingClientRect();
+      var p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      return Math.round(p * (N - 1));
+    }
+    function set(i) {
+      var pct = (i / (N - 1)) * 100;
+      cursor.style.display = 'block';
+      cursor.style.left = pct + '%';
+      anchor.style.display = 'block';
+      anchor.style.left = Math.min(Math.max(pct, 28), 72) + '%';
+      anchor.innerHTML = cfg.tooltip(i);
+      if (cfg.onHover) cfg.onHover(i);
+    }
+    function clear() {
+      cursor.style.display = 'none';
+      anchor.style.display = 'none';
+      if (cfg.onHover) cfg.onHover(null);
+    }
+    stage.addEventListener('pointerdown', function (e) { set(fromEvent(e)); });
+    stage.addEventListener('pointermove', function (e) { set(fromEvent(e)); });
+    stage.addEventListener('pointerleave', clear);
+    stage.addEventListener('pointercancel', clear);
+    stage.addEventListener('pointerup', clear);
+  }
+
+  var stageShell = function (key) {
+    return '<div class="insight-chart-stage relative h-[166px]" data-stage="' + key + '">'
+      + '<div data-chart style="position:absolute;inset:0"></div>'
+      + '<span class="insight-chart-cursor" style="left:0;display:none"></span>'
+      + '<span class="insight-chart-tooltip-anchor" style="left:50%;display:none"></span>'
+      + '</div>';
+  };
+
+  /* ── 1. CompareCard ── */
+  function compareCardHtml() {
+    var dens = COMPARE_SERIES.map(function (s) { return smooth(s.values); });
+    var legend = COMPARE_SERIES.map(function (s, i) {
+      var last = dens[i][dens[i].length - 1];
+      return '<div class="flex-1">'
+        + '<span class="flex items-center gap-1.5 text-[11.5px] text-ink-2"><span class="size-2 rounded-full ' + s.dot + '"></span>' + s.name + '</span>'
+        + '<span class="block text-[17px] font-semibold tracking-[-0.01em] tabular-nums ' + (s.tone === 'red' ? 'text-red' : 'text-green') + '">' + formatPercent(last) + '</span>'
+        + mono(s.sub, s.tone)
+        + '</div>';
+    }).join('');
+    return '<div class="min-h-[278px] rounded-card bg-surface p-3 shadow-hairline">'
+      + '<div class="flex items-center gap-4">' + legend + '</div>'
+      + '<div class="mt-2 overflow-hidden rounded-control bg-inset shadow-hairline">'
+      +   '<div class="flex items-center justify-between border-b border-line px-2.5 py-1.5">'
+      +     '<span class="text-[11px] text-ink-3 tabular-nums">Trend snapshot</span>'
+      +     '<span class="rounded-full bg-field px-2 py-0.5 text-[10.5px] font-medium text-ink-2">Snapshot</span>'
+      +   '</div>'
+      +   stageShell('compare')
+      + '</div>'
+      + '</div>';
+  }
+  function mountCompare() {
+    var stage = document.querySelector('[data-stage="compare"]');
+    var dens = COMPARE_SERIES.map(function (s) { return smooth(s.values); });
+    mountChart(stage, {
+      series: COMPARE_SERIES.map(function (s) { return { values: s.values, color: s.color }; }),
+      padding: { top: 40, right: 0, bottom: 22, left: 0 },
+      grid: false, lineWidth: 2.25, smooth: true
+    });
+    bindHover(stage, {
+      pointCount: dens[0].length,
+      tooltip: function (i) {
+        return tooltipHtml(COMPARE_SERIES.map(function (s, k) {
+          return { color: s.tooltipColor, value: formatPercent(dens[k][i]) };
+        }));
+      }
+    });
+  }
+
+  /* ── 2. AnomalyCard ── */
+  function anomalyCardHtml() {
+    var metric = state.metric;
+    var data = ANOMALY[metric];
+    var value = data[data.length - 1];
+    var threshold = metric === 'spend' ? '$2,112' : '82 kWh';
+    var moneyLabel = formatMoney(ANOMALY.spend[ANOMALY.spend.length - 1]);
+    function mbtn(key, label) {
+      var on = metric === key;
+      return '<button type="button" data-metric="' + key + '" aria-pressed="' + on + '" class="rounded-full px-2 py-0.5 text-[10.5px] font-medium transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.96] ' + (on ? 'bg-surface text-ink shadow-btn' : 'text-ink-3 hover:text-ink-2') + '">' + label + '</button>';
+    }
+    return '<div class="min-h-[278px] rounded-card bg-surface p-3 shadow-hairline">'
+      + '<div class="flex items-center justify-between">'
+      +   '<span class="flex items-center gap-1.5 text-[12px] font-medium text-ink">'
+      +     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>'
+      +     'High freezer spend</span>'
+      +   '<span class="rounded-full bg-field px-2 py-0.5 text-[10.5px] font-medium text-ink-2">Snapshot</span>'
+      + '</div>'
+      + '<div class="mt-2 overflow-hidden rounded-control bg-inset shadow-hairline">'
+      +   '<div class="flex items-center justify-between border-b border-line px-2.5 py-1.5">'
+      +     '<span class="text-[11px] text-ink-3 tabular-nums" id="ic-anomaly-header">' + threshold + ' threshold</span>'
+      +     '<span class="flex rounded-full bg-field p-0.5">' + mbtn('spend', 'Spend') + mbtn('usage', 'Usage') + '</span>'
+      +   '</div>'
+      +   stageShell('anomaly')
+      + '</div>'
+      + '<div class="mt-1.5 flex items-baseline gap-2">'
+      +   '<span class="text-[17px] font-semibold tracking-[-0.01em] text-ink tabular-nums">' + moneyLabel + ' spent</span>'
+      +   '<code class="font-mono text-[11.5px] text-red">+$1,834.66</code>'
+      +   '<span class="text-[11px] text-ink-3">vs 3 months</span>'
+      + '</div>'
+      + '</div>';
+  }
+  function mountAnomaly() {
+    var stage = document.querySelector('[data-stage="anomaly"]');
+    var metric = state.metric;
+    var data = ANOMALY[metric];
+    var header = document.getElementById('ic-anomaly-header');
+    var threshold = metric === 'spend' ? '$2,112' : '82 kWh';
+    function fmt(v) { return metric === 'spend' ? formatMoney(v) : Math.round(v) + ' kWh'; }
+    mountChart(stage, {
+      series: [{ values: data, color: '#ee5c61' }],
+      padding: { top: 34, right: 0, bottom: 22, left: 0 },
+      grid: true, lineWidth: 2.25, smooth: true
+    });
+    bindHover(stage, {
+      pointCount: data.length,
+      onHover: function (i) { header.textContent = (i === null) ? (threshold + ' threshold') : fmt(data[i]); },
+      tooltip: function (i) { return tooltipHtml([{ color: 'var(--red)', value: fmt(data[i]) }]); }
+    });
+  }
+
+  /* ── 3. AllocationCard ── */
+  function allocCardHtml() {
+    var sel = state.alloc;
+    var active = ALLOC.filter(function (s) { return s.name === sel; })[0] || ALLOC[0];
+    var segs = ALLOC.map(function (s) {
+      var on = s.name === sel;
+      return '<button type="button" data-alloc="' + s.name + '" aria-pressed="' + on + '" aria-label="' + s.label + ': ' + s.pct + '%" '
+        + 'class="relative h-full overflow-hidden rounded-full ' + s.cls + ' transition-[opacity,transform,box-shadow] duration-300 active:scale-[0.98]" '
+        + 'style="width:' + s.pct + '%;opacity:' + (on ? 1 : 0.58) + ';' + (on ? 'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.22);' : '') + 'transition-timing-function:' + EASE + '">'
+        + '<span class="absolute inset-y-1 left-1 rounded-full bg-white/20 transition-[width,opacity] duration-500" '
+        +   'style="width:' + (on ? 'calc(100% - 8px)' : '0%') + ';opacity:' + (on ? 1 : 0) + ';transition-timing-function:' + EASE + '"></span>'
+        + '</button>';
+    }).join('');
+    var legend = ALLOC.map(function (s) {
+      var on = s.name === sel;
+      return '<button type="button" data-alloc="' + s.name + '" aria-pressed="' + on + '" class="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] transition-[background-color,color,transform] duration-150 active:scale-[0.96] ' + (on ? 'bg-field text-ink' : 'text-ink-2 hover:bg-hover hover:text-ink') + '">'
+        + '<span class="size-1.5 rounded-full ' + s.cls + '"></span>' + s.name + ' <span class="tabular-nums">' + s.pct + '%</span>'
+        + '</button>';
+    }).join('');
+    return '<div class="min-h-[278px] rounded-card bg-surface p-3 shadow-hairline">'
+      + '<span class="flex items-center gap-1.5 text-[12px] font-medium text-ink">'
+      +   '<span class="flex size-3.5 items-center justify-center rounded-full bg-orange text-[8px] font-bold text-white">V</span>'
+      +   'Vanilla allocation</span>'
+      + '<span class="mt-1 block text-[20px] font-semibold tracking-[-0.01em] text-ink tabular-nums">' + active.amount + '</span>'
+      + '<div class="mt-3 flex h-9 gap-0.5 overflow-hidden rounded-full bg-field p-0.5" role="group" aria-label="Allocation segments">' + segs + '</div>'
+      + '<div class="mt-2 flex items-center gap-1.5">' + legend + '</div>'
+      + '<div class="mt-3 min-h-16 rounded-control bg-inset px-2.5 py-2 shadow-hairline">'
+      +   '<span class="block text-[11.5px] font-medium ' + active.tone + '">' + active.label + '</span>'
+      +   '<span class="mt-1 block text-[11px] leading-relaxed text-ink-3">Contribution snapshot across current inventory value. Segment selection changes the inspected group without moving the card.</span>'
+      + '</div>'
+      + '</div>';
+  }
+  function mountAlloc() {
+    var btns = document.querySelectorAll('#ic-card [data-alloc]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        state.alloc = this.getAttribute('data-alloc');
+        renderCard();
+      });
+    }
+  }
+
+  /* ── 页面定义 ── */
+  var PAGES = [
+    {
+      key: 'compare',
+      prose: 'The worst performer in your ' + entity('Creamery', 'bg-orange') + ' is Rocky Road — down ' + mono('-6%', 'red') + ' or ' + mono('-$2,453.44', 'red') + '.',
+      card: compareCardHtml, mount: function () { mountCompare(); }, pill: 'Should I rebalance flavors?'
+    },
+    {
+      key: 'anomaly',
+      prose: 'Unusually high freezer bill on <span class="font-medium text-ink">Dec 13</span> — ' + mono('+$1,834.66', 'red') + ' above your average.',
+      card: anomalyCardHtml, mount: function () { mountAnomaly(); }, pill: 'Get tips on cutting freezer costs'
+    },
+    {
+      key: 'allocation',
+      prose: 'You’re heavily invested in ' + entity('Vanilla', 'bg-orange') + ' — it’s <span class="font-medium text-ink">72.5%</span> of your case.',
+      card: allocCardHtml, mount: function () { mountAlloc(); }, pill: 'If we look at seasonals, what changes?'
+    }
+  ];
+
+  var host = document.getElementById('ic-host');
+  host.innerHTML =
+    '<div class="min-h-[408px] w-full max-w-86">'
+    + '<div class="flex items-center justify-between">'
+    +   '<span class="flex items-baseline gap-1.5">'
+    +     '<span class="text-[13px] font-semibold text-ink">Insights</span>'
+    +     '<span class="text-[13px] text-ink-3 tabular-nums">' + PAGES.length + '</span>'
+    +   '</span>'
+    +   '<span class="flex items-center gap-0.5">'
+    +     '<button type="button" data-move="-1" aria-label="Previous insight" class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-[background-color,color,transform] duration-100 hover:bg-hover hover:text-ink active:scale-[0.96]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>'
+    +     '<button type="button" data-move="1" aria-label="Next insight" class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-[background-color,color,transform] duration-100 hover:bg-hover hover:text-ink active:scale-[0.96]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>'
+    +   '</span>'
+    + '</div>'
+    + '<div id="ic-pagewrap" class="transition-[opacity,filter] duration-250" style="opacity:1;filter:blur(0)">'
+    +   '<p class="mt-1.5 text-[12.5px] leading-relaxed text-ink-2" id="ic-prose"></p>'
+    +   '<div class="mt-2" id="ic-card"></div>'
+    +   '<button type="button" class="mt-2 rounded-full bg-surface px-3 py-1.5 text-left text-[12px] text-ink shadow-btn transition-colors duration-100 hover:bg-hover" id="ic-pill"></button>'
+    + '</div>'
+    + '</div>';
+
+  var pageWrap = document.getElementById('ic-pagewrap');
+  var proseEl = document.getElementById('ic-prose');
+  var cardEl = document.getElementById('ic-card');
+  var pillEl = document.getElementById('ic-pill');
+
+  function renderCard() {
+    var p = PAGES[state.page];
+    cardEl.innerHTML = p.card();
+    p.mount();
+  }
+  function renderPage() {
+    var p = PAGES[state.page];
+    proseEl.innerHTML = p.prose;
+    pillEl.textContent = p.pill;
+    renderCard();
+  }
+
+  var moveBtns = host.querySelectorAll('[data-move]');
+  for (var i = 0; i < moveBtns.length; i++) {
+    moveBtns[i].addEventListener('click', function () {
+      var dir = Number(this.getAttribute('data-move'));
+      state.page = (state.page + dir + PAGES.length) % PAGES.length;
+      /* 模糊淡入淡出（上游 transition-[opacity,filter] duration-250） */
+      pageWrap.style.opacity = '0';
+      pageWrap.style.filter = 'blur(4px)';
+      requestAnimationFrame(function () {
+        renderPage();
+        requestAnimationFrame(function () {
+          pageWrap.style.opacity = '1';
+          pageWrap.style.filter = 'blur(0)';
+        });
+      });
+    });
+  }
+
+  /* metric 切换（AnomalyCard 内部状态） */
+  host.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-metric]') : null;
+    if (!t) return;
+    state.metric = t.getAttribute('data-metric');
+    renderCard();
+  });
+
+  renderPage();
+})();
+</script>

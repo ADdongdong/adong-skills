@@ -1,0 +1,759 @@
+<!-- title: Prompt Bar -->
+<!--@classes:
+  rounded-[14px] rounded-full rounded-[24px] rounded-[8px] rounded-chip rounded-[5px]
+  bg-hover text-ink
+  text-ink-3 hover:bg-hover hover:text-ink bg-accent-tint text-accent-ink
+  px-1 px-0.5
+  text-green text-accent-ink hover:underline
+  invisible
+-->
+<!-- 来源：components/primitives/PromptBar.tsx（上游 MIT）
+     变体：Rounded（圆角卡片）· Pill（全圆角药丸）
+     ── glimm 降级（本件最关键的替换）────────────────────────────
+     上游 import { createShader, playSweep, accentChain, ACCENTS } from "glimm"，
+     用 WebGL 着色器在 composer 内部画一道彩虹扫光（选中旗舰模型时触发）。
+     本移植件删掉该依赖，改为**原生 <canvas> 2D + requestAnimationFrame 自绘**：
+       · 保真：触发时机（selectModel 里 key === "sprinkles-5" 才触发）、
+               sweepMs 570 / outroMs 80 / peakAlpha 1.3 / easing easeOutExpo /
+               bandTight 10（彩虹带密度）/ direction "ltr" / brightness 1.4（用 CSS filter 施加）/
+               swellAmount 的纵向柔化 / 每次触发重建（uTime 归零）都照搬；
+       · 降级：glimm 的 ACCENTS 调色板在离线环境不可得，按上游注释的意图
+               （"Build a true full-spectrum rainbow instead"）内联 7 段全光谱彩虹；
+               水平位移 + 纵向柔化的实现方式是自绘的，视觉近似着色器而非逐像素一致；
+               waveSpeed 1.8 的波峰摆动简化掉（只保留纵向渐隐）。
+     ── 其余保真 ─────────────────────────────────────────────────
+     时序/尺寸逐字照搬：pop-in 180ms cubic-bezier(0.23,1,0.32,1)、
+     glide 高亮 top/height 220ms + opacity 150ms、dictation 2200ms 后落字、
+     附件 chip pop-in 200ms、eq-bounce 900ms 逐条 +150ms、textarea 28~100px 自动增高、
+     parseToken 正则 /(^|\s)([@/])([\w-]*)$/、AUTO_STEPS 自跑演示的 hold 值。
+     降级：React 状态 → 普通变量；useLayoutEffect 测量 → 直接读 offsetTop / getBoundingClientRect；
+           行内 style 承载 grid 摆放（上游的 col-span-full 在本仓库的 Tailwind 子集编译器里
+           会生成非法的 `span full`，故改用等价的 inline grid-column/row）。
+     @classes：① 上述 grid/半径/勾选态的分支类，② JSON 里内联的 Product/ValuePill 类串。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>提示栏</strong> — Agent 的主输入编排器。输入 <code>@</code> 引来源（附件 / Scoop Data /
+    Flavor records / Web search / Figma / Slack / Gmail，Gmail 行内可 Connect），输入 <code>/</code>
+    叫命令（compare / churn-plan / restock …）。<code>↑ ↓</code> 选择、<code>Enter</code> 或
+    <code>Tab</code> 落字、<code>Esc</code> 关菜单；回车发送、<code>Shift+Enter</code> 换行。
+    右侧还有模型选择器（选旗舰模型会放一道彩虹扫光）、语音听写（2.2s 后落一段转写）与附件芯片。
+    载入后会自跑一段演示，任意点击 / 按键即交还控制权。
+  </p>
+
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Rounded" aria-pressed="true">Rounded</button>
+    <button type="button" class="port-variant-btn" data-variant="Pill" aria-pressed="false">Pill</button>
+  </div>
+
+  <div id="pb-host" class="w-[420px] max-w-full">
+    <div id="pb-root" data-promptbar class="flex min-h-[384px] w-full max-w-105 flex-col justify-end pb-8">
+      <!-- composer 是锚点：菜单从它的上边缘向上生长 -->
+      <div id="pb-anchor" class="relative">
+        <div id="pb-menu"></div>
+        <div id="pb-modelmenu"></div>
+
+        <div id="pb-composer" class="relative isolate flex flex-col overflow-hidden border border-line bg-surface shadow-card transition-[border-color,border-radius] duration-150 focus-within:border-line-strong gap-1.5 p-1.5 rounded-[14px]">
+          <!-- 彩虹扫光：canvas 是替换元素，必须显式给宽高，否则不会跟着 inset-0 拉伸。
+               brightness(1.4) 对应上游 playSweep 的 brightness 参数。 -->
+          <canvas id="pb-canvas" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 h-full w-full" style="border-radius:inherit;filter:brightness(1.4)"></canvas>
+          <span id="pb-measure" aria-hidden="true" class="pointer-events-none absolute invisible whitespace-pre text-[13px] leading-[18px]"></span>
+
+          <div id="pb-attachments" class="flex flex-wrap gap-1.5 pt-0.5 px-0.5" style="display:none"></div>
+
+          <div id="pb-controls" class="grid items-end gap-x-1 gap-y-1.5">
+            <button id="pb-plus" type="button" aria-label="Add attachments and sources" aria-expanded="false"
+              class="flex size-7 shrink-0 items-center justify-center text-ink-3 transition-[background-color,color,transform] duration-150 hover:bg-hover hover:text-ink active:scale-[0.94] rounded-[8px]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <textarea id="pb-input" rows="1" placeholder="Write a message…" aria-label="Prompt"
+              class="min-h-7 px-1 py-[5px] text-[13px] leading-[18px] min-w-0 w-full resize-none bg-transparent text-ink outline-none [overflow-wrap:anywhere] placeholder:text-ink-3"></textarea>
+            <button id="pb-model" type="button" aria-expanded="false" aria-label="Choose model"
+              class="flex h-7 shrink-0 items-center gap-1 px-1.5 text-[12px] font-medium text-ink-2 transition-colors duration-150 hover:bg-hover hover:text-ink rounded-[8px]">
+              <span id="pb-modelname">Vanilla 1</span>
+              <span class="text-ink-3">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              </span>
+            </button>
+            <button id="pb-dict" type="button" aria-label="Start dictation" aria-pressed="false"
+              class="flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-150 active:scale-[0.94] rounded-[8px] text-ink-3 hover:bg-hover hover:text-ink"></button>
+            <button id="pb-send" type="button" aria-label="Send" disabled
+              class="flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-200 enabled:active:scale-[0.94] rounded-[8px]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* ── 上游常量逐字照搬 ─────────────────────────────────────── */
+  var GLYPHS = {
+    clip: '<path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />',
+    layers: '<g><path d="M12 2 2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" /></g>',
+    globe: '<g><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></g>'
+  };
+  /* 上游内联的真实产品标识（保持品牌原色，非设计系统色）*/
+  var BRANDS = {
+    figma: '<svg width="11" height="16" viewBox="0 0 38 57" aria-hidden="true">'
+      + '<path d="M9.5 57A9.5 9.5 0 0 0 19 47.5V38H9.5a9.5 9.5 0 0 0 0 19z" fill="#0ACF83" />'
+      + '<path d="M0 28.5A9.5 9.5 0 0 1 9.5 19H19v19H9.5A9.5 9.5 0 0 1 0 28.5z" fill="#A259FF" />'
+      + '<path d="M0 9.5A9.5 9.5 0 0 1 9.5 0H19v19H9.5A9.5 9.5 0 0 1 0 9.5z" fill="#F24E1E" />'
+      + '<path d="M19 0h9.5a9.5 9.5 0 1 1 0 19H19V0z" fill="#FF7262" />'
+      + '<path d="M38 28.5a9.5 9.5 0 1 1-19 0 9.5 9.5 0 0 1 19 0z" fill="#1ABCFE" /></svg>',
+    slack: '<svg width="15" height="15" viewBox="0 0 127 127" aria-hidden="true">'
+      + '<path d="M27.2 80c0 7.3-5.9 13.2-13.2 13.2C6.7 93.2.8 87.3.8 80c0-7.3 5.9-13.2 13.2-13.2h13.2V80zm6.6 0c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2v33c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V80z" fill="#E01E5A" />'
+      + '<path d="M47 27.2c-7.3 0-13.2-5.9-13.2-13.2C33.8 6.7 39.7.8 47 .8c7.3 0 13.2 5.9 13.2 13.2v13.2H47zm0 6.7c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H13.9C6.6 60.3.7 54.4.7 47.1c0-7.3 5.9-13.2 13.2-13.2H47z" fill="#36C5F0" />'
+      + '<path d="M99.9 47.1c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H99.9V47.1zm-6.6 0c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V13.9C66.9 6.6 72.8.7 80.1.7c7.3 0 13.2 5.9 13.2 13.2v33.2z" fill="#2EB67D" />'
+      + '<path d="M80.1 99.8c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3 0-13.2-5.9-13.2-13.2 0-7.3 5.9-13.2 13.2-13.2h33.1c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H80.1z" fill="#ECB22E" /></svg>',
+    gmail: '<svg width="15" height="12" viewBox="0 0 256 193" aria-hidden="true">'
+      + '<path d="M58.182 192.05V93.14L27.507 65.077 0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4" />'
+      + '<path d="M197.818 192.05h40.727c9.659 0 17.455-7.826 17.455-17.455V49.505l-31.156 17.837-27.026 25.798v98.91Z" fill="#34A853" />'
+      + '<path d="m58.182 93.14-4.174-38.647 4.174-36.989L128 69.868l69.818-52.364 4.669 34.992-4.669 40.644L128 145.504 58.182 93.14Z" fill="#EA4335" />'
+      + '<path d="M197.818 17.504V93.14L256 49.504V26.231c0-21.585-24.64-33.89-41.89-20.945l-16.292 12.218Z" fill="#FBBC04" />'
+      + '<path d="m0 49.504 26.759 20.07L58.182 93.14V17.504L41.89 5.286C24.61-7.66 0 4.646 0 26.23v23.273Z" fill="#C5221F" /></svg>'
+  };
+
+  var SOURCES = [
+    { key: 'attach', name: 'Add photos & files', desc: 'Upload from your computer', glyph: 'clip', attach: true },
+    { key: 'scoop', name: 'Scoop Data', desc: 'Sales & churn metrics', glyph: 'chart' },
+    { key: 'flavors', name: 'Flavor records', desc: '26 makers, tags, links', glyph: 'layers' },
+    { key: 'web', name: 'Web search', desc: 'Real-time news and info', glyph: 'globe' },
+    { key: 'figma', name: 'Figma', desc: 'Design-to-code workflows', brand: 'figma' },
+    { key: 'slack', name: 'Slack', desc: 'Read and manage Slack', brand: 'slack' },
+    { key: 'gmail', name: 'Gmail', desc: 'Read and manage Gmail', brand: 'gmail', connect: true }
+  ];
+  var COMMANDS = [
+    { key: 'compare', name: '/compare', desc: 'Flavor vs. last summer' },
+    { key: 'churn-plan', name: '/churn-plan', desc: 'Draft a churn schedule' },
+    { key: 'restock', name: '/restock', desc: 'Build a reorder list' },
+    { key: 'draft-email', name: '/draft-email', desc: 'Write a supplier email' },
+    { key: 'summarize', name: '/summarize', desc: 'Digest the thread so far' }
+  ];
+  var MODELS = [
+    { key: 'sprinkles-5', name: 'Sprinkles 5', tag: 'Flagship' },
+    { key: 'vanilla-1', name: 'Vanilla 1', tag: 'Basic' },
+    { key: 'freezer-burn', name: 'Freezer Burn 0.4', tag: 'Stale' }
+  ];
+  var FILES = ['flavor-chart.png', 'summer-menu.pdf', 'pos-export.csv'];
+  var DICTATION = 'Compare pistachio weekends to last summer';
+  var AUTO_STEPS = [
+    { draft: '', connect: false, model: 'vanilla-1', hold: 1100 },
+    { draft: '@', active: 0, hold: 900 },
+    { draft: '@', active: 1, hold: 620 },
+    { draft: '@', active: 4, hold: 620 },
+    { draft: '@', active: 6, hold: 700 },
+    { draft: '@', active: 6, connect: true, hold: 1000 },
+    { draft: '', hold: 700 },
+    { draft: '/', active: 0, hold: 900 },
+    { draft: '/', active: 1, hold: 620 },
+    { draft: '/', active: 3, hold: 1000 },
+    { draft: '', hold: 800 },
+    { draft: '', modelOpen: true, hold: 1200 },
+    { draft: '', model: 'sprinkles-5', hold: 2400 },
+    { draft: '', hold: 900 }
+  ];
+
+  /* glimm 降级用：内联全光谱彩虹（上游注释的原意是「真正的全光谱彩虹」，
+   * 取代 glimm 内置只有青→靛→品红的 prism 调色板）*/
+  var RAINBOW = ['#ff3b30', '#ff9500', '#ffd60a', '#30d158', '#32d4e8', '#0a84ff', '#bf5af2'];
+  /* 上游 playSweep 的参数 */
+  var SWEEP_MS = 570, OUTRO_MS = 80, PEAK_ALPHA = 1.3;
+  function easeOutExpo(t) { return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t); }
+
+  /* ── DOM 引用 ─────────────────────────────────────────────── */
+  var host = document.getElementById('pb-host');
+  var root = document.getElementById('pb-root');
+  var anchor = document.getElementById('pb-anchor');
+  var menuEl = document.getElementById('pb-menu');
+  var modelMenuEl = document.getElementById('pb-modelmenu');
+  var composer = document.getElementById('pb-composer');
+  var canvas = document.getElementById('pb-canvas');
+  var ctx = canvas.getContext('2d');
+  var measure = document.getElementById('pb-measure');
+  var attachWrap = document.getElementById('pb-attachments');
+  var controls = document.getElementById('pb-controls');
+  var plusBtn = document.getElementById('pb-plus');
+  var input = document.getElementById('pb-input');
+  var modelBtn = document.getElementById('pb-model');
+  var modelName = document.getElementById('pb-modelname');
+  var dictBtn = document.getElementById('pb-dict');
+  var sendBtn = document.getElementById('pb-send');
+
+  /* ── 状态 ─────────────────────────────────────────────────── */
+  var pill = false, draft = '', dismissed = false, plusOpen = false, modelOpen = false;
+  var model = MODELS[1], attachments = [], connected = false, active = 0;
+  var listening = false, auto = true, autoStep = 0, expanded = false, wide = false;
+  var engaged = false, modelHovered = null, rowBox = null, modelBox = null;
+  var menuKind = null, menu = null, query = '', rows = [], menuKey = null;
+  var autoTimer = null, listenTimer = null;
+  var sweeping = false, sweepRaf = 0;
+
+  /* ── 逐字照搬上游的 parseToken ────────────────────────────── */
+  function parseToken(value) {
+    var match = /(^|\s)([@/])([\w-]*)$/.exec(value);
+    if (!match) return null;
+    return {
+      kind: match[2] === '@' ? 'at' : 'slash',
+      query: match[3].toLowerCase(),
+      start: match.index + match[1].length
+    };
+  }
+
+  function computeRows() {
+    var token = dismissed ? null : parseToken(draft);
+    menu = plusOpen ? 'at' : (token ? token.kind : null);
+    query = plusOpen ? '' : (token ? token.query : '');
+    if (menu === 'at') {
+      rows = SOURCES.filter(function (s) { return s.name.toLowerCase().indexOf(query) !== -1; });
+    } else if (menu === 'slash') {
+      rows = COMMANDS.filter(function (c) { return c.name.slice(1).indexOf(query) === 0; });
+    } else {
+      rows = [];
+    }
+    /* 上游：useEffect(() => { setActive(0); setEngaged(false); }, [menu, query]) */
+    var key = (menu || '') + '|' + query;
+    if (key !== menuKey) { menuKey = key; active = 0; engaged = false; }
+    return token;
+  }
+
+  /* ── canvas 尺寸（上游 glimm 用 ResizeObserver 跟随 composer）── */
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function sizeCanvas() {
+    var r = canvas.getBoundingClientRect();
+    var w = Math.max(1, Math.round(r.width * dpr));
+    var h = Math.max(1, Math.round(r.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  }
+  if (window.ResizeObserver) { new ResizeObserver(sizeCanvas).observe(composer); }
+  sizeCanvas();
+
+  /* ── 彩虹扫光：2D 自绘替代 glimm shader ────────────────────── */
+  function paintBand(p, alpha) {
+    var w = canvas.width, h = canvas.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (alpha <= 0 || !w || !h) return;
+    /* direction "ltr"：彩虹带自左向右扫过 */
+    var shift = (-0.55 + p * 1.6) * w;
+    var g = ctx.createLinearGradient(-0.7 * w + shift, 0, 0.7 * w + shift, 0);
+    for (var i = 0; i < RAINBOW.length; i++) g.addColorStop(i / (RAINBOW.length - 1), RAINBOW[i]);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    /* swellAmount：上/下缘渐隐，只留中间一道带 */
+    var vg = ctx.createLinearGradient(0, 0, 0, h);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.5, 'rgba(0,0,0,1)');
+    vg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  function clearCanvas() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  function celebrate() {
+    if (sweeping) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    sizeCanvas();
+    sweeping = true;
+    var start = performance.now();
+    function frame(now) {
+      var t = now - start;
+      var p, alpha;
+      if (t <= SWEEP_MS) {
+        var q = t / SWEEP_MS;
+        p = easeOutExpo(q);
+        alpha = PEAK_ALPHA * (q < 0.18 ? q / 0.18 : 1);
+      } else if (t <= SWEEP_MS + OUTRO_MS) {
+        p = 1;
+        alpha = PEAK_ALPHA * (1 - (t - SWEEP_MS) / OUTRO_MS);
+      } else {
+        clearCanvas();
+        sweeping = false;
+        return;
+      }
+      paintBand(p, alpha);
+      sweepRaf = requestAnimationFrame(frame);
+    }
+    sweepRaf = requestAnimationFrame(frame);
+  }
+
+  /* ── 下拉菜单（@ / slash）──────────────────────────────────── */
+  function sourceFor(key) {
+    for (var i = 0; i < SOURCES.length; i++) if (SOURCES[i].key === key) return SOURCES[i];
+    return null;
+  }
+  function rowHTML(row, i) {
+    var source = menu === 'at' ? sourceFor(row.key) : null;
+    var lead = '';
+    if (source) {
+      lead = '<span class="flex size-5.5 shrink-0 items-center justify-center text-ink-2">'
+        + (source.brand
+            ? BRANDS[source.brand]
+            : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+              + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+              + GLYPHS[source.glyph || 'clip'] + '</svg>')
+        + '</span>';
+    }
+    var connect = source && source.connect
+      ? '<span role="button" tabindex="-1" data-connect class="shrink-0 text-[12px] font-medium transition-colors duration-100 '
+        + (connected ? 'text-green' : 'text-accent-ink hover:underline') + '">'
+        + (connected ? 'Connected' : 'Connect') + '</span>'
+      : '';
+    return '<button type="button" data-row="' + i + '" class="relative z-10 flex h-9 w-full items-center gap-2.5 rounded-[6px] px-2 text-left">'
+      + lead
+      + '<span class="shrink-0 text-[12.5px] font-medium text-ink">' + row.name + '</span>'
+      + '<span class="min-w-0 flex-1 truncate text-[12px] text-ink-3">' + row.desc + '</span>'
+      + connect
+      + '</button>';
+  }
+
+  function menuShell() {
+    return '<div data-panel class="absolute inset-x-0 bottom-full z-10 mb-2 rounded-[10px] bg-surface p-1 shadow-raised"'
+      + ' style="animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:bottom center">'
+      + '<span aria-hidden data-hl class="pointer-events-none absolute inset-x-1 rounded-[6px] bg-hover"'
+      +   ' style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1),'
+      +   'height 220ms cubic-bezier(0.23,1,0.32,1),opacity 150ms ease"></span>'
+      + '<div data-rows></div>'
+      + '<div data-nomatch class="flex h-9 items-center px-2 text-[12px] text-ink-3" style="display:none"></div>'
+      + '<div class="mt-1 border-t border-line px-2 pt-1.5 pb-1 text-[11px] text-ink-3">'
+      + (menu === 'at' ? 'Type to search sources &amp; files' : 'Type to search commands')
+      + '</div></div>';
+  }
+
+  function paintHighlight() {
+    var panel = menuEl.querySelector('[data-panel]');
+    if (!panel) return;
+    var hl = panel.querySelector('[data-hl]');
+    hl.style.top = (rowBox ? rowBox.top : 0) + 'px';
+    hl.style.height = (rowBox ? rowBox.height : 0) + 'px';
+    hl.style.opacity = (rowBox && engaged && rows.length > 0) ? '1' : '0';
+  }
+
+  function renderMenu() {
+    if (!menu) {
+      menuEl.innerHTML = '';
+      menuKind = null;
+      return;
+    }
+    if (menu !== menuKind) {
+      menuEl.innerHTML = menuShell();
+      menuKind = menu;
+      var panel = menuEl.querySelector('[data-panel]');
+      /* 事件委托：行内点击 / 悬停 / 阻止失焦 */
+      panel.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      panel.addEventListener('click', function (e) {
+        var conn = e.target.closest('[data-connect]');
+        if (conn) { e.stopPropagation(); connected = !connected; renderMenu(); return; }
+        var btn = e.target.closest('[data-row]');
+        if (btn) pick(rows[Number(btn.getAttribute('data-row'))]);
+      });
+      panel.addEventListener('mouseover', function (e) {
+        var btn = e.target.closest('[data-row]');
+        if (!btn || !panel.contains(btn)) return;
+        active = Number(btn.getAttribute('data-row'));
+        engaged = true;
+        setRowBox(panel);
+      });
+      panel.addEventListener('mouseleave', function () { engaged = false; paintHighlight(); });
+    }
+    var rowsWrap = menuEl.querySelector('[data-rows]');
+    var html = '';
+    for (var i = 0; i < rows.length; i++) html += rowHTML(rows[i], i);
+    rowsWrap.innerHTML = html;
+    var nomatch = menuEl.querySelector('[data-nomatch]');
+    nomatch.style.display = rows.length ? 'none' : '';
+    if (!rows.length) nomatch.textContent = 'No matches for \u201C' + query + '\u201D';
+    setRowBox(menuEl.querySelector('[data-panel]'));
+  }
+
+  function setRowBox(panel) {
+    var target = panel.querySelector('[data-row="' + active + '"]');
+    rowBox = target ? { top: target.offsetTop, height: target.offsetHeight } : null;
+    paintHighlight();
+  }
+
+  /* ── 模型菜单 ─────────────────────────────────────────────── */
+  function modelRowHTML(m, i) {
+    return '<button type="button" data-mrow="' + i + '" class="relative z-10 flex h-7.5 w-full items-center gap-2 rounded-[6px] px-2 text-left">'
+      + '<span class="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">' + m.name + '</span>'
+      + '<span class="shrink-0 text-[11px] text-ink-3">' + m.tag + '</span>'
+      + '<span data-check class="shrink-0 text-ink' + (m.key === model.key ? '' : ' invisible') + '">'
+      + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>'
+      + '</span></button>';
+  }
+  function positionModelMenu() {
+    var ar = anchor.getBoundingClientRect();
+    var tr = modelBtn.getBoundingClientRect();
+    var left = Math.max(0, Math.min(tr.left - ar.left, ar.width - 176));
+    var bottom = ar.bottom - tr.top + 8;
+    var panel = modelMenuEl.querySelector('[data-panel]');
+    if (panel) { panel.style.left = left + 'px'; panel.style.bottom = bottom + 'px'; }
+  }
+  function paintModelHighlight() {
+    var panel = modelMenuEl.querySelector('[data-panel]');
+    if (!panel) return;
+    var mIndex = 0;
+    for (var i = 0; i < MODELS.length; i++) if (MODELS[i].key === model.key) mIndex = i;
+    var target = panel.querySelector('[data-mrow="' + (modelHovered === null ? mIndex : modelHovered) + '"]');
+    modelBox = target ? { top: target.offsetTop, height: target.offsetHeight } : null;
+    var hl = panel.querySelector('[data-hl]');
+    hl.style.top = (modelBox ? modelBox.top : 0) + 'px';
+    hl.style.height = (modelBox ? modelBox.height : 0) + 'px';
+    hl.style.opacity = (modelBox && modelHovered !== null) ? '1' : '0';
+  }
+  function renderModelMenu() {
+    /* 上游 aria-expanded={modelOpen} / aria-expanded={plusOpen} */
+    plusBtn.setAttribute('aria-expanded', plusOpen ? 'true' : 'false');
+    modelBtn.setAttribute('aria-expanded', modelOpen ? 'true' : 'false');
+    if (!modelOpen) { modelMenuEl.innerHTML = ''; return; }
+    var panel = modelMenuEl.querySelector('[data-panel]');
+    if (!panel) {
+      var html = '<div data-panel class="absolute z-10 w-44 rounded-[10px] bg-surface p-1 shadow-raised"'
+        + ' style="animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:bottom left">'
+        + '<span aria-hidden data-hl class="pointer-events-none absolute inset-x-1 rounded-[6px] bg-hover"'
+        +   ' style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1),'
+        +   'height 220ms cubic-bezier(0.23,1,0.32,1),opacity 150ms ease"></span>';
+      for (var i = 0; i < MODELS.length; i++) html += modelRowHTML(MODELS[i], i);
+      html += '</div>';
+      modelMenuEl.innerHTML = html;
+      panel = modelMenuEl.querySelector('[data-panel]');
+      panel.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      panel.addEventListener('mouseleave', function () { modelHovered = null; paintModelHighlight(); });
+      panel.addEventListener('mouseover', function (e) {
+        var btn = e.target.closest('[data-mrow]');
+        if (!btn || !panel.contains(btn)) return;
+        modelHovered = Number(btn.getAttribute('data-mrow'));
+        paintModelHighlight();
+      });
+      panel.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-mrow]');
+        if (!btn) return;
+        selectModel(MODELS[Number(btn.getAttribute('data-mrow'))]);
+        input.focus();
+      });
+    } else {
+      var checks = panel.querySelectorAll('[data-check]');
+      for (var c = 0; c < checks.length; c++) {
+        checks[c].className = 'shrink-0 text-ink' + (MODELS[c].key === model.key ? '' : ' invisible');
+      }
+    }
+    positionModelMenu();
+    paintModelHighlight();
+  }
+
+  /* ── 选中模型：key === sprinkles-5 时放彩虹扫光 ────────────── */
+  function selectModel(next) {
+    model = next;
+    modelOpen = false;
+    modelHovered = null;
+    modelName.textContent = model.name;
+    renderModelMenu();
+    if (next.key === 'sprinkles-5') celebrate();
+  }
+
+  /* ── 版本 / 半径 ──────────────────────────────────────────── */
+  function radiusCls() { return pill ? 'rounded-full' : 'rounded-[8px]'; }
+  function applyRadius() {
+    composer.classList.remove('rounded-[14px]', 'rounded-full', 'rounded-[24px]');
+    composer.classList.add(pill ? ((attachments.length > 0 || wide) ? 'rounded-[24px]' : 'rounded-full') : 'rounded-[14px]');
+    var els = [plusBtn, modelBtn, dictBtn, sendBtn];
+    for (var i = 0; i < els.length; i++) {
+      els[i].classList.remove('rounded-full', 'rounded-[8px]');
+      els[i].classList.add(radiusCls());
+    }
+  }
+
+  /* ── 控件摆放（上游用 grid-cols + col-start/row-start；这里等价的 inline 摆放）
+   * 注意：上游窄态文本域写 col-span-full，而本仓库的 Tailwind 子集编译器会把它
+   * 编成非法的 `grid-column: span full`，所以改用等价的 inline grid-column。 */
+  function applyControlsLayout() {
+    controls.style.gridTemplateColumns = wide
+      ? '28px auto minmax(0,1fr) 28px 28px'
+      : '28px minmax(0,1fr) auto 28px 28px';
+    plusBtn.style.gridColumn = '1';    plusBtn.style.gridRow = wide ? '2' : '1';
+    input.style.gridColumn = wide ? '1 / -1' : '2';  input.style.gridRow = '1';
+    modelBtn.style.gridColumn = wide ? '2' : '3';    modelBtn.style.gridRow = wide ? '2' : '1';
+    modelBtn.style.justifySelf = wide ? 'start' : '';
+    dictBtn.style.gridColumn = '4';    dictBtn.style.gridRow = wide ? '2' : '1';
+    sendBtn.style.gridColumn = '5';    sendBtn.style.gridRow = wide ? '2' : '1';
+  }
+
+  /* ── 文本域自适应：先量宽决定「控件行是否换到第二行」，再算高度 ── */
+  function applySizing() {
+    measure.textContent = draft;
+    var fixedControlsWidth = 28 * 3 + modelBtn.offsetWidth;
+    var inlineGaps = 4 * 4;
+    var inlineInputWidth = controls.clientWidth - fixedControlsWidth - inlineGaps;
+    var needsFullWidth = draft.indexOf('\n') !== -1 || (measure.offsetWidth + 8 > inlineInputWidth);
+    if (needsFullWidth !== expanded) { expanded = needsFullWidth; }
+    wide = expanded;
+    applyControlsLayout();
+    input.style.height = '0px';
+    var contentHeight = input.scrollHeight;
+    input.style.height = Math.min(Math.max(contentHeight, 28), 100) + 'px';
+    input.style.overflowY = contentHeight > 100 ? 'auto' : 'hidden';
+    applyRadius();
+  }
+
+  /* ── 附件 ─────────────────────────────────────────────────── */
+  function renderAttachments() {
+    if (!attachments.length) { attachWrap.style.display = 'none'; attachWrap.innerHTML = ''; return; }
+    attachWrap.style.display = '';
+    attachWrap.className = 'flex flex-wrap gap-1.5 pt-0.5 ' + (pill ? 'px-1' : 'px-0.5');
+    var html = '';
+    for (var i = 0; i < attachments.length; i++) {
+      html += '<span class="flex h-6.5 items-center gap-1.5 bg-field py-1 pr-1 pl-1.5 text-[11.5px] text-ink-2 shadow-hairline '
+        + (pill ? 'rounded-full' : 'rounded-chip') + '" style="animation:pop-in 200ms cubic-bezier(0.23,1,0.32,1) both">'
+        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        +   '<g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></g></svg>'
+        + '<span class="max-w-36 truncate">' + attachments[i] + '</span>'
+        + '<button type="button" data-remove="' + i + '" aria-label="Remove ' + attachments[i] + '"'
+        +   ' class="-my-1 flex size-6 items-center justify-center text-ink-3 transition-colors duration-100 hover:bg-line/70 hover:text-ink '
+        +   (pill ? 'rounded-full' : 'rounded-[5px]') + '">'
+        +   '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>'
+        + '</button></span>';
+    }
+    attachWrap.innerHTML = html;
+  }
+  attachWrap.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    e.stopPropagation();
+    var idx = Number(btn.getAttribute('data-remove'));
+    attachments = attachments.filter(function (_, j) { return j !== idx; });
+    renderAttachments();
+    syncSend();
+  });
+
+  /* ── 发送 ─────────────────────────────────────────────────── */
+  function canSend() { return draft.trim().length > 0 || attachments.length > 0; }
+  function syncSend() {
+    var ok = canSend();
+    sendBtn.disabled = !ok;
+    sendBtn.style.background = ok ? 'var(--ink)' : 'var(--line-strong)';
+    sendBtn.style.color = ok ? 'var(--surface)' : 'var(--ink-2)';
+  }
+  function send() {
+    if (!canSend()) return;
+    draft = '';
+    attachments = [];
+    closeMenus();
+    input.value = '';
+    renderAttachments();
+    syncSend();
+    syncAll();
+  }
+  function closeMenus() { plusOpen = false; modelOpen = false; }
+
+  /* ── 落字（@ 来源 / / 命令）────────────────────────────────── */
+  function pick(row) {
+    var token = dismissed ? null : parseToken(draft);
+    var source = sourceFor(row.key);
+    if (source && source.attach) {
+      attachments = attachments.concat([FILES[attachments.length % FILES.length]]);
+      if (token) draft = draft.slice(0, token.start);
+      renderAttachments();
+    } else if (menu === 'at') {
+      draft = (token ? draft.slice(0, token.start) : draft) + '@' + row.name + ' ';
+    } else {
+      draft = (token ? draft.slice(0, token.start) : draft) + row.name + ' ';
+    }
+    plusOpen = false;
+    dismissed = false;
+    input.value = draft;
+    input.focus();
+    syncAll();
+  }
+
+  /* ── 语音听写 ─────────────────────────────────────────────── */
+  var MIC = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<g><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" /></g></svg>';
+  function renderDictation() {
+    if (listening) {
+      dictBtn.className = 'flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-150 active:scale-[0.94] '
+        + radiusCls() + ' bg-accent-tint text-accent-ink';
+      var bars = '';
+      for (var i = 0; i < 3; i++) {
+        bars += '<span class="w-[2.5px] rounded-full bg-current" style="height:100%;animation:eq-bounce 900ms ease-in-out ' + (i * 150) + 'ms infinite"></span>';
+      }
+      dictBtn.innerHTML = '<span class="flex h-3.5 items-center gap-[2.5px]">' + bars + '</span>';
+    } else {
+      dictBtn.className = 'flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-150 active:scale-[0.94] '
+        + radiusCls() + ' text-ink-3 hover:bg-hover hover:text-ink';
+      dictBtn.innerHTML = MIC;
+    }
+    dictBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    dictBtn.setAttribute('aria-label', listening ? 'Stop dictation' : 'Start dictation');
+    input.placeholder = listening ? 'Listening\u2026' : 'Write a message\u2026';
+  }
+  dictBtn.addEventListener('click', function () {
+    listening = !listening;
+    renderDictation();
+    if (listenTimer) { clearTimeout(listenTimer); listenTimer = null; }
+    if (!listening) return;
+    /* 上游：2200ms 后像真实转写一样落到输入框 */
+    listenTimer = setTimeout(function () {
+      listenTimer = null;
+      var current = draft;
+      draft = current ? (current.replace(/\s+$/, '') + ' ' + DICTATION) : DICTATION;
+      listening = false;
+      input.value = draft;
+      renderDictation();
+      input.focus();
+      syncAll();
+    }, 2200);
+  });
+
+  /* ── 统一同步 ─────────────────────────────────────────────── */
+  function syncAll() {
+    computeRows();
+    renderMenu();
+    applySizing();
+    syncSend();
+    renderModelMenu();
+  }
+  function syncMenuOnly() {
+    computeRows();
+    renderMenu();
+  }
+
+  /* ── 交互绑定 ─────────────────────────────────────────────── */
+  /* 交还控制权：停掉演示循环；若用户第一次就瞄准输入框，清掉演示留下的草稿
+   * （上游：if (auto && event.target === inputRef.current) setDraft("")）*/
+  function takeOver(e) {
+    var wasAuto = auto;
+    auto = false;
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    if (wasAuto && e.target === input) { draft = ''; input.value = ''; syncAll(); }
+  }
+  root.addEventListener('pointerdown', takeOver, true);
+  root.addEventListener('keydown', takeOver, true);
+
+  input.addEventListener('input', function () {
+    draft = input.value;
+    dismissed = false;
+    plusOpen = false;
+    syncAll();
+  });
+  input.addEventListener('keydown', function (e) {
+    if (menu && rows.length > 0) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        engaged = true;
+        active = (active + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length;
+        var panel = menuEl.querySelector('[data-panel]');
+        if (panel) setRowBox(panel);
+        return;
+      }
+      if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+        e.preventDefault();
+        pick(rows[active]);
+        return;
+      }
+    }
+    if (e.key === 'Escape') { dismissed = true; closeMenus(); syncMenuOnly(); renderModelMenu(); return; }
+    /* 原生 KeyboardEvent 上就是 isComposing（上游 React 写的是 nativeEvent.isComposing）*/
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  plusBtn.addEventListener('click', function () {
+    modelOpen = false;
+    plusOpen = !plusOpen;
+    input.focus();
+    active = 0;
+    engaged = false;
+    syncMenuOnly();
+    renderModelMenu();
+  });
+  sendBtn.addEventListener('click', send);
+  modelBtn.addEventListener('click', function () {
+    plusOpen = false;
+    modelOpen = !modelOpen;
+    if (!modelOpen) modelHovered = null;
+    syncMenuOnly();
+    renderModelMenu();
+  });
+
+  /* 点击 composer 之外任意处关闭菜单 */
+  document.addEventListener('pointerdown', function (e) {
+    if (!modelOpen && !plusOpen) return;
+    var el = e.target;
+    if (!(el instanceof Element) || !el.closest('[data-promptbar]')) {
+      modelOpen = false;
+      plusOpen = false;
+      renderModelMenu();
+      syncMenuOnly();
+    }
+  });
+
+  /* ── 自跑演示：@ 菜单 → / 菜单 → 打开模型菜单并升级到旗舰 ──── */
+  function runAuto() {
+    if (!auto) return;
+    var step = AUTO_STEPS[autoStep % AUTO_STEPS.length];
+    draft = step.draft;
+    input.value = draft;
+    dismissed = false;
+    if (step.connect !== undefined) connected = step.connect;
+    if (step.modelOpen !== undefined) modelOpen = step.modelOpen;
+    if (step.model) {
+      var next = null;
+      for (var i = 0; i < MODELS.length; i++) if (MODELS[i].key === step.model) next = MODELS[i];
+      if (next) selectModel(next);
+    }
+    syncAll();
+    /* 演示步里指定的高亮行：syncAll（等价上游 [menu,query] 效果）之后再落，
+     * 这样高亮层像上游一样真的停在那一行上 */
+    if (step.active !== undefined) { active = step.active; engaged = true; renderMenu(); }
+    renderModelMenu();
+    autoTimer = setTimeout(function () { autoStep++; runAuto(); }, step.hold);
+  }
+
+  /* ── 变体切换：等价于上游画廊的重新挂载 ───────────────────── */
+  function reset(variant) {
+    pill = variant === 'Pill';
+    draft = ''; dismissed = false; plusOpen = false; modelOpen = false;
+    model = MODELS[1]; attachments = []; connected = false; active = 0;
+    listening = false; autoStep = 0; expanded = false; wide = false;
+    engaged = false; modelHovered = null; rowBox = null; modelBox = null;
+    menuKind = null; menuKey = null;
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    if (listenTimer) { clearTimeout(listenTimer); listenTimer = null; }
+    if (sweepRaf) { cancelAnimationFrame(sweepRaf); sweepRaf = 0; }
+    sweeping = false;
+    clearCanvas();
+    input.value = '';
+    modelName.textContent = model.name;
+    renderDictation();
+    renderAttachments();
+    renderModelMenu();
+    syncAll();
+    auto = true;
+    runAuto();
+  }
+
+  var variantBtns = document.querySelectorAll('.port-variant-btn');
+  for (var v = 0; v < variantBtns.length; v++) {
+    variantBtns[v].addEventListener('click', function () {
+      for (var j = 0; j < variantBtns.length; j++) variantBtns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      reset(this.getAttribute('data-variant'));
+    });
+  }
+
+  reset('Rounded');
+})();
+</script>

@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-colors"] {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-100"] {
+  transition-duration: 100ms;
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="bg-hover"] {
+  background-color: var(--hover);
+}
+
+[class~="bg-inset"] {
+  background-color: var(--inset);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="bg-transparent"] {
+  background-color: transparent;
+}
+
+[class~="border-b"] {
+  border-bottom-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="flex-1"] {
+  flex: 1 1 0%;
+}
+
+[class~="flex-col"] {
+  flex-direction: column;
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="gap-1"] {
+  gap: 0.25rem;
+}
+
+[class~="gap-2"] {
+  gap: 0.5rem;
+}
+
+[class~="gap-px"] {
+  gap: 1px;
+}
+
+[class~="h-10"] {
+  height: 2.5rem;
+}
+
+[class~="h-8"] {
+  height: 2rem;
+}
+
+[class~="hover:bg-hover"]:hover {
+  background-color: var(--hover);
+}
+
+[class~="hover:bg-line/70"]:hover {
+  background-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+[class~="hover:text-ink"]:hover {
+  color: var(--ink);
+}
+
+[class~="inset-x-0"] {
+  left: 0rem;
+  right: 0rem;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="items-stretch"] {
+  align-items: stretch;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="max-w-full"] {
+  max-width: 100%;
+}
+
+[class~="mb-1.5"] {
+  margin-bottom: 0.375rem;
+}
+
+[class~="min-h-[248px]"] {
+  min-height: 248px;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="outline-none"] {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="p-1"] {
+  padding: 0.25rem;
+}
+
+[class~="placeholder:text-ink-3"]::placeholder {
+  color: var(--ink-3);
+}
+
+[class~="pointer-events-none"] {
+  pointer-events: none;
+}
+
+[class~="px-2"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[class~="px-3"] {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+[class~="px-4"] {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+[class~="py-8"] {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="rounded-[6px]"] {
+  border-radius: 6px;
+}
+
+[class~="rounded-card"] {
+  border-radius: var(--radius-card);
+}
+
+[class~="rounded-control"] {
+  border-radius: var(--radius-control);
+}
+
+[class~="rounded-full"] {
+  border-radius: 9999px;
+}
+
+[class~="self-start"] {
+  align-self: flex-start;
+}
+
+[class~="shadow-hairline"] {
+  box-shadow: var(--shadow-hairline);
+}
+
+[class~="shadow-raised"] {
+  box-shadow: var(--shadow-raised);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-6"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+[class~="size-8"] {
+  width: 2rem;
+  height: 2rem;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-[13px]"] {
+  font-size: 13px;
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-left"] {
+  text-align: left;
+}
+
+[class~="w-72"] {
+  width: 18rem;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="z-10"] {
+  z-index: 10;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Search -->
+<!-- 来源：components/primitives/SearchList.tsx（上游 MIT）
+     依赖 primitives/GlideMenu.tsx，已内联为 #search-glide 内的一条 hover 高亮层
+     （top/height 220ms cubic-bezier(0.23,1,0.32,1)、opacity 150ms ease —— 逐字照搬）。
+     保真：实时过滤（toLowerCase().includes）、空状态阈值 query.length > 2、
+           未输入时只取前 5 条、点击结果回填输入框、清空按钮 fade-in 150ms、
+           结果行 fade-in 200ms，全部照搬上游；仅 DOM 由字符串拼装，无框架。
+     降级：无依赖（纯 HTML/CSS/JS）。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>命令搜索</strong> — 输入即过滤的命令列表，空命中时显示空状态。结果行上有一条会「滑行」的
+    hover 高亮层（内联自 <code>GlideMenu</code>），指针/键盘焦点在行间移动时高亮块平滑跟随。
+    用于向 Agent 下发指令时快速检索历史或候选命令。
+  </p>
+
+  <div id="search-host"></div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游 ITEMS / LABELS（SearchList.tsx 顶部常量） */
+  var ITEMS = [
+    'Forecast summer demand',
+    'Find waffle cone suppliers',
+    'Compare seasonal flavors',
+    'Draft flavor launch plan',
+    'Check cold-chain status',
+    'Audit sugar costs',
+    'Retire low sellers'
+  ];
+  var LABELS = {
+    placeholder: 'Search flavors…',
+    ariaLabel: 'Search flavors',
+    emptyTitle: 'No results found',
+    emptyHint: 'Adjust your search to try again'
+  };
+
+  var query = '';
+
+  var host = document.getElementById('search-host');
+  host.innerHTML =
+    /* w-72 == 上游的 max-w-72(288px)。移植件外壳是 flex 收缩布局，需显式给宽度，
+       否则 w-full 会塌缩到最长行文本的宽度。 */
+    '<div class="flex min-h-[248px] w-72 max-w-full flex-col items-stretch">'
+    + '<div class="w-full self-start overflow-hidden rounded-card bg-surface shadow-raised">'
+    +   '<div class="flex h-10 items-center gap-2 border-b border-line px-3 transition-colors duration-100 hover:bg-hover">'
+    +     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" class="shrink-0">'
+    +       '<circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>'
+    +     '</svg>'
+    +     '<input id="search-input" placeholder="' + LABELS.placeholder + '" aria-label="' + LABELS.ariaLabel + '" class="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3" />'
+    +     '<button id="search-clear" aria-label="Clear search" type="button" class="flex size-6 items-center justify-center rounded-full text-ink-3 transition-colors duration-100 hover:bg-line/70 hover:text-ink" style="display:none;animation:fade-in 150ms ease-out both">'
+    +       '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>'
+    +     '</button>'
+    +   '</div>'
+    +   '<div id="search-body"></div>'
+    + '</div>'
+    + '</div>';
+
+  var input = document.getElementById('search-input');
+  var clearBtn = document.getElementById('search-clear');
+  var body = document.getElementById('search-body');
+
+  input.addEventListener('input', function () { query = input.value; render(); });
+  clearBtn.addEventListener('click', function () {
+    query = ''; input.value = ''; render(); input.focus();
+  });
+
+  function emptyStateHtml() {
+    return '<div class="flex flex-col items-center justify-center gap-1 px-4 py-8" style="animation:fade-in 250ms ease-out both">'
+      + '<span class="mb-1.5 flex size-8 items-center justify-center rounded-control bg-inset text-ink-3 shadow-hairline">'
+      +   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>'
+      + '</span>'
+      + '<span class="text-[13px] font-medium text-ink">' + LABELS.emptyTitle + '</span>'
+      + '<span class="text-[12px] text-ink-3">' + LABELS.emptyHint + '</span>'
+      + '</div>';
+  }
+
+  function resultsHtml(results) {
+    var rows = '';
+    for (var i = 0; i < results.length; i++) {
+      rows += '<button data-menu-row type="button" class="relative z-10 flex h-8 w-full items-center rounded-[6px] px-2 text-left text-[13px] text-ink" style="animation:fade-in 200ms ease-out both">'
+            + results[i] + '</button>';
+    }
+    return '<div class="p-1">'
+      + '<div id="search-glide" class="group/glide-menu relative flex flex-col gap-px">'
+      +   '<span aria-hidden id="search-glide-hl" class="pointer-events-none absolute inset-x-0 rounded-[6px] bg-hover" style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease"></span>'
+      +   rows
+      + '</div>'
+      + '</div>';
+  }
+
+  /* 内联 GlideMenu：一条高亮层在 [data-menu-row] 之间滑行 */
+  function bindGlide() {
+    var glide = document.getElementById('search-glide');
+    if (!glide) return;
+    var hl = document.getElementById('search-glide-hl');
+
+    function moveTo(target) {
+      if (!target || !target.closest) return;
+      var row = target.closest('[data-menu-row]');
+      if (!row || !glide.contains(row)) return;
+      var cr = glide.getBoundingClientRect();
+      var rr = row.getBoundingClientRect();
+      hl.style.top = (rr.top - cr.top) + 'px';
+      hl.style.height = rr.height + 'px';
+      hl.style.opacity = 1;
+    }
+    glide.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    glide.addEventListener('mouseleave', function () { hl.style.opacity = 0; });
+    glide.addEventListener('focusin', function (e) { moveTo(e.target); });
+    glide.addEventListener('focusout', function (e) {
+      if (!glide.contains(e.relatedTarget)) hl.style.opacity = 0;
+    });
+
+    var rowBtns = glide.querySelectorAll('[data-menu-row]');
+    for (var i = 0; i < rowBtns.length; i++) {
+      rowBtns[i].addEventListener('click', function () {
+        query = this.textContent;
+        input.value = query;
+        render();
+      });
+    }
+  }
+
+  function render() {
+    var results = query
+      ? ITEMS.filter(function (i) { return i.toLowerCase().indexOf(query.toLowerCase()) !== -1; })
+      : ITEMS.slice(0, 5);
+    var empty = query.length > 2 && results.length === 0;
+
+    clearBtn.style.display = query ? 'flex' : 'none';
+
+    if (empty) { body.innerHTML = emptyStateHtml(); return; }
+    body.innerHTML = resultsHtml(results);
+    bindGlide();
+  }
+
+  render();
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

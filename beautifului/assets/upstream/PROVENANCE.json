@@ -1,0 +1,12 @@
+{
+  "repo": "https://github.com/slev12397/beautiful-ui",
+  "ref": "main",
+  "resolved": "main(unpinned)",
+  "mirror": "https://cdn.jsdelivr.net/gh/slev12397/beautiful-ui@main",
+  "license": "MIT",
+  "copyright": "Shane Levine (Turbo) — https://turbodesign.co",
+  "homepage": "https://www.beautifului.dev",
+  "registry_items": 27,
+  "source_files": 36,
+  "fetched_at": "2026-10-12T13:53:58+0800"
+}

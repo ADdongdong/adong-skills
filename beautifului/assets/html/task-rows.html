@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Rows — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-[border-radius,background-color]"] {
+  transition-property: border-radius,background-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[grid-template-rows,opacity]"] {
+  transition-property: grid-template-rows,opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-transform"] {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-300"] {
+  transition-duration: 300ms;
+}
+
+[class~="-ml-2"] {
+  margin-left: calc(0.5rem * -1);
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="bg-green"] {
+  background-color: var(--green);
+}
+
+[class~="bg-green-tint"] {
+  background-color: var(--green-tint);
+}
+
+[class~="bg-line"] {
+  background-color: var(--line);
+}
+
+[class~="bg-red"] {
+  background-color: var(--red);
+}
+
+[class~="bg-red-tint"] {
+  background-color: var(--red-tint);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="border-b"] {
+  border-bottom-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="flex-1"] {
+  flex: 1 1 0%;
+}
+
+[class~="flex-col"] {
+  flex-direction: column;
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="font-mono"] {
+  font-family: var(--font-mono);
+}
+
+[class~="font-semibold"] {
+  font-weight: 600;
+}
+
+[class~="gap-0"] {
+  gap: 0rem;
+}
+
+[class~="gap-1.5"] {
+  gap: 0.375rem;
+}
+
+[class~="gap-2"] {
+  gap: 0.5rem;
+}
+
+[class~="gap-2.5"] {
+  gap: 0.625rem;
+}
+
+[class~="grid"] {
+  display: grid;
+}
+
+[class~="grid-cols-[24px_1fr]"] {
+  grid-template-columns: 24px 1fr;
+}
+
+[class~="h-11"] {
+  height: 2.75rem;
+}
+
+[class~="h-5.5"] {
+  height: 1.375rem;
+}
+
+[class~="h-full"] {
+  height: 100%;
+}
+
+[class~="hover:bg-inset"]:hover {
+  background-color: var(--inset);
+}
+
+[class~="inline-flex"] {
+  display: inline-flex;
+}
+
+[class~="inset-0"] {
+  inset: 0rem;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="justify-between"] {
+  justify-content: space-between;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="last:border-0"]:last-child {
+  border-width: 0px;
+  border-style: solid;
+}
+
+[class~="max-w-110"] {
+  max-width: 27.5rem;
+}
+
+[class~="mb-2.5"] {
+  margin-bottom: 0.625rem;
+}
+
+[class~="min-h-[196px]"] {
+  min-height: 196px;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="mx-auto"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="px-2"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[class~="px-2.5"] {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="rounded-card"] {
+  border-radius: var(--radius-card);
+}
+
+[class~="rounded-full"] {
+  border-radius: 9999px;
+}
+
+[class~="self-start"] {
+  align-self: flex-start;
+}
+
+[class~="self-stretch"] {
+  align-self: stretch;
+}
+
+[class~="shadow-card"] {
+  box-shadow: var(--shadow-card);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-5.5"] {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+[class~="size-6"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+[class~="size-7"] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+[class~="tabular-nums"] {
+  font-variant-numeric: tabular-nums;
+}
+
+[class~="text-[10.5px]"] {
+  font-size: 10.5px;
+}
+
+[class~="text-[11.5px]"] {
+  font-size: 11.5px;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-[13px]"] {
+  font-size: 13px;
+}
+
+[class~="text-green"] {
+  color: var(--green);
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-left"] {
+  text-align: left;
+}
+
+[class~="text-red"] {
+  color: var(--red);
+}
+
+[class~="text-white"] {
+  color: white;
+}
+
+[class~="truncate"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="w-px"] {
+  width: 1px;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Task Rows -->
+<!--@classes:
+  flex w-full max-w-110 flex-col
+  gap-0 self-start overflow-hidden rounded-card bg-surface shadow-card
+  min-h-[196px] gap-2
+  self-stretch overflow-hidden transition-[border-radius,background-color] duration-300 hover:bg-inset
+  border-b border-line last:border-0 bg-surface shadow-card
+  flex h-11 w-full items-center gap-2.5 px-2.5 text-left
+  flex size-6 shrink-0 items-center justify-center
+  min-w-0 flex-1 truncate text-[13px] font-medium text-ink
+  text-[12.5px] text-ink-2 tabular-nums
+  -ml-2 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3
+  transition-transform duration-300
+  grid transition-[grid-template-rows,opacity] duration-300 overflow-hidden
+  mb-2.5 grid grid-cols-[24px_1fr] gap-2.5 px-2.5
+  mx-auto h-full w-px bg-line flex flex-col gap-1.5
+  flex items-center justify-between
+  text-[12px] text-ink-2
+  font-mono text-[11.5px] text-ink-3 tabular-nums
+  inline-flex h-5.5 items-center rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green
+  inline-flex h-5.5 items-center gap-1.5 rounded-full bg-red-tint px-2 text-[11.5px] font-medium text-red
+  flex size-5.5 shrink-0 items-center justify-center rounded-full text-white bg-red bg-green
+  relative inline-flex shrink-0 items-center justify-center absolute inset-0 flex
+  relative text-[10.5px] font-semibold tabular-nums text-ink
+-->
+<!-- 来源：components/primitives/TaskRows.tsx（上游 MIT）
+     变体：Capsules（独立圆角卡）/ List（单卡 + 分隔线）
+     保真：TICKS=[600,900,2400,1400,2400,600] 逐字照搬，驱动 6 拍状态机 ——
+           rows 80ms 错峰入场（fade-up 450ms）、row1 ring 扫过、row1 展开、
+           row1 收起 + row2 翻 Failed（红底 + 旋转 retry 图标）、row2 收敛 Completed。
+           row2 = tick<3 ? pending : tick===3 ? failed : done。
+           SpinnerRing：size24/stroke2，r=11，c=2πr，活动弧 dasharray=`${c*0.28} ${c*0.72}`，
+           活动时 svg 走 spin 1.1s linear infinite（数值按上游算式实时求，未取整）。
+           展开默认值 open = manualOpen[key] ?? (key==='index' && tick===2)；点击后由
+           manualOpen 接管。展开区的每条 detail 在「开」时按 120+j*100ms 错峰 fade-up。
+           Badge pop-in 300ms、Failed/Completed 药丸 fade-in 200ms 均照搬。
+     细节：为忠实还原 DOM，状态药丸是「有则插入、无则移除」（而非占位空 span），
+           否则会多出一个 gap-2.5 的间隙；spinner 只在签名变化时重绘，避免每拍重启旋转。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>任务行</strong> — 一次 Agent 运行的任务列表，带状态机演示：三行 80ms 错峰入场，
+    第一行先转环再展开明细，随后收起、第二行翻成 <em>Failed</em>（红色 + 旋转重试图标），
+    最后收敛为 <em>Completed</em>。每行都可点击展开/收起明细（<code>Chevron</code> 翻转）。
+    变体 <code>Capsules</code> 是独立圆角卡，<code>List</code> 是单卡加分隔线。
+  </p>
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Capsules" aria-pressed="true">Capsules</button>
+    <button type="button" class="port-variant-btn" data-variant="List" aria-pressed="false">List</button>
+  </div>
+  <div id="task-rows-host"></div>
+</div>
+
+<script>
+/* ── 上游常量 1:1 ──────────────────────────────────────────── */
+var TR_TICKS = [600, 900, 2400, 1400, 2400, 600];
+
+var TR_ROWS = [
+  { key: 'verify', label: 'Verified vendor records', amount: '12 suppliers', status: 'done',
+    details: [
+      { label: 'Matched tax and contact IDs', meta: '12/12' },
+      { label: 'Flagged stale records', meta: '0' }
+    ] },
+  { key: 'index', label: 'Build reorder task list', amount: '7 SKUs', status: 'running', step: 2,
+    details: [
+      { label: 'Reading POS export', meta: '3 files' },
+      { label: 'Scoring stockout risk', meta: '68%' }
+    ] },
+  { key: 'draft', label: 'Draft supplier emails', amount: '2 messages', status: 'sequence', step: 3,
+    details: [
+      { label: 'Cone supplier follow-up', meta: 'draft' },
+      { label: 'Pistachio reorder note', meta: 'draft' }
+    ] }
+];
+
+var TR_COPY = { completed: 'Completed', failed: 'Failed' };
+
+var TR_X = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>';
+var TR_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>';
+var TR_RETRY = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></svg>';
+
+(function () {
+  var host = document.getElementById('task-rows-host');
+
+  var tick = 0;
+  var manualOpen = {};
+  var isList = false;
+
+  function row2() { return tick < 3 ? 'pending' : tick === 3 ? 'failed' : 'done'; }
+
+  /* SpinnerRing：size=24, stroke=2, r=11, c=2πr（数值按上游算式，不取整） */
+  function spinnerRing(active, step) {
+    var size = 24, stroke = 2;
+    var r = (size - stroke) / 2;
+    var c = 2 * Math.PI * r;
+    var dash = (c * 0.28) + ' ' + (c * 0.72);
+    var svg = '<svg width="24" height="24" class="absolute inset-0"'
+      + (active ? ' style="animation:spin 1.1s linear infinite"' : '') + '>'
+      + '<circle cx="12" cy="12" r="11" fill="none" stroke="var(--line)" stroke-width="2" />'
+      + (active
+        ? '<circle cx="12" cy="12" r="11" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" stroke-dasharray="' + dash + '" />'
+        : '')
+      + '</svg>';
+    var label = (step === undefined || step === null) ? '' : String(step);
+    return '<span class="relative inline-flex shrink-0 items-center justify-center" style="width:24px;height:24px">'
+      + svg
+      + '<span class="relative text-[10.5px] font-semibold tabular-nums text-ink">' + label + '</span>'
+      + '</span>';
+  }
+
+  function badgeHtml(tone, inner) {
+    return '<span class="flex size-5.5 shrink-0 items-center justify-center rounded-full text-white '
+      + (tone === 'red' ? 'bg-red' : 'bg-green') + '" style="animation:pop-in 300ms cubic-bezier(0.23,1,0.32,1) both">'
+      + inner + '</span>';
+  }
+
+  function badgeFor(row) {
+    if (row.status === 'done') return badgeHtml('green', TR_CHECK);
+    if (row.status === 'running') return spinnerRing(true, row.step);
+    var r2 = row2();
+    if (r2 === 'pending') return spinnerRing(false, row.step);
+    if (r2 === 'failed') return badgeHtml('red', TR_X);
+    return badgeHtml('green', TR_CHECK);
+  }
+  function badgeSig(row) {
+    if (row.status === 'done') return 'done';
+    if (row.status === 'running') return 'running';
+    return 'seq:' + row2();
+  }
+
+  function pillFor(row) {
+    if (row.status === 'done') {
+      return '<span class="inline-flex h-5.5 items-center rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green">' + TR_COPY.completed + '</span>';
+    }
+    if (row.status === 'running') return null;
+    var r2 = row2();
+    if (r2 === 'failed') {
+      return '<span data-pill class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-red-tint px-2 text-[11.5px] font-medium text-red" style="animation:fade-in 200ms ease-out both">'
+        + TR_COPY.failed + ' <span style="animation:spin 1.2s linear infinite" class="flex">' + TR_RETRY + '</span></span>';
+    }
+    if (r2 === 'done') {
+      return '<span data-pill class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green" style="animation:fade-in 200ms ease-out both">'
+        + TR_COPY.completed + '</span>';
+    }
+    return null;
+  }
+  function pillSig(row) {
+    if (row.status === 'done') return 'completed';
+    if (row.status === 'running') return null;
+    var r2 = row2();
+    return r2 === 'failed' ? 'failed' : r2 === 'done' ? 'completed' : null;
+  }
+
+  function rowHtml(row, i) {
+    var detailLines = row.details.map(function (d) {
+      return '<div data-dline class="flex items-center justify-between">'
+        + '<span class="text-[12px] text-ink-2">' + d.label + '</span>'
+        + '<span class="font-mono text-[11.5px] text-ink-3 tabular-nums">' + d.meta + '</span>'
+        + '</div>';
+    }).join('');
+    return '<div data-row="' + row.key + '" class="self-stretch overflow-hidden transition-[border-radius,background-color] duration-300 hover:bg-inset" style="border-radius:22px;animation:fade-up 450ms cubic-bezier(0.23,1,0.32,1) ' + (i * 80) + 'ms both">'
+      + '<button type="button" data-toggle aria-expanded="false" class="flex h-11 w-full items-center gap-2.5 px-2.5 text-left">'
+      +   '<span data-badge class="flex size-6 shrink-0 items-center justify-center"></span>'
+      +   '<span class="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">' + row.label + '</span>'
+      +   '<span class="text-[12.5px] text-ink-2 tabular-nums">' + row.amount + '</span>'
+      +   '<span data-chev class="-ml-2 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3">'
+      +     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="transform:rotate(0)"><path d="M6 9l6 6 6-6" /></svg>'
+      +   '</span>'
+      + '</button>'
+      + '<div data-detail class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+      +   '<div class="overflow-hidden">'
+      +     '<div class="mb-2.5 grid grid-cols-[24px_1fr] gap-2.5 px-2.5">'
+      +       '<span aria-hidden class="mx-auto h-full w-px bg-line"></span>'
+      +       '<div class="flex flex-col gap-1.5">' + detailLines + '</div>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  var container = document.createElement('div');
+  container.id = 'tr-container';
+  container.innerHTML = TR_ROWS.map(rowHtml).join('');
+  host.appendChild(container);
+
+  /* 每行的 DOM 引用 + 上一次签名，避免无谓重绘（spinner 不重启） */
+  var meta = {};
+  TR_ROWS.forEach(function (row) {
+    var el = container.querySelector('[data-row="' + row.key + '"]');
+    meta[row.key] = {
+      row: row,
+      el: el,
+      button: el.querySelector('[data-toggle]'),
+      badge: el.querySelector('[data-badge]'),
+      chev: el.querySelector('[data-chev]'),
+      detail: el.querySelector('[data-detail]'),
+      dlines: el.querySelectorAll('[data-dline]'),
+      badgeSig: null,
+      pillSig: undefined,
+      open: null
+    };
+  });
+
+  function isOpenFor(m, currentTick) {
+    if (Object.prototype.hasOwnProperty.call(manualOpen, m.row.key)) return manualOpen[m.row.key];
+    return m.row.key === 'index' && currentTick === 2;
+  }
+
+  function applyBadgePill(m) {
+    var bs = badgeSig(m.row);
+    if (bs !== m.badgeSig) { m.badge.innerHTML = badgeFor(m.row); m.badgeSig = bs; }
+    var ps = pillSig(m.row);
+    if (ps !== m.pillSig) {
+      var old = m.el.querySelector('[data-pill]');
+      if (old) old.remove();
+      if (ps !== null) {
+        var html = pillFor(m.row);
+        if (html) {
+          var tmp = document.createElement('span');
+          tmp.innerHTML = html;
+          m.el.querySelector('button').insertBefore(tmp.firstChild, m.chev);
+        }
+      }
+      m.pillSig = ps;
+    }
+  }
+
+  function applyOpen(m, open) {
+    m.el.style.borderRadius = isList ? '0px' : (open ? '14px' : '22px');
+    m.el.querySelector('button').setAttribute('aria-expanded', open ? 'true' : 'false');
+    m.chev.querySelector('svg').style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
+    m.detail.style.gridTemplateRows = open ? '1fr' : '0fr';
+    m.detail.style.opacity = open ? '1' : '0';
+    var j;
+    if (open && m.open !== true) {
+      for (j = 0; j < m.dlines.length; j++) {
+        m.dlines[j].style.animation = 'fade-up 300ms cubic-bezier(0.23,1,0.32,1) ' + (120 + j * 100) + 'ms both';
+      }
+    } else if (!open) {
+      for (j = 0; j < m.dlines.length; j++) m.dlines[j].style.animation = '';
+    }
+    m.open = open;
+  }
+
+  function sync() {
+    TR_ROWS.forEach(function (row) {
+      var m = meta[row.key];
+      applyBadgePill(m);
+      applyOpen(m, isOpenFor(m, tick));
+    });
+  }
+
+  function applyVariant() {
+    container.className = 'flex w-full max-w-110 flex-col ' + (isList ? 'gap-0 self-start overflow-hidden rounded-card bg-surface shadow-card' : 'min-h-[196px] gap-2');
+    TR_ROWS.forEach(function (row) {
+      var el = meta[row.key].el;
+      el.classList.toggle('border-b', isList);
+      el.classList.toggle('border-line', isList);
+      el.classList.toggle('last:border-0', isList);
+      el.classList.toggle('bg-surface', !isList);
+      el.classList.toggle('shadow-card', !isList);
+    });
+  }
+
+  TR_ROWS.forEach(function (row) {
+    meta[row.key].button.addEventListener('click', function () {
+      var m = meta[row.key];
+      manualOpen[row.key] = !isOpenFor(m, tick);
+      sync();
+    });
+  });
+
+  function runTicks() {
+    if (tick >= TR_TICKS.length - 1) return;
+    setTimeout(function () {
+      tick += 1;
+      sync();
+      runTicks();
+    }, TR_TICKS[tick]);
+  }
+
+  var btns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      for (var j = 0; j < btns.length; j++) btns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      isList = this.getAttribute('data-variant') === 'List';
+      applyVariant();
+      sync();
+    });
+  }
+
+  applyVariant();
+  sync();
+  runTicks();
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

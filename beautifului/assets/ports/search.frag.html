@@ -1,0 +1,141 @@
+<!-- title: Search -->
+<!-- 来源：components/primitives/SearchList.tsx（上游 MIT）
+     依赖 primitives/GlideMenu.tsx，已内联为 #search-glide 内的一条 hover 高亮层
+     （top/height 220ms cubic-bezier(0.23,1,0.32,1)、opacity 150ms ease —— 逐字照搬）。
+     保真：实时过滤（toLowerCase().includes）、空状态阈值 query.length > 2、
+           未输入时只取前 5 条、点击结果回填输入框、清空按钮 fade-in 150ms、
+           结果行 fade-in 200ms，全部照搬上游；仅 DOM 由字符串拼装，无框架。
+     降级：无依赖（纯 HTML/CSS/JS）。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>命令搜索</strong> — 输入即过滤的命令列表，空命中时显示空状态。结果行上有一条会「滑行」的
+    hover 高亮层（内联自 <code>GlideMenu</code>），指针/键盘焦点在行间移动时高亮块平滑跟随。
+    用于向 Agent 下发指令时快速检索历史或候选命令。
+  </p>
+
+  <div id="search-host"></div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游 ITEMS / LABELS（SearchList.tsx 顶部常量） */
+  var ITEMS = [
+    'Forecast summer demand',
+    'Find waffle cone suppliers',
+    'Compare seasonal flavors',
+    'Draft flavor launch plan',
+    'Check cold-chain status',
+    'Audit sugar costs',
+    'Retire low sellers'
+  ];
+  var LABELS = {
+    placeholder: 'Search flavors…',
+    ariaLabel: 'Search flavors',
+    emptyTitle: 'No results found',
+    emptyHint: 'Adjust your search to try again'
+  };
+
+  var query = '';
+
+  var host = document.getElementById('search-host');
+  host.innerHTML =
+    /* w-72 == 上游的 max-w-72(288px)。移植件外壳是 flex 收缩布局，需显式给宽度，
+       否则 w-full 会塌缩到最长行文本的宽度。 */
+    '<div class="flex min-h-[248px] w-72 max-w-full flex-col items-stretch">'
+    + '<div class="w-full self-start overflow-hidden rounded-card bg-surface shadow-raised">'
+    +   '<div class="flex h-10 items-center gap-2 border-b border-line px-3 transition-colors duration-100 hover:bg-hover">'
+    +     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" class="shrink-0">'
+    +       '<circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>'
+    +     '</svg>'
+    +     '<input id="search-input" placeholder="' + LABELS.placeholder + '" aria-label="' + LABELS.ariaLabel + '" class="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3" />'
+    +     '<button id="search-clear" aria-label="Clear search" type="button" class="flex size-6 items-center justify-center rounded-full text-ink-3 transition-colors duration-100 hover:bg-line/70 hover:text-ink" style="display:none;animation:fade-in 150ms ease-out both">'
+    +       '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>'
+    +     '</button>'
+    +   '</div>'
+    +   '<div id="search-body"></div>'
+    + '</div>'
+    + '</div>';
+
+  var input = document.getElementById('search-input');
+  var clearBtn = document.getElementById('search-clear');
+  var body = document.getElementById('search-body');
+
+  input.addEventListener('input', function () { query = input.value; render(); });
+  clearBtn.addEventListener('click', function () {
+    query = ''; input.value = ''; render(); input.focus();
+  });
+
+  function emptyStateHtml() {
+    return '<div class="flex flex-col items-center justify-center gap-1 px-4 py-8" style="animation:fade-in 250ms ease-out both">'
+      + '<span class="mb-1.5 flex size-8 items-center justify-center rounded-control bg-inset text-ink-3 shadow-hairline">'
+      +   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>'
+      + '</span>'
+      + '<span class="text-[13px] font-medium text-ink">' + LABELS.emptyTitle + '</span>'
+      + '<span class="text-[12px] text-ink-3">' + LABELS.emptyHint + '</span>'
+      + '</div>';
+  }
+
+  function resultsHtml(results) {
+    var rows = '';
+    for (var i = 0; i < results.length; i++) {
+      rows += '<button data-menu-row type="button" class="relative z-10 flex h-8 w-full items-center rounded-[6px] px-2 text-left text-[13px] text-ink" style="animation:fade-in 200ms ease-out both">'
+            + results[i] + '</button>';
+    }
+    return '<div class="p-1">'
+      + '<div id="search-glide" class="group/glide-menu relative flex flex-col gap-px">'
+      +   '<span aria-hidden id="search-glide-hl" class="pointer-events-none absolute inset-x-0 rounded-[6px] bg-hover" style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease"></span>'
+      +   rows
+      + '</div>'
+      + '</div>';
+  }
+
+  /* 内联 GlideMenu：一条高亮层在 [data-menu-row] 之间滑行 */
+  function bindGlide() {
+    var glide = document.getElementById('search-glide');
+    if (!glide) return;
+    var hl = document.getElementById('search-glide-hl');
+
+    function moveTo(target) {
+      if (!target || !target.closest) return;
+      var row = target.closest('[data-menu-row]');
+      if (!row || !glide.contains(row)) return;
+      var cr = glide.getBoundingClientRect();
+      var rr = row.getBoundingClientRect();
+      hl.style.top = (rr.top - cr.top) + 'px';
+      hl.style.height = rr.height + 'px';
+      hl.style.opacity = 1;
+    }
+    glide.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    glide.addEventListener('mouseleave', function () { hl.style.opacity = 0; });
+    glide.addEventListener('focusin', function (e) { moveTo(e.target); });
+    glide.addEventListener('focusout', function (e) {
+      if (!glide.contains(e.relatedTarget)) hl.style.opacity = 0;
+    });
+
+    var rowBtns = glide.querySelectorAll('[data-menu-row]');
+    for (var i = 0; i < rowBtns.length; i++) {
+      rowBtns[i].addEventListener('click', function () {
+        query = this.textContent;
+        input.value = query;
+        render();
+      });
+    }
+  }
+
+  function render() {
+    var results = query
+      ? ITEMS.filter(function (i) { return i.toLowerCase().indexOf(query.toLowerCase()) !== -1; })
+      : ITEMS.slice(0, 5);
+    var empty = query.length > 2 && results.length === 0;
+
+    clearBtn.style.display = query ? 'flex' : 'none';
+
+    if (empty) { body.innerHTML = emptyStateHtml(); return; }
+    body.innerHTML = resultsHtml(results);
+    bindGlide();
+  }
+
+  render();
+})();
+</script>

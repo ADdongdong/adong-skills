@@ -1,0 +1,696 @@
+<!-- title: Records Table -->
+<!--@classes: invisible rotate-90 text-accent text-ink text-ink-2 text-white border-accent bg-accent border-line-strong text-transparent -->
+<!-- 状态钩子类（is-colsel / is-resizing / is-visible / is-selected / is-active）与
+     records-* 一样由 records-table.css 定义，不在此声明，避免被工具类编译器重复处理。 -->
+<!-- 来源：components/primitives/RecordsTable.tsx（上游 MIT），依赖 primitives/GlideMenu.tsx（已内联为 initGlide）
+     保真：DOM 层级与 .records-* 类逐条对应；标签配色走 --tag-base + color-mix（明暗自动适配）；
+           排序、列宽拖拽、列选择(is-colsel)、行选择、属性弹窗（Type/Tool/Grounding/Inputs/
+           prompt/Go calculate/Pin/More settings）、+ 新属性菜单、表格选项菜单全部保留；
+           「Add calculation」计算列的逐行扫过动画（每 110ms 解一行 + records-pulse 脉冲）
+           与 AI 列（Competitors）生命周期一致照搬。
+     简化（已在注释标注）：
+       ① 跳过上游「首次渲染后 measure 各列实际宽度再锁定」的一步——在 680px 宽的外壳里
+          table 受 min-width:990px 约束，各列等于 colgroup 的默认宽度，锁定与否结果相同；
+       ② prompt 用 contenteditable 呈现，但不回写用户输入（上游也只是展示 meta.prompt）。
+     付费依赖：无（图标全部上游自绘内联）。
+     @classes 声明的是 JS 三元/状态产生的分支类（is-* 状态类、排序箭头 rotate、
+       类型/工具图标配色、InputPicker 勾选框态）。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>Records Table</strong> — CRM 风格的 AI 电子表格网格。列即「属性」：点表头打开配置弹窗
+    （类型 / 工具 / grounding / 输入 / 提示词 / Go calculate），点 <code>+</code> 表头新增一个 AI 列，
+    点「Add calculation」所在的计算列会逐行求解（每行一次脉冲扫过）。含排序、列宽拖拽、
+    标签多色、关系强度、以及首列的横向粘附。
+  </p>
+  <div id="rt-host" class="w-[680px] max-w-full"></div>
+</div>
+
+<script>
+(function () {
+  /* ── data（上游 INITIAL_ROWS 逐字照搬，58 行）── */
+  var INITIAL_ROWS = [
+    { id: "aurora", name: "Aurora Scoops — Reykjavík", tags: ["Gelato", "Seasonal"], last: "9 days ago", strength: "strong", website: "aurora-scoops.example.com" },
+    { id: "kumo", name: "Kumo Creamery — Tokyo", tags: ["B2C", "Cafe", "Vegan"], last: "3 weeks ago", strength: "strong", website: "kumo-creamery.example.com" },
+    { id: "sol-nieve", name: "Sol y Nieve — Buenos Aires", tags: ["Gelato", "Local"], last: "2 months ago", strength: "weak", website: "sol-y-nieve.example.com" },
+    { id: "maple-orbit", name: "Maple Orbit — Montréal", tags: ["B2B", "Wholesale", "Seasonal"], last: "15 days ago", strength: "weak", website: "maple-orbit.example.com" },
+    { id: "blue-fig", name: "Blue Fig Gelato — Florence", tags: ["Gelato", "Cafe"], last: "over 1 year ago", strength: "veryweak", website: "blue-fig.example.com" },
+    { id: "sahara-swirl", name: "Sahara Swirl — Marrakech", tags: ["Sorbet", "Local"], last: "5 months ago", strength: "veryweak" },
+    { id: "cloudberry", name: "Cloudberry Cone — Helsinki", tags: ["Dairy-free", "Seasonal"], last: "No contact", strength: "none", website: "cloudberry-cone.example.com" },
+    { id: "palm-sugar", name: "Palm Sugar Creamery — Bangkok", tags: ["B2C", "Vegan"], last: "3 months ago", strength: "veryweak", website: "palm-sugar.example.com" },
+    { id: "cape-vanilla", name: "Cape Vanilla Co. — Cape Town", tags: ["Wholesale", "Imports"], last: "over 1 year ago", strength: "veryweak", website: "cape-vanilla.example.com" },
+    { id: "andes-snow", name: "Andes Snow Creamery — Quito", tags: ["Gelato", "Catering"], last: "almost 2 years ago", strength: "veryweak" },
+    { id: "tasman-sea", name: "Tasman Sea Gelato — Hobart", tags: ["Gelato", "Local"], last: "2 months ago", strength: "weak", website: "tasman-sea.example.com" },
+    { id: "silk-road", name: "Silk Road Sorbet — Tbilisi", tags: ["Sorbet", "Imports"], last: "about 1 month ago", strength: "weak", website: "silk-road.example.com" },
+    { id: "rosewater", name: "Rosewater Kulfi — Jaipur", tags: ["B2C", "Seasonal"], last: "2 months ago", strength: "veryweak" },
+    { id: "lumen", name: "Lumen Soft Serve — Copenhagen", tags: ["Dairy-free", "Cafe"], last: "8 months ago", strength: "weak", website: "lumen-soft-serve.example.com" },
+    { id: "cacao-norte", name: "Cacao Norte — Oaxaca", tags: ["B2B", "Local", "Wholesale"], last: "about 2 years ago", strength: "none", website: "cacao-norte.example.com" },
+    { id: "pine-pistachio", name: "Pine & Pistachio — Istanbul", tags: ["Gelato", "Catering"], last: "about 1 month ago", strength: "veryweak" },
+    { id: "ember-cone", name: "Ember Cone Company — Seoul", tags: ["B2C", "Vegan"], last: "15 days ago", strength: "weak", website: "ember-cone.example.com" },
+    { id: "coral-coast", name: "Coral Coast Sorbet — Honolulu", tags: ["Sorbet", "Local"], last: "9 days ago", strength: "strong", website: "coral-coast.example.com" },
+    { id: "sunbird", name: "Sunbird Gelateria — Lisbon", tags: ["Gelato", "Cafe"], last: "over 2 years ago", strength: "none", website: "sunbird.example.com" },
+    { id: "mooncake", name: "Mooncake Ice Cream — Singapore", tags: ["B2B", "Wholesale"], last: "about 1 month ago", strength: "veryweak", website: "mooncake-ice-cream.example.com" },
+    { id: "juniper", name: "Juniper & Cream — Vancouver", tags: ["Dairy-free", "Catering"], last: "No contact", strength: "none" },
+    { id: "mango-moon", name: "Mango Moon Gelato — Nairobi", tags: ["Sorbet", "Vegan"], last: "almost 2 years ago", strength: "veryweak", website: "mango-moon.example.com" },
+    { id: "fjord-fizz", name: "Fjord Fizz Ice — Oslo", tags: ["Dairy-free", "Seasonal"], last: "No contact", strength: "none" },
+    { id: "pampa", name: "Pampa Creamery — Córdoba", tags: ["B2C", "Local"], last: "12 months ago", strength: "veryweak", website: "pampa-creamery.example.com" },
+    { id: "lotus-leaf", name: "Lotus Leaf Scoops — Hanoi", tags: ["Vegan", "Cafe"], last: "15 days ago", strength: "weak" },
+    { id: "saffron-sky", name: "Saffron Sky Kulfi — Dubai", tags: ["Imports", "Catering"], last: "almost 2 years ago", strength: "veryweak", website: "saffron-sky.example.com" },
+    { id: "alpine-churn", name: "Alpine Churn — Zürich", tags: ["B2B", "Gelato", "Wholesale"], last: "4 days ago", strength: "strong", website: "alpine-churn.example.com" },
+    { id: "monsoon-mango", name: "Monsoon Mango — Mumbai", tags: ["Sorbet", "Vegan", "Catering"], last: "18 days ago", strength: "weak", website: "monsoon-mango.example.com" },
+    { id: "cedar-spoon", name: "Cedar Spoon — Beirut", tags: ["Cafe", "Local", "Seasonal"], last: "6 days ago", strength: "strong", website: "cedar-spoon.example.com" },
+    { id: "baltic-berry", name: "Baltic Berry — Tallinn", tags: ["Dairy-free", "Seasonal", "B2C"], last: "5 weeks ago", strength: "weak", website: "baltic-berry.example.com" },
+    { id: "delta-dairy", name: "Delta Dairy Works — New Orleans", tags: ["B2B", "Wholesale", "Local"], last: "2 days ago", strength: "strong", website: "delta-dairy.example.com" },
+    { id: "yuzu-yard", name: "Yuzu Yard — Kyoto", tags: ["Sorbet", "Cafe", "Seasonal"], last: "11 days ago", strength: "strong", website: "yuzu-yard.example.com" },
+    { id: "copper-cone", name: "Copper Cone — Melbourne", tags: ["Gelato", "Cafe", "B2C"], last: "about 1 month ago", strength: "weak", website: "copper-cone.example.com" },
+    { id: "mint-medina", name: "Mint Medina — Tunis", tags: ["Dairy-free", "Vegan", "Local"], last: "No contact", strength: "none" },
+    { id: "glacier-grove", name: "Glacier Grove — Anchorage", tags: ["Seasonal", "Local", "Catering"], last: "7 weeks ago", strength: "weak", website: "glacier-grove.example.com" },
+    { id: "orchard-cloud", name: "Orchard Cloud — Lyon", tags: ["Gelato", "Seasonal", "Cafe"], last: "5 days ago", strength: "strong", website: "orchard-cloud.example.com" },
+    { id: "tamarind-tide", name: "Tamarind Tide — Chennai", tags: ["Vegan", "Sorbet", "B2C"], last: "9 months ago", strength: "veryweak", website: "tamarind-tide.example.com" },
+    { id: "amber-scoop", name: "Amber Scoop — Prague", tags: ["Gelato", "B2B"], last: "over 1 year ago", strength: "none" },
+    { id: "boreal-batch", name: "Boreal Batch — Yellowknife", tags: ["Dairy-free", "Local", "Seasonal"], last: "8 days ago", strength: "strong", website: "boreal-batch.example.com" },
+    { id: "coconut-commons", name: "Coconut Commons — Manila", tags: ["Vegan", "B2C", "Cafe"], last: "24 days ago", strength: "weak", website: "coconut-commons.example.com" },
+    { id: "dolomite-dairy", name: "Dolomite Dairy — Bolzano", tags: ["Gelato", "Wholesale"], last: "3 days ago", strength: "strong", website: "dolomite-dairy.example.com" },
+    { id: "equator-cream", name: "Equator Cream — Kampala", tags: ["B2B", "Catering", "Local"], last: "10 months ago", strength: "veryweak", website: "equator-cream.example.com" },
+    { id: "hibiscus-house", name: "Hibiscus House — Accra", tags: ["Sorbet", "Cafe"], last: "6 weeks ago", strength: "weak", website: "hibiscus-house.example.com" },
+    { id: "lagoon-ladle", name: "Lagoon Ladle — Venice", tags: ["Gelato", "Seasonal", "Catering"], last: "7 days ago", strength: "strong", website: "lagoon-ladle.example.com" },
+    { id: "midnight-milk", name: "Midnight Milk — Tromsø", tags: ["Dairy-free", "Vegan", "Wholesale"], last: "No contact", strength: "none" },
+    { id: "nomad-nougat", name: "Nomad Nougat — Ulaanbaatar", tags: ["Imports", "B2B"], last: "almost 2 years ago", strength: "none", website: "nomad-nougat.example.com" },
+    { id: "olive-snow", name: "Olive Snow — Athens", tags: ["Gelato", "Cafe", "Local"], last: "4 days ago", strength: "strong", website: "olive-snow.example.com" },
+    { id: "pacific-pear", name: "Pacific Pear — Valparaíso", tags: ["Sorbet", "Seasonal"], last: "2 months ago", strength: "weak", website: "pacific-pear.example.com" },
+    { id: "quartz-cone", name: "Quartz Cone — Denver", tags: ["B2C", "Wholesale"], last: "10 days ago", strength: "strong", website: "quartz-cone.example.com" },
+    { id: "red-lantern", name: "Red Lantern Creamery — Taipei", tags: ["Cafe", "Vegan"], last: "about 1 month ago", strength: "weak", website: "red-lantern.example.com" },
+    { id: "salt-silk", name: "Salt & Silk — Muscat", tags: ["Imports", "Catering", "Gelato"], last: "8 months ago", strength: "veryweak", website: "salt-and-silk.example.com" },
+    { id: "tropic-churn", name: "Tropic Churn — San Juan", tags: ["Sorbet", "Local", "B2C"], last: "6 days ago", strength: "strong", website: "tropic-churn.example.com" },
+    { id: "umber-cream", name: "Umber Cream — Warsaw", tags: ["B2B", "Wholesale", "Cafe"], last: "5 weeks ago", strength: "weak", website: "umber-cream.example.com" },
+    { id: "vanilla-vale", name: "Vanilla Vale — Antananarivo", tags: ["Imports", "Local"], last: "No contact", strength: "none" },
+    { id: "willow-whip", name: "Willow Whip — Portland", tags: ["Dairy-free", "Vegan", "Cafe"], last: "3 days ago", strength: "strong", website: "willow-whip.example.com" },
+    { id: "zenith-gelato", name: "Zenith Gelato — Auckland", tags: ["Gelato", "Seasonal"], last: "3 weeks ago", strength: "weak", website: "zenith-gelato.example.com" },
+    { id: "apricot-atlas", name: "Apricot Atlas — Algiers", tags: ["Sorbet", "Imports"], last: "11 months ago", strength: "veryweak", website: "apricot-atlas.example.com" },
+    { id: "black-sesame", name: "Black Sesame Social — Bandung", tags: ["Vegan", "Cafe", "B2C"], last: "9 days ago", strength: "strong", website: "black-sesame.example.com" },
+    { id: "crimson-clover", name: "Crimson Clover — Brussels", tags: ["Gelato", "Wholesale", "Catering"], last: "2 months ago", strength: "weak", website: "crimson-clover.example.com" },
+    { id: "dragonfruit-dock", name: "Dragonfruit Dock — Shenzhen", tags: ["Sorbet", "B2B", "Wholesale"], last: "No contact", strength: "none" }
+  ];
+
+  var STRENGTH = {
+    strong: { label: "Very strong", color: "var(--green)", rank: 3 },
+    weak: { label: "Weak", color: "var(--orange)", rank: 2 },
+    veryweak: { label: "Very weak", color: "var(--red)", rank: 1 },
+    none: { label: "No communication", color: "var(--ink-3)", rank: 0 }
+  };
+
+  var TAG_PALETTE = {
+    amber: "oklch(0.76 0.13 70)", lime: "oklch(0.77 0.16 122)", yellow: "oklch(0.80 0.15 101)",
+    purple: "oklch(0.62 0.18 293)", orange: "oklch(0.71 0.16 48)", cyan: "oklch(0.72 0.10 221)",
+    red: "oklch(0.64 0.19 27)", magenta: "oklch(0.66 0.21 323)", green: "oklch(0.70 0.13 162)",
+    pink: "oklch(0.67 0.19 3)"
+  };
+  var TAG_COLORS = {
+    B2B: TAG_PALETTE.amber, B2C: TAG_PALETTE.lime, Cafe: TAG_PALETTE.red, Catering: TAG_PALETTE.magenta,
+    "Dairy-free": TAG_PALETTE.cyan, Gelato: TAG_PALETTE.purple, Imports: TAG_PALETTE.orange,
+    Local: TAG_PALETTE.green, Seasonal: TAG_PALETTE.yellow, Sorbet: TAG_PALETTE.pink,
+    Vegan: TAG_PALETTE.lime, Wholesale: TAG_PALETTE.amber
+  };
+
+  var AI_LABEL = "Competitors";
+  var COMPETITOR_POOL = ["Frost & Ladle", "Polar Pint Co.", "Meltwater Creamery", "Cirrus Scoops", "Golden Churn", "Velvet Freeze", "North Cone Collective", "Sundae Syndicate"];
+  function competitorsFor(i) { return COMPETITOR_POOL[i % 8] + ", " + COMPETITOR_POOL[(i + 3) % 8]; }
+
+  var DEFAULT_COLUMN_WIDTHS = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 };
+
+  function icon(inner, size, sw) {
+    size = size || 14; sw = sw || 1.8;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
+  var TYPE_GLYPHS = {
+    "Text": '<path d="M4 6h16M4 12h10M4 18h7"/>',
+    "File": '<g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></g>',
+    "Collection": '<g><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></g>',
+    "Single select": '<g><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.4 2.4 4.6-4.9"/></g>',
+    "Multi select": '<g><path d="M11 6h9M11 12h9M11 18h9"/><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17"/></g>',
+    "URL": '<g><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></g>',
+    "Reference": '<path d="M7 17 17 7M9 7h8v8"/>',
+    "JSON": '<g><path d="M8 4c-2 0-2 2-2 3s.5 3-2 3c2.5 0 2 2 2 3s0 3 2 3"/><path d="M16 4c2 0 2 2 2 3s-.5 3 2 3c-2.5 0-2 2-2 3s0 3-2 3"/></g>',
+    "File splitter": '<g><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g>',
+    "Date": '<g><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/></g>'
+  };
+  var TOOL_GLYPHS = {
+    model: '<path d="M12 3l1.7 5.1a2 2 0 0 0 1.2 1.2L20 11l-5.1 1.7a2 2 0 0 0-1.2 1.2L12 19l-1.7-5.1a2 2 0 0 0-1.2-1.2L4 11l5.1-1.7a2 2 0 0 0 1.2-1.2z"/>',
+    web: '<g><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 0 1 3.5 9 13.5 13.5 0 0 1-3.5 9 13.5 13.5 0 0 1-3.5-9A13.5 13.5 0 0 1 12 3z"/></g>',
+    user: '<g><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></g>'
+  };
+
+  var COLUMN_META = {
+    Company: { type: "Text", tool: "User input", toolKind: "user" },
+    Categories: { type: "Multi select", tool: "Sprinkles 5", toolKind: "model", inputs: "Company", prompt: { before: "Tag each ", chip: "Company", after: " with its market categories." } },
+    "Last interaction": { type: "Date", tool: "User input", toolKind: "user" },
+    "Connection strength": { type: "Single select", tool: "Sprinkles 5", toolKind: "model", inputs: "Last interaction", prompt: { before: "Score the relationship from ", chip: "Last interaction", after: "." } },
+    Links: { type: "URL", tool: "Web search", toolKind: "web", inputs: "Company", prompt: { before: "Find the website for ", chip: "Company", after: "." } },
+    "Competitors": { type: "Text", tool: "Web search", toolKind: "web", inputs: "Company", prompt: { before: "Find competitors for ", chip: "Company" } }
+  };
+  var NEW_PROPERTY_TYPES = ["Text", "File", "Collection", "Single select", "Multi select", "URL", "Reference", "JSON", "File splitter"];
+  var MODEL_OPTIONS = ["Sprinkles 5", "Sprinkles 4.2", "Sprinkles Mini"];
+  var INPUT_OPTIONS = ["Company", "Categories", "Last interaction", "Connection strength", "Links"];
+
+  var GLIDE_STYLE = 'top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease';
+
+  /* ── state ── */
+  var selected = [];
+  var sort = { key: "name", dir: 1 };
+  var columnWidths = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 };
+  var actionColumnWidth = 100;
+  var resizingColumn = null;
+  var prop = null, configMenu = null, grounding = false, groundingHelpOpen = false;
+  var columnOverrides = {}, inputSelections = {}, pinnedColumns = [], moreSettingsOpen = false;
+  var advancedSettings = { required: false, allowEmpty: true, confidence: false };
+  var addOpen = null, tableMenuOpen = null;
+  var aiAdded = false, aiDone = false;
+  var calc = null, calcTimer = null;
+  /* programmatic scrolls (revealing the new column) shouldn't close popovers */
+  var ignoreScroll = false;
+
+  var COL_KEYS = { "Company": "company", "Categories": "categories", "Last interaction": "last", "Connection strength": "strength", "Links": "links", "Competitors": "ai" };
+
+  function isSelected(id) { return selected.indexOf(id) > -1; }
+  function visibleRows() {
+    return INITIAL_ROWS.slice().sort(function (a, b) {
+      var v = sort.key === "name" ? a.name.localeCompare(b.name)
+        : sort.key === "last" ? a.last.localeCompare(b.last)
+          : STRENGTH[a.strength].rank - STRENGTH[b.strength].rank;
+      return v * sort.dir;
+    });
+  }
+  function isCalc(col, i) { return !!calc && calc.col === col && i >= calc.resolved; }
+
+  /* ── tag cell ───────────────────────────────────────────── */
+  function tagHTML(name) {
+    var base = TAG_COLORS[name] ? TAG_COLORS[name] : "var(--ink-3)";
+    return '<span class="records-tag" style="--tag-base:' + base + '">' + name + '</span>';
+  }
+  function fillTags(container, tags) {
+    var measure = '<div class="records-tags-measure" aria-hidden>'
+      + tags.map(function (t) { return '<span data-tag-measure>' + tagHTML(t) + '</span>'; }).join('')
+      + '<span data-more-measure class="records-more-tag">+' + tags.length + '</span></div>';
+    var available = container.clientWidth;
+    container.innerHTML = measure + tags.map(tagHTML).join('');
+    var widths = Array.prototype.map.call(container.querySelectorAll('[data-tag-measure]'), function (e) { return e.offsetWidth; });
+    var moreW = container.querySelector('[data-more-measure]').offsetWidth;
+    var used = 0, count = 0;
+    for (var i = 0; i < widths.length; i++) {
+      var nextUsed = used + (count > 0 ? 4 : 0) + widths[i];
+      var hiddenAfter = tags.length - (i + 1);
+      var totalWithOverflow = nextUsed + (hiddenAfter > 0 ? 4 + moreW : 0);
+      if (totalWithOverflow > available) break;
+      used = nextUsed; count++;
+    }
+    var hidden = tags.length - count;
+    container.innerHTML = measure + tags.slice(0, count).map(tagHTML).join('')
+      + (hidden > 0 ? '<span class="records-more-tag">+' + hidden + '</span>' : '');
+  }
+
+  /* ── small atoms ── */
+  function checkbox(id, checked, mixed, label) {
+    return '<label class="records-checkbox" title="' + label + '">'
+      + '<input type="checkbox" data-check="' + id + '"' + (checked ? ' checked' : '') + ' aria-label="' + label + '">'
+      + '<span class="records-checkbox-box ' + (checked || mixed ? "is-active" : "") + '">'
+      + (mixed ? '<span class="records-checkbox-dash"></span>'
+        : checked ? icon('<path d="m5 12 4 4L19 6"/>', 12) : '')
+      + '</span></label>';
+  }
+  function calcCell() { return '<span class="records-calc"><span class="records-muted">Calculating…</span><span class="records-pulse"></span></span>'; }
+  function miniSwitch(label, on, id) {
+    return '<button type="button" role="switch" aria-checked="' + on + '" aria-label="' + label + '" data-switch="' + id + '" class="relative h-4.5 w-7.5 shrink-0 rounded-full transition-colors duration-150" style="background:' + (on ? "var(--accent)" : "var(--line-strong)") + '">'
+      + '<span class="absolute top-0.5 left-0.5 size-3.5 rounded-full bg-white shadow-btn transition-transform duration-150" style="transform:translateX(' + (on ? "12px" : "0") + ');transition-timing-function:cubic-bezier(0.23,1,0.32,1)"></span></button>';
+  }
+  function chevronRight() { return icon('<path d="M9 6l6 6-6 6"/>', 12, 2.2); }
+  function sortIcon() { return icon('<path d="M12 5v14M5 12l7 7 7-7"/>', 12); }
+
+  /* ── header ─────────────────────────────────────────────── */
+  function headerCell(col, label, glyph, typeIcon, sortKey, minWidth) {
+    var sel = prop && prop.col === col ? "is-colsel" : "";
+    var key = COL_KEYS[col];
+    var resizing = resizingColumn === key ? "is-resizing" : "";
+    var sortHTML = sortKey
+      ? '<span role="button" tabindex="0" aria-label="Sort by ' + label + '" data-sort="' + sortKey + '" class="records-sort ' + (sort.key === sortKey ? "is-visible" : "") + '" style="' + (sort.key === sortKey && sort.dir === -1 ? "transform:rotate(180deg)" : "") + '">' + sortIcon() + '</span>'
+      : '';
+    return '<th class="records-header-cell ' + sel + '">'
+      + '<button type="button" class="records-header-button" data-openprop="' + col + '">'
+      + '<span class="records-header-icon">' + (typeIcon ? icon(glyph, 15) : glyph) + '</span>'
+      + '<span class="truncate">' + label + '</span>' + sortHTML
+      + '</button>'
+      + '<span role="separator" aria-orientation="vertical" aria-label="Resize ' + label + ' column" data-resize="' + key + '" data-min="' + (minWidth || 120) + '" class="records-resize-handle ' + resizing + '"></span>'
+      + '</th>';
+  }
+
+  function tableHTML() {
+    var rows = visibleRows();
+    var allSel = rows.length > 0 && rows.every(function (r) { return isSelected(r.id); });
+    var partial = !allSel && rows.some(function (r) { return isSelected(r.id); });
+    var w = columnWidths;
+    var tableWidth = w.company + w.categories + w.last + w.strength + w.links + (aiAdded ? w.ai : 0) + actionColumnWidth;
+
+    var head = '<thead><tr>'
+      + '<th class="records-header-cell records-sticky-cell ' + (prop && prop.col === "Company" ? "is-colsel" : "") + '">'
+      +   '<div class="records-company-header" style="cursor:pointer" data-openprop="Company">'
+      +     checkbox("all", allSel, partial, "Select all companies") + '<span>Company</span>'
+      +   '</div>'
+      +   '<span role="separator" aria-orientation="vertical" aria-label="Resize Company column" data-resize="company" data-min="180" class="records-resize-handle ' + (resizingColumn === "company" ? "is-resizing" : "") + '"></span>'
+      + '</th>'
+      + headerCell("Categories", "Categories", TYPE_GLYPHS["Multi select"], true, null, 120)
+      + headerCell("Last interaction", "Last interaction", TYPE_GLYPHS.Date, true, "last", 120)
+      + headerCell("Connection strength", "Connection strength", TYPE_GLYPHS["Single select"], true, "strength", 120)
+      + headerCell("Links", "Links", TYPE_GLYPHS.URL, true, null, 120)
+      + (aiAdded ? '<th class="records-header-cell ' + (prop && prop.col === AI_LABEL ? "is-colsel" : "") + '">'
+        + '<button type="button" class="records-header-button" data-openprop="' + AI_LABEL + '"><span class="records-header-icon">' + icon(TYPE_GLYPHS.Text, 15) + '</span><span class="truncate">' + AI_LABEL + '</span></button>'
+        + '<span role="separator" aria-orientation="vertical" aria-label="Resize ' + AI_LABEL + ' column" data-resize="ai" data-min="120" class="records-resize-handle ' + (resizingColumn === "ai" ? "is-resizing" : "") + '"></span></th>' : '')
+      + '<th class="records-header-cell"><div class="flex h-[35px] items-center gap-1 px-2">'
+      +   '<button type="button" aria-label="New property" data-recpop data-add class="flex size-7 items-center justify-center rounded-[7px] text-ink-2 transition-colors duration-100 hover:bg-hover hover:text-ink">' + icon('<path d="M12 5v14M5 12h14"/>', 15, 2) + '</button>'
+      +   '<button type="button" aria-label="Table options" aria-expanded="' + !!tableMenuOpen + '" data-recpop data-tablemenu class="flex size-7 items-center justify-center rounded-[7px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">'
+      +     '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>'
+      + '</div></th></tr></thead>';
+
+    var body = '<tbody data-sound-silent>';
+    rows.forEach(function (row, index) {
+      var selRow = isSelected(row.id);
+      var strength = STRENGTH[row.strength];
+      body += '<tr class="records-row ' + (selRow ? "is-selected" : "") + '">'
+        + '<td class="records-cell records-sticky-cell records-company-cell ' + (prop && prop.col === "Company" ? "is-colsel" : "") + '">'
+        +   '<span class="records-rownum">' + (index + 1) + '</span>'
+        +   checkbox("row:" + row.id, selRow, false, "Select " + row.name)
+        +   '<span class="records-company-mark">' + row.name.slice(0, 1).toUpperCase() + '</span>'
+        +   '<a href="' + (row.website ? "https://" + row.website : "#") + '"' + (row.website ? '' : ' onclick="return false"') + ' title="' + row.name + '" class="records-company-name ' + (row.website ? "has-link" : "") + '">' + row.name + '</a></td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Categories" ? "is-colsel" : "") + '" data-tags-row="' + row.id + '"></td>'
+        + '<td class="records-cell ' + (row.last === "No contact" ? "records-muted" : "") + ' ' + (prop && prop.col === "Last interaction" ? "is-colsel" : "") + '">' + (isCalc("Last interaction", index) ? calcCell() : row.last) + '</td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Connection strength" ? "is-colsel" : "") + '">' + (isCalc("Connection strength", index) ? calcCell() : '<span class="records-strength"><span class="records-strength-dot" style="background:' + strength.color + '"></span>' + strength.label + '</span>') + '</td>'
+        + '<td class="records-cell ' + (prop && prop.col === "Links" ? "is-colsel" : "") + '">' + (isCalc("Links", index) ? calcCell() : row.website ? '<a class="records-link" href="https://' + row.website + '" title="' + row.website + '" target="_blank" rel="noreferrer"><span class="records-link-label">' + row.website + '</span>' + icon('<path d="M14 5h5v5M19 5l-8 8"/>', 12) + '</a>' : '<span class="records-muted">—</span>') + '</td>'
+        + (aiAdded ? '<td class="records-cell ' + (prop && prop.col === AI_LABEL ? "is-colsel" : "") + '">'
+          + (calc && calc.col === AI_LABEL ? (index < calc.resolved ? competitorsFor(index) : calcCell()) : aiDone ? competitorsFor(index) : '<span class="records-muted">—</span>') + '</td>' : '')
+        + '<td class="records-cell"></td></tr>';
+    });
+    body += '</tbody>';
+
+    var avg = Math.round(INITIAL_ROWS.reduce(function (s, r) { return s + STRENGTH[r.strength].rank; }, 0) / INITIAL_ROWS.length / 3 * 100);
+    var linkCount = INITIAL_ROWS.filter(function (r) { return r.website; }).length;
+    var foot = '<tfoot><tr class="records-calculation-row">'
+      + '<td class="records-cell records-sticky-cell"><span class="records-footer-value records-calculation-label"><span class="records-calculation-number">' + INITIAL_ROWS.length + '</span> count</span></td>'
+      + '<td class="records-cell"><button type="button" class="records-add-calculation">' + icon('<path d="M12 5v14M5 12h14"/>', 15) + 'Add calculation</button></td>'
+      + '<td class="records-cell records-muted"><span class="records-footer-value">—</span></td>'
+      + '<td class="records-cell"><span class="records-footer-value records-average"><span class="records-strength-dot" style="background:var(--orange)"></span>' + avg + '% average</span></td>'
+      + '<td class="records-cell"><span class="records-footer-value records-muted">' + linkCount + ' links</span></td>'
+      + (aiAdded ? '<td class="records-cell records-muted"><span class="records-footer-value">' + (aiDone ? INITIAL_ROWS.length + ' filled' : "—") + '</span></td>' : '')
+      + '<td class="records-cell"></td></tr></tfoot>';
+
+    return '<div class="records-shell">'
+      + '<div class="records-scroll" tabindex="0" aria-label="Companies table. Scroll horizontally and vertically to view all columns and records.">'
+      + '<table class="records-table" style="width:100%;min-width:' + tableWidth + 'px">'
+      + '<colgroup>'
+      +   '<col class="records-company-col" style="width:' + w.company + 'px">'
+      +   '<col class="records-category-col" style="width:' + w.categories + 'px">'
+      +   '<col class="records-last-col" style="width:' + w.last + 'px">'
+      +   '<col class="records-strength-col" style="width:' + w.strength + 'px">'
+      +   '<col class="records-link-col" style="width:' + w.links + 'px">'
+      +   (aiAdded ? '<col style="width:' + w.ai + 'px">' : '')
+      +   '<col style="width:' + actionColumnWidth + 'px">'
+      + '</colgroup>' + head + body + foot + '</table></div></div>';
+  }
+
+  /* ── popover pieces ─────────────────────────────────────── */
+  function glideWrap(inner, extraCls, highlight) {
+    return '<div data-glide-root data-row-selector="[data-menu-row]" class="relative ' + extraCls + '">'
+      + '<span aria-hidden data-glide-layer class="pointer-events-none absolute ' + highlight + '" style="' + GLIDE_STYLE + '"></span>'
+      + inner + '</div>';
+  }
+  function configPicker(label, options, selectedVal) {
+    var rows = options.map(function (o) {
+      return '<button data-menu-row type="button" role="menuitemradio" aria-checked="' + (selectedVal === o.label) + '" data-config-pick="' + o.label + '" class="relative z-10 flex h-8 w-full items-center gap-1.5 rounded-[8px] px-1.5 text-left text-[13px] font-medium text-ink">'
+        + '<span class="flex size-4 shrink-0 items-center justify-center text-ink-2">' + o.icon + '</span>'
+        + '<span class="min-w-0 flex-1 truncate">' + o.label + '</span>'
+        + '<span class="' + (selectedVal === o.label ? "text-ink" : "invisible") + '">' + icon('<path d="m5 12 4 4L19 6"/>', 14, 2.2) + '</span></button>';
+    }).join('');
+    return '<div role="menu" aria-label="' + label + '" class="absolute left-full top-0 z-30 ml-5 w-[210px] rounded-[12px] bg-surface p-1.5 shadow-overlay" style="animation:pop-in 140ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div class="px-2 pb-1 pt-0.5 text-[11.5px] font-medium text-ink-3">' + label + '</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover') + '</div>';
+  }
+  function inputPicker(selectedInputs, exclude) {
+    var rows = INPUT_OPTIONS.filter(function (o) { return o !== exclude; }).map(function (o) {
+      var checked = selectedInputs.indexOf(o) > -1;
+      return '<button data-menu-row type="button" role="menuitemcheckbox" aria-checked="' + checked + '" data-input-pick="' + o + '" class="relative z-10 flex h-8 w-full items-center gap-1.5 rounded-[8px] px-1.5 text-left text-[13px] font-medium text-ink">'
+        + '<span class="flex size-4 shrink-0 items-center justify-center rounded-[5px] border ' + (checked ? "border-accent bg-accent text-white" : "border-line-strong text-transparent") + '">' + icon('<path d="m5 12 4 4L19 6"/>', 11, 2.4) + '</span>'
+        + '<span class="min-w-0 flex-1 truncate">' + o + '</span></button>';
+    }).join('');
+    return '<div role="menu" aria-label="Calculation inputs" class="absolute left-full top-0 z-30 ml-5 w-[220px] rounded-[12px] bg-surface p-1.5 shadow-overlay" style="animation:pop-in 140ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div class="px-2 pb-1 pt-0.5 text-[11.5px] font-medium text-ink-3">Use values from</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover') + '</div>';
+  }
+  function configRow(label, child) {
+    return '<div class="relative flex h-8 items-center justify-between"><span class="text-[13px] text-ink-3">' + label + '</span>' + child + '</div>';
+  }
+  function toolIconHTML(kind) {
+    if (kind === "model") return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>' + TOOL_GLYPHS.model + '</svg>';
+    return icon(TOOL_GLYPHS[kind] || TOOL_GLYPHS.user, 14);
+  }
+
+  function popoverHTML() {
+    if (!prop) return '';
+    var base = COLUMN_META[prop.col] || {};
+    var meta = Object.assign({}, base, columnOverrides[prop.col] || {});
+    var selInputs = inputSelections[prop.col] || (meta.inputs ? [meta.inputs] : []);
+    var pinned = pinnedColumns.indexOf(prop.col) > -1;
+    var typeBtn = '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "type") + '" data-configmenu="type" class="flex items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] font-medium text-ink transition-colors duration-100 hover:bg-hover">'
+      + '<span class="text-ink-2">' + icon(TYPE_GLYPHS[meta.type] || TYPE_GLYPHS.Text, 14) + '</span>' + meta.type + '<span class="text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "type" ? configPicker("Property type", NEW_PROPERTY_TYPES.map(function (t) { return { label: t, icon: icon(TYPE_GLYPHS[t], 15) }; }), meta.type) : '');
+    var toolBtn = '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "tool") + '" data-configmenu="tool" class="flex items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] font-medium text-ink transition-colors duration-100 hover:bg-hover">'
+      + '<span class="' + (meta.toolKind === "model" ? "text-accent" : "text-ink-2") + '">' + toolIconHTML(meta.toolKind) + '</span>' + meta.tool + '<span class="text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "tool" ? configPicker("Model", MODEL_OPTIONS.map(function (m) { return { label: m, icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>' + TOOL_GLYPHS.model + '</svg>' }; }), meta.tool) : '');
+    var groundingRow = configRow("Grounding",
+      '<span class="flex items-center gap-2">' + miniSwitch("Grounding", grounding, "grounding")
+      + '<button type="button" aria-label="About grounding" aria-expanded="' + groundingHelpOpen + '" data-grounding-help class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">' + icon('<g><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></g>', 13) + '</button></span>')
+      + (groundingHelpOpen ? '<div class="absolute right-0 top-[30px] z-30 w-[230px] rounded-[10px] px-3 py-2.5 text-[12px] leading-relaxed shadow-overlay" style="color:var(--tooltip-fg);background:var(--tooltip-bg)" role="status">Grounding lets the model verify generated values against connected sources.</div>' : '');
+    var inputsRow = configRow("Inputs",
+      '<button type="button" aria-haspopup="menu" aria-expanded="' + (configMenu === "inputs") + '" data-configmenu="inputs" class="flex max-w-[220px] items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[13px] text-ink-2 transition-colors duration-100 hover:bg-hover hover:text-ink">'
+      + (selInputs.length
+        ? '<span class="flex min-w-0 items-center gap-1">' + selInputs.slice(0, 2).map(function (s) { return '<span class="max-w-[92px] truncate rounded-[5px] bg-accent-tint px-1.5 py-0.5 text-[12px] font-medium text-accent-ink">' + s + '</span>'; }).join('') + (selInputs.length > 2 ? '<span class="text-[11px] font-medium text-ink-3">+' + (selInputs.length - 2) + '</span>' : '') + '</span>'
+        : '<span>Select inputs</span>')
+      + '<span class="shrink-0 text-ink-3">' + chevronRight() + '</span></button>'
+      + (configMenu === "inputs" ? inputPicker(selInputs, prop.col) : ''));
+    var prompt = '<div contenteditable="true" role="textbox" aria-label="' + prop.col + ' calculation prompt" aria-multiline="true" spellcheck="true" class="mt-2 min-h-[88px] cursor-text rounded-[10px] bg-inset p-3 text-[13px] leading-relaxed shadow-hairline outline-none transition-[box-shadow] duration-150 focus:shadow-[0_0_0_2px_var(--accent)]">'
+      + (meta.prompt
+        ? '<span class="text-ink">' + meta.prompt.before + (meta.prompt.chip ? '<span contenteditable="false" class="rounded-[5px] bg-accent-tint px-1.5 py-0.5 text-[12px] font-medium text-accent-ink">' + meta.prompt.chip + '</span>' : '') + (meta.prompt.after || '') + '</span>'
+        : '<span class="text-ink-3">Set a prompt (press @ to mention an input)</span>')
+      + '</div>';
+    var goBtn = '<button type="button" data-gocalc ' + (calc ? 'disabled ' : '') + 'class="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-[9px] text-[12.5px] font-medium text-ink shadow-btn transition-[background-color,transform] duration-150 hover:bg-hover active:scale-[0.98] disabled:opacity-60">'
+      + icon('<path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/>', 14, 1.9) + 'Go calculate</button>';
+    var pinRow = '<button data-menu-row type="button" aria-pressed="' + pinned + '" data-pin class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+      + '<span class="' + (pinned ? "text-accent" : "text-ink-2") + '">' + icon('<path d="M12 17v5M8 3h8l-1 7 3 3H6l3-3-1-7z"/>', 15) + '</span>' + (pinned ? "Unpin" : "Pin") + '</button>';
+    var moreRow = '<button data-menu-row type="button" aria-expanded="' + moreSettingsOpen + '" data-more class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+      + '<span class="' + (moreSettingsOpen ? "text-ink" : "text-ink-2") + '">' + icon('<g><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></g>', 15) + '</span>'
+      + '<span class="flex-1">More settings</span>'
+      + '<span class="text-ink-3 transition-transform duration-150 ' + (moreSettingsOpen ? "rotate-90" : "") + '">' + chevronRight() + '</span></button>';
+    var hideRow = prop.col === AI_LABEL
+      ? '<button data-menu-row type="button" data-hide-ai class="relative z-10 -mx-1.5 flex h-8 items-center gap-2.5 rounded-[8px] px-1.5 text-left text-[13px] leading-none text-ink transition-transform duration-150 active:scale-[0.96]">'
+        + '<span class="text-ink-2">' + icon('<g><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c7 0 10 7 10 7a16.3 16.3 0 0 1-2.1 3M6.6 6.6A16 16 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6M3 3l18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></g>', 15) + '</span>Hide from view</button>'
+      : '';
+    var moreSection = moreSettingsOpen
+      ? '<div class="mt-2 border-t border-line pt-2" style="animation:fade-up 160ms cubic-bezier(0.23,1,0.32,1) both">'
+        + '<div class="pb-1 text-[11.5px] font-medium text-ink-3">Behavior</div>'
+        + configRow("Required value", miniSwitch("Required value", advancedSettings.required, "required"))
+        + configRow("Allow empty results", miniSwitch("Allow empty results", advancedSettings.allowEmpty, "allowEmpty"))
+        + configRow("Show confidence", miniSwitch("Show confidence", advancedSettings.confidence, "confidence"))
+        + '</div>'
+      : '';
+    return '<div class="pb-2 text-[13.5px] font-medium text-ink">' + prop.col + '</div>'
+      + configRow("Type", typeBtn) + configRow("Tool", toolBtn) + groundingRow + inputsRow
+      + prompt + goBtn
+      + glideWrap(pinRow + moreRow + hideRow, 'mt-3 flex flex-col gap-0.5 border-t border-line pt-2', '-inset-x-1.5 rounded-[8px] bg-hover')
+      + moreSection;
+  }
+
+  function addMenuHTML() {
+    var rows = NEW_PROPERTY_TYPES.map(function (t) {
+      return '<button data-menu-row type="button" data-add-type="' + t + '" class="relative z-10 flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2 text-left text-[13px] text-ink">'
+        + '<span class="text-ink-2">' + icon(TYPE_GLYPHS[t], 15) + '</span>' + t + '</button>';
+    }).join('');
+    return '<div class="px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3">New property</div>'
+      + glideWrap(rows, 'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover');
+  }
+  function tableMenuHTML() {
+    function item(attr, label, glyph) {
+      return '<button data-menu-row type="button" ' + attr + ' class="relative z-10 flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2 text-left text-[13px] text-ink">'
+        + '<span class="text-ink-2">' + icon(glyph, 15) + '</span>' + label + '</button>';
+    }
+    return '<div class="px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3">Table options</div>'
+      + glideWrap(
+        item('data-tm-add', "Add property", '<path d="M12 5v14M5 12h14"/>')
+        + item('data-tm-compact', "Compact columns", '<path d="M4 8h16M7 4 3 8l4 4M17 4l4 4-4 4M4 16h16"/>')
+        + item('data-tm-reset', "Reset column widths", '<path d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6"/>')
+        + '<div class="my-1 h-px bg-line"></div>'
+        + item('data-tm-clear', "Clear selection", '<path d="M5 5l14 14M19 5 5 19"/>'),
+        'flex flex-col gap-px', 'inset-x-0 rounded-[8px] bg-hover');
+  }
+
+  /* ── glide (inlined GlideMenu) ── */
+  function initGlide(root) {
+    if (!root || root.__glide) return;
+    root.__glide = true;
+    var sel = root.getAttribute('data-row-selector') || '[data-menu-row]';
+    var layer = root.querySelector('[data-glide-layer]');
+    function moveTo(target) {
+      if (!(target instanceof Element)) return;
+      var row = target.closest(sel);
+      if (!row || !root.contains(row)) return;
+      var cr = root.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      layer.style.top = (rr.top - cr.top) + 'px';
+      layer.style.height = rr.height + 'px';
+      layer.style.opacity = '1';
+    }
+    root.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    root.addEventListener('mouseleave', function () { layer.style.opacity = '0'; });
+    root.addEventListener('focusin', function (e) { moveTo(e.target); });
+    root.addEventListener('focusout', function (e) { if (!root.contains(e.relatedTarget)) layer.style.opacity = '0'; });
+  }
+
+  /* ── render ── */
+  var host = document.getElementById('rt-host');
+  var shellEl = document.createElement('div');
+  var popEl = null, addEl = null, menuEl = null;
+
+  function renderTable() {
+    shellEl.innerHTML = tableHTML();
+    initGlide(shellEl.querySelector('[data-glide-root]'));
+    /* programmatic scrolls (revealing the new column) shouldn't close popovers */
+    var scroller = shellEl.querySelector('.records-scroll');
+    if (scroller) scroller.addEventListener('scroll', function () {
+      if (ignoreScroll) { ignoreScroll = false; return; }
+      if (prop || addOpen || tableMenuOpen) { closeAllPops(); sync(); }
+    });
+  }
+  function postRenderTags() {
+    var cells = shellEl.querySelectorAll('[data-tags-row]');
+    for (var i = 0; i < cells.length; i++) {
+      var id = cells[i].getAttribute('data-tags-row');
+      var row = INITIAL_ROWS.filter(function (r) { return r.id === id; })[0];
+      if (row) fillTags(cells[i], row.tags);
+    }
+  }
+  function ensurePop() {
+    if (!prop) { if (popEl) { popEl.remove(); popEl = null; } return; }
+    var x = Math.min(prop.x, window.innerWidth - 336);
+    if (!popEl) {
+      popEl = document.createElement('div');
+      popEl.setAttribute('data-recpop', '');
+      popEl.className = 'fixed z-50 w-[320px] rounded-[14px] bg-surface px-3 pt-3 pb-1.5 shadow-overlay';
+      popEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      popEl.style.transformOrigin = 'top left';
+      document.body.appendChild(popEl);
+    }
+    popEl.style.top = prop.y + 'px';
+    popEl.style.left = x + 'px';
+    popEl.innerHTML = popoverHTML();
+    var g = popEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function ensureAdd() {
+    if (!addOpen) { if (addEl) { addEl.remove(); addEl = null; } return; }
+    if (!addEl) {
+      addEl = document.createElement('div');
+      addEl.setAttribute('data-recpop', '');
+      addEl.className = 'fixed z-50 w-[260px] rounded-[14px] bg-surface p-1.5 shadow-overlay';
+      addEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      addEl.style.transformOrigin = 'top left';
+      document.body.appendChild(addEl);
+    }
+    addEl.style.top = addOpen.y + 'px';
+    addEl.style.left = addOpen.x + 'px';
+    addEl.innerHTML = addMenuHTML();
+    var g = addEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function ensureTableMenu() {
+    if (!tableMenuOpen) { if (menuEl) { menuEl.remove(); menuEl = null; } return; }
+    if (!menuEl) {
+      menuEl = document.createElement('div');
+      menuEl.setAttribute('data-recpop', '');
+      menuEl.className = 'fixed z-50 w-[220px] rounded-[14px] bg-surface p-1.5 shadow-overlay';
+      menuEl.style.animation = 'pop-in 160ms cubic-bezier(0.23,1,0.32,1) both';
+      menuEl.style.transformOrigin = 'top right';
+      document.body.appendChild(menuEl);
+    }
+    menuEl.style.top = tableMenuOpen.y + 'px';
+    menuEl.style.left = tableMenuOpen.x + 'px';
+    menuEl.innerHTML = tableMenuHTML();
+    var g = menuEl.querySelector('[data-glide-root]');
+    if (g) { g.__glide = false; initGlide(g); }
+  }
+  function sync() {
+    renderTable();
+    postRenderTags();
+    ensurePop();
+    ensureAdd();
+    ensureTableMenu();
+  }
+
+  /* ── interactions ── */
+  host.appendChild(shellEl);
+
+  function closeAllPops() {
+    prop = null; configMenu = null; groundingHelpOpen = false; moreSettingsOpen = false; addOpen = null; tableMenuOpen = null;
+  }
+  document.addEventListener('pointerdown', function (event) {
+    if (!prop && !addOpen && !tableMenuOpen) return;
+    if (!event.target.closest('[data-recpop]')) { closeAllPops(); sync(); }
+  });
+
+  function openProp(col, el) {
+    var th = el.closest('th');
+    if (!th) return;
+    addOpen = null; tableMenuOpen = null; configMenu = null; groundingHelpOpen = false; moreSettingsOpen = false;
+    if (prop && prop.col === col) { prop = null; }
+    else {
+      var rect = th.getBoundingClientRect();
+      prop = { col: col, x: Math.min(rect.left, window.innerWidth - 336), y: rect.bottom + 6 };
+    }
+    ignoreScroll = true;
+    sync();
+  }
+
+  /* popovers are portaled to <body>, so delegate on document */
+  document.addEventListener('click', function (event) {
+    var t = event.target;
+    if (!t.closest || !t.closest('[data-openprop],[data-sort],[data-add],[data-tablemenu],[data-configmenu],[data-grounding-help],[data-more],[data-pin],[data-config-pick],[data-input-pick],[data-gocalc],[data-hide-ai],[data-add-type],[data-tm-add],[data-tm-compact],[data-tm-reset],[data-tm-clear],[data-switch]')) return;
+    if (t.closest('.records-checkbox')) return;
+    var sortBtn = t.closest('[data-sort]');
+    if (sortBtn) { var k = sortBtn.getAttribute('data-sort'); sort = sort.key === k ? { key: k, dir: sort.dir * -1 } : { key: k, dir: 1 }; sync(); return; }
+    var openB = t.closest('[data-openprop]');
+    if (openB) { openProp(openB.getAttribute('data-openprop'), openB); return; }
+    if (t.closest('[data-add]')) {
+      var r = t.closest('[data-add]').getBoundingClientRect();
+      tableMenuOpen = null; prop = null;
+      addOpen = addOpen ? null : { x: Math.min(r.left, window.innerWidth - 276), y: r.bottom + 6 };
+      ignoreScroll = true; sync(); return;
+    }
+    if (t.closest('[data-tablemenu]')) {
+      var rr = t.closest('[data-tablemenu]').getBoundingClientRect();
+      addOpen = null; prop = null;
+      tableMenuOpen = tableMenuOpen ? null : { x: Math.max(8, Math.min(rr.right - 220, window.innerWidth - 228)), y: rr.bottom + 6 };
+      ignoreScroll = true; sync(); return;
+    }
+    if (t.closest('[data-configmenu]')) {
+      var which = t.closest('[data-configmenu]').getAttribute('data-configmenu');
+      configMenu = configMenu === which ? null : which;
+      ensurePop(); return;
+    }
+    if (t.closest('[data-grounding-help]')) { groundingHelpOpen = !groundingHelpOpen; ensurePop(); return; }
+    if (t.closest('[data-more]')) { moreSettingsOpen = !moreSettingsOpen; ensurePop(); return; }
+    if (t.closest('[data-pin]')) {
+      var i = pinnedColumns.indexOf(prop.col);
+      if (i > -1) pinnedColumns.splice(i, 1); else pinnedColumns.push(prop.col);
+      ensurePop(); return;
+    }
+    var cp = t.closest('[data-config-pick]');
+    if (cp) {
+      var val = cp.getAttribute('data-config-pick');
+      var ov = columnOverrides[prop.col] || {};
+      if (configMenu === "type") ov.type = val;
+      else { ov.tool = val; ov.toolKind = "model"; }
+      columnOverrides[prop.col] = ov; configMenu = null; ensurePop(); return;
+    }
+    var ip = t.closest('[data-input-pick]');
+    if (ip) {
+      var v = ip.getAttribute('data-input-pick');
+      var cur = inputSelections[prop.col] || (COLUMN_META[prop.col] && COLUMN_META[prop.col].inputs ? [COLUMN_META[prop.col].inputs] : []);
+      cur = cur.slice();
+      var j = cur.indexOf(v);
+      if (j > -1) cur.splice(j, 1); else cur.push(v);
+      inputSelections[prop.col] = cur; ensurePop(); return;
+    }
+    if (t.closest('[data-gocalc]')) { startCalc(prop.col); return; }
+    if (t.closest('[data-hide-ai]')) { aiAdded = false; aiDone = false; prop = null; sync(); return; }
+    var at = t.closest('[data-add-type]');
+    if (at) {
+      addOpen = null; aiDone = false; aiAdded = true; sync();
+      /* after adding the AI column, scroll it into view and open its config
+         anchored to the new header (upstream pendingOpenAi) */
+      var th = shellEl.querySelector('[data-openprop="' + AI_LABEL + '"]');
+      if (th) {
+        var sc = shellEl.querySelector('.records-scroll');
+        if (sc) { ignoreScroll = true; sc.scrollLeft = sc.scrollWidth; }
+        var tr2 = th.closest('th').getBoundingClientRect();
+        prop = { col: AI_LABEL, x: Math.min(tr2.left, window.innerWidth - 336), y: tr2.bottom + 6 };
+      }
+      sync(); return;
+    }
+    if (t.closest('[data-tm-add]')) { var p0 = tableMenuOpen; tableMenuOpen = null; addOpen = { x: Math.min(p0.x, window.innerWidth - 276), y: p0.y }; sync(); return; }
+    if (t.closest('[data-tm-compact]')) { columnWidths = { company: 220, categories: 220, last: 155, strength: 180, links: 160, ai: 200 }; tableMenuOpen = null; sync(); return; }
+    if (t.closest('[data-tm-reset]')) { columnWidths = { company: 270, categories: 275, last: 190, strength: 210, links: 175, ai: 240 }; tableMenuOpen = null; sync(); return; }
+    if (t.closest('[data-tm-clear]')) { selected = []; tableMenuOpen = null; sync(); return; }
+    var sw = t.closest('[data-switch]');
+    if (sw) {
+      var id = sw.getAttribute('data-switch');
+      if (id === "grounding") grounding = !grounding;
+      else advancedSettings[id] = !advancedSettings[id];
+      ensurePop(); return;
+    }
+  });
+
+  document.addEventListener('change', function (event) {
+    var el = event.target.closest ? event.target.closest('[data-check]') : null;
+    if (!el) return;
+    var id = el.getAttribute('data-check');
+    var rows = visibleRows();
+    if (id === "all") {
+      var allSel = rows.every(function (r) { return isSelected(r.id); });
+      if (allSel) selected = selected.filter(function (s) { return !rows.some(function (r) { return r.id === s; }); });
+      else rows.forEach(function (r) { if (!isSelected(r.id)) selected.push(r.id); });
+    } else {
+      var rid = id.slice(4);
+      var k = selected.indexOf(rid);
+      if (k > -1) selected.splice(k, 1); else selected.push(rid);
+    }
+    sync();
+  });
+
+  document.addEventListener('pointerdown', function (event) {
+    var handle = event.target.closest ? event.target.closest('[data-resize]') : null;
+    if (!handle) return;
+    event.preventDefault();
+    var key = handle.getAttribute('data-resize');
+    var minWidth = Number(handle.getAttribute('data-min')) || 120;
+    closeAllPops();
+    var startX = event.clientX, startWidth = columnWidths[key];
+    var prevCursor = document.body.style.cursor, prevSel = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    resizingColumn = key; sync();
+    function move(e) { columnWidths[key] = Math.max(minWidth, startWidth + e.clientX - startX); sync(); }
+    function finish() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      document.body.style.cursor = prevCursor; document.body.style.userSelect = prevSel;
+      resizingColumn = null; sync();
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  });
+
+  function startCalc(col) {
+    calc = { col: col, resolved: 0 };
+    prop = null; configMenu = null;
+    if (calcTimer) { clearInterval(calcTimer); calcTimer = null; }
+    sync();
+    calcTimer = setInterval(function () {
+      if (!calc) { clearInterval(calcTimer); calcTimer = null; return; }
+      calc.resolved++;
+      if (calc.resolved > visibleRows().length) {
+        if (calc.col === AI_LABEL) aiDone = true;
+        calc = null; clearInterval(calcTimer); calcTimer = null;
+      }
+      sync();
+    }, 110);
+  }
+
+  sync();
+  /* re-measure tags once fonts settle (mirrors upstream ResizeObserver pass) */
+  window.addEventListener('load', function () { postRenderTags(); });
+  window.addEventListener('resize', function () { postRenderTags(); });
+})();
+</script>

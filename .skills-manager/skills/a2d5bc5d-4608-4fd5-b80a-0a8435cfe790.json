@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a2d5bc5d-4608-4fd5-b80a-0a8435cfe790",
+  "path": "beautifului",
+  "path_key": "beautifului",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

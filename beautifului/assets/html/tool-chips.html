@@ -1,0 +1,1555 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tool Chips — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-[grid-template-rows,opacity]"] {
+  transition-property: grid-template-rows,opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[opacity,transform]"] {
+  transition-property: opacity,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-colors"] {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-opacity"] {
+  transition-property: opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-transform"] {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-100"] {
+  transition-duration: 100ms;
+}
+
+[class~="duration-150"] {
+  transition-duration: 150ms;
+}
+
+[class~="duration-200"] {
+  transition-duration: 200ms;
+}
+
+[class~="duration-300"] {
+  transition-duration: 300ms;
+}
+
+[class~="-mx-1"] {
+  margin-left: calc(0.25rem * -1);
+  margin-right: calc(0.25rem * -1);
+}
+
+[class~="-mx-1.5"] {
+  margin-left: calc(0.375rem * -1);
+  margin-right: calc(0.375rem * -1);
+}
+
+[class~="-mx-[3px]"] {
+  margin-left: calc(3px * -1);
+  margin-right: calc(3px * -1);
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="bg-field"] {
+  background-color: var(--field);
+}
+
+[class~="bg-green-tint"] {
+  background-color: var(--green-tint);
+}
+
+[class~="bg-red-tint"] {
+  background-color: var(--red-tint);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="border-b"] {
+  border-bottom-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-l"] {
+  border-left-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="border-t"] {
+  border-top-width: 1px;
+  border-style: solid;
+}
+
+[class~="cursor-pointer"] {
+  cursor: pointer;
+}
+
+[class~="decoration-transparent"] {
+  text-decoration-color: transparent;
+}
+
+[class~="fixed"] {
+  position: fixed;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="flex-1"] {
+  flex: 1 1 0%;
+}
+
+[class~="flex-col"] {
+  flex-direction: column;
+}
+
+[class~="flex-wrap"] {
+  flex-wrap: wrap;
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="font-mono"] {
+  font-family: var(--font-mono);
+}
+
+[class~="gap-0.5"] {
+  gap: 0.125rem;
+}
+
+[class~="gap-1"] {
+  gap: 0.25rem;
+}
+
+[class~="gap-1.5"] {
+  gap: 0.375rem;
+}
+
+[class~="gap-2"] {
+  gap: 0.5rem;
+}
+
+[class~="grid"] {
+  display: grid;
+}
+
+[class~="group/row"]:hover [class~="group-hover/row:opacity-0"] {
+  opacity: 0.0;
+}
+
+[class~="group/row"]:hover [class~="group-hover/row:opacity-100"] {
+  opacity: 1.0;
+}
+
+[class~="h-5.5"] {
+  height: 1.375rem;
+}
+
+[class~="h-7"] {
+  height: 1.75rem;
+}
+
+[class~="hover:bg-hover"]:hover {
+  background-color: var(--hover);
+}
+
+[class~="hover:bg-hover-2"]:hover {
+  background-color: var(--hover-2);
+}
+
+[class~="hover:decoration-current"]:hover {
+  text-decoration-color: currentColor;
+}
+
+[class~="hover:text-ink-2"]:hover {
+  color: var(--ink-2);
+}
+
+[class~="inline-flex"] {
+  display: inline-flex;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="justify-between"] {
+  justify-content: space-between;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="leading-[1.6]"] {
+  line-height: 1.6;
+}
+
+[class~="leading-[1.8]"] {
+  line-height: 1.8;
+}
+
+[class~="max-w-80"] {
+  max-width: 20rem;
+}
+
+[class~="max-w-full"] {
+  max-width: 100%;
+}
+
+[class~="mb-1"] {
+  margin-bottom: 0.25rem;
+}
+
+[class~="min-h-0"] {
+  min-height: 0rem;
+}
+
+[class~="min-h-[220px]"] {
+  min-height: 220px;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="ml-2"] {
+  margin-left: 0.5rem;
+}
+
+[class~="mt-0.5"] {
+  margin-top: 0.125rem;
+}
+
+[class~="mt-1.5"] {
+  margin-top: 0.375rem;
+}
+
+[class~="mt-2.5"] {
+  margin-top: 0.625rem;
+}
+
+[class~="opacity-0"] {
+  opacity: 0.0;
+}
+
+[class~="opacity-100"] {
+  opacity: 1.0;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="pb-1"] {
+  padding-bottom: 0.25rem;
+}
+
+[class~="pl-3.5"] {
+  padding-left: 0.875rem;
+}
+
+[class~="pt-2.5"] {
+  padding-top: 0.625rem;
+}
+
+[class~="px-1.5"] {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+[class~="px-2"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[class~="px-2.5"] {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+[class~="px-[3px]"] {
+  padding-left: 3px;
+  padding-right: 3px;
+}
+
+[class~="py-0.5"] {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+
+[class~="py-1"] {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+[class~="py-1.5"] {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="rounded-[10px]"] {
+  border-radius: 10px;
+}
+
+[class~="rounded-chip"] {
+  border-radius: var(--radius-chip);
+}
+
+[class~="rounded-control"] {
+  border-radius: var(--radius-control);
+}
+
+[class~="select-none"] {
+  user-select: none;
+}
+
+[class~="shadow-btn"] {
+  box-shadow: var(--shadow-btn);
+}
+
+[class~="shadow-hairline"] {
+  box-shadow: var(--shadow-hairline);
+}
+
+[class~="shadow-overlay"] {
+  box-shadow: var(--shadow-overlay);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-4"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+[class~="tabular-nums"] {
+  font-variant-numeric: tabular-nums;
+}
+
+[class~="text-[11.5px]"] {
+  font-size: 11.5px;
+}
+
+[class~="text-[11px]"] {
+  font-size: 11px;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-green"] {
+  color: var(--green);
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-left"] {
+  text-align: left;
+}
+
+[class~="text-red"] {
+  color: var(--red);
+}
+
+[class~="truncate"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[class~="underline"] {
+  text-decoration-line: underline;
+}
+
+[class~="underline-offset-2"] {
+  text-underline-offset: 2px;
+}
+
+[class~="w-3"] {
+  width: 0.75rem;
+}
+
+[class~="w-72"] {
+  width: 18rem;
+}
+
+[class~="w-[calc(100%_+_6px)]"] {
+  width: calc(100% + 6px);
+}
+
+[class~="w-fit"] {
+  width: fit-content;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="whitespace-pre"] {
+  white-space: pre;
+}
+
+[class~="z-50"] {
+  z-index: 50;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Tool Chips -->
+<!--@classes:
+  min-h-[220px] w-full max-w-80 pb-1
+  -mx-1.5 flex w-fit items-center gap-1.5 rounded-control px-1.5 py-1 text-[12.5px] text-ink-2 transition-colors duration-100 hover:bg-hover-2
+  transition-transform duration-200 tabular-nums
+  grid transition-[grid-template-rows,opacity] duration-300
+  -mx-1 overflow-hidden px-1.5 pb-1
+  mt-1.5 flex flex-col gap-1
+  group/row -mx-[3px] flex h-7 w-[calc(100%_+_6px)] min-w-0 items-center gap-2 rounded-control px-[3px] text-left transition-colors duration-100 hover:bg-hover-2
+  relative flex size-4 shrink-0 items-center justify-center text-ink-3
+  transition-opacity duration-100 group-hover/row:opacity-0
+  absolute transition-[opacity,transform] duration-150 group-hover/row:opacity-100
+  shrink-0 text-[12.5px] font-medium text-ink
+  inline-flex h-5.5 min-w-0 flex-1 cursor-pointer items-center truncate rounded-chip bg-field px-1.5 text-[11.5px] text-ink-2 shadow-hairline transition-colors duration-100 hover:bg-hover-2
+  min-h-0 overflow-hidden
+  mt-0.5 mb-1 ml-2 flex flex-col gap-0.5 border-l border-line py-0.5 pl-3.5
+  truncate text-[11.5px] leading-[1.6]
+  mt-2.5 flex max-w-full flex-wrap gap-1.5 border-t border-line pt-2.5
+  relative
+  inline-flex h-7 max-w-full items-center gap-2 rounded-chip bg-surface px-2 font-mono text-[11.5px] text-ink shadow-btn transition-colors duration-100 hover:bg-hover
+  min-w-0 truncate shrink-0 text-green tabular-nums shrink-0 text-red tabular-nums
+  inline-flex h-7 items-center rounded-chip px-1.5 font-mono text-[11.5px] text-ink-3 underline decoration-transparent underline-offset-2 transition-colors duration-100 hover:text-ink-2 hover:decoration-current
+  fixed z-50 w-72 overflow-hidden rounded-[10px] bg-surface shadow-overlay
+  flex items-center justify-between border-b border-line px-2.5 py-1.5 font-mono text-[11px]
+  min-w-0 truncate text-ink-2 shrink-0 tabular-nums text-green text-red
+  py-1 font-mono text-[11px] leading-[1.8]
+  flex gap-2 px-2.5 whitespace-pre w-3 shrink-0 select-none
+  opacity-0 opacity-100 font-mono text-green text-ink-2 bg-green-tint bg-red-tint text-red
+-->
+<!-- 来源：components/primitives/ToolChips.tsx（上游 MIT）
+     保真：STEP_MS=700 逐行揭示；fade-up / pop-in / fade-in 关键帧与延迟逐字照搬；
+           文件 diff 芯片的 hover 预览在上游是 createPortal(…, document.body) —— 即
+           「渲染进 body 的浮层」，本移植用同样的做法（fixed 定位节点挂在 body，避免
+           被父级 transform/动画重定义坐标），并按视口高度自动决定向上/向下翻转。
+           const previewHeight = 38 + lines*19、x 夹在 [12, innerWidth-300]、上下 6px 间距、
+           transform-origin 随翻转方向变化 —— 全部照搬。
+     降级/说明：
+       1) 上游 w-[calc(100%+6px)]：Tailwind 会在任意值里给 + - * / 补空格，twsubset 不补，
+          故写成 w-[calc(100%_+_6px)]（_ 会被编译成空格），得到与上游相同的 calc(100% + 6px)。
+       2) 上游用 body portal；原生 <div popover> 需要 JS 调 showPopover()，行为不等价
+          （会劫持 light-dismiss / 顶层层叠），这里沿用 portal 语义。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>工具调用芯片</strong> — 把一次 Agent 运行压成若干紧凑行：先逐行揭示工具调用
+    （思考 / 写入 / 运行 / 读取），再在底部汇总文件级 diff 芯片。
+    悬停任意一行会浮现 chevron 提示可展开；点击行展开该工具实际做了什么。
+    悬停底部文件芯片弹出该文件的逐行 diff 预览（<code>+</code>/<code>−</code> 着色）。
+  </p>
+  <div id="toolchips-host"></div>
+</div>
+
+<script>
+/* ── 上游常量逐字照搬 ────────────────────────────────────────── */
+var TC_STEP_MS = 700;
+
+var TC_ICONS = {
+  think: '<path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />',
+  write: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></g>',
+  run: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5M12 19h8" /></g>',
+  read: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></g>'
+};
+
+/* ROWS：上游 ROWS 数组（演示数据保留，能体现布局） */
+var TC_STEPS = [
+  { icon: 'think', label: 'Thinking', chip: 'Planning the churn schedule…', mono: false, detailMono: false,
+    detail: [
+      { text: 'Weekend demand carries pistachio, so it churns first.' },
+      { text: 'Batch capacity leaves two evening freezer windows.' }
+    ] },
+  { icon: 'write', label: 'Write 204 lines', chip: 'ChurnSchedule.tsx', mono: true, detailMono: true,
+    detail: [
+      { text: '+ const windows = slots.filter((s) => s.temp <= -12)', tone: 'add' },
+      { text: '+ return schedule(windows, { hero: "pistachio" })', tone: 'add' }
+    ] },
+  { icon: 'run', label: 'Rebuild and verify', chip: 'npm run freeze', mono: true, detailMono: true,
+    detail: [
+      { text: '✓ built in 1.2s' },
+      { text: '✓ 34 checks passed' }
+    ] },
+  { icon: 'read', label: 'Read image', chip: 'flavor-chart.png', mono: true, detailMono: false,
+    detail: [
+      { text: '1280 × 720 · line chart, three summers.' },
+      { text: 'Mint chip trends up 12% through July.' }
+    ] }
+];
+
+var TC_DIFFS = [
+  { file: 'flavors.css', add: 13, del: 0 },
+  { file: 'ChurnSchedule.tsx', add: 74, del: 41 },
+  { file: 'menu.ts', add: 8, del: 2 }
+];
+
+/* hovering a file chip opens its diff — green added, red removed */
+var TC_DIFF_LINES = {
+  'flavors.css': [
+    { text: '.scoop-card {', tone: 'ctx' },
+    { text: '  gap: 14px;', tone: 'del' },
+    { text: '  gap: 12px;', tone: 'add' },
+    { text: '  container-type: inline-size;', tone: 'add' },
+    { text: '}', tone: 'ctx' }
+  ],
+  'ChurnSchedule.tsx': [
+    { text: 'const slots = coldSlots(week);', tone: 'ctx' },
+    { text: 'const windows = slots;', tone: 'del' },
+    { text: 'const windows = slots.filter(', tone: 'add' },
+    { text: '  (s) => s.temp <= -12,', tone: 'add' },
+    { text: ');', tone: 'add' }
+  ],
+  'menu.ts': [
+    { text: 'export const hero = "mint-chip";', tone: 'del' },
+    { text: 'export const hero = "pistachio";', tone: 'add' }
+  ]
+};
+
+var TC_COPY = { header: '4 tool calls, 2 messages', more: '+2 more' };
+
+(function () {
+  var host = document.getElementById('toolchips-host');
+
+  var step = 0;
+  var total = TC_STEPS.length + 1;      /* rows, then diff chips */
+  var open = true;
+  var openRows = {};
+
+  host.innerHTML =
+    '<div class="min-h-[220px] w-full max-w-80 pb-1">'
+    + '<button type="button" id="tc-header" aria-expanded="true" class="-mx-1.5 flex w-fit items-center gap-1.5 rounded-control px-1.5 py-1 text-[12.5px] text-ink-2 transition-colors duration-100 hover:bg-hover-2">'
+    +   '<svg id="tc-hchev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200" style="transform:rotate(0deg)"><path d="M6 9l6 6 6-6" /></svg>'
+    +   '<span class="tabular-nums">' + TC_COPY.header + '</span>'
+    + '</button>'
+    /* collapsed run header 控制的行区域：grid-rows 1fr/0fr + opacity */
+    + '<div id="tc-expand" class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:1fr;opacity:1">'
+    +   '<div class="-mx-1 overflow-hidden px-1.5 pb-1">'
+    +     '<div id="tc-rows" class="mt-1.5 flex flex-col gap-1"></div>'
+    +     '<div id="tc-chips"></div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+
+  var rowsEl = document.getElementById('tc-rows');
+  var chipsEl = document.getElementById('tc-chips');
+  var expandEl = document.getElementById('tc-expand');
+  var chevEl = document.getElementById('tc-hchev');
+
+  /* body portal —— 上游 createPortal(..., document.body)。
+     fixed 定位浮层挂在 body 下，不受外层 transform/动画影响。 */
+  var portal = document.createElement('div');
+  portal.id = 'tc-portal';
+  document.body.appendChild(portal);
+
+  function rowHtml(row, idx) {
+    var fill = row.icon === 'think' ? 'currentColor' : 'none';
+    var iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" class="transition-opacity duration-100 group-hover/row:opacity-0">' + TC_ICONS[row.icon] + '</svg>';
+    var chevSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="absolute transition-[opacity,transform] duration-150 group-hover/row:opacity-100 opacity-0" style="transform:rotate(-90deg)"><path d="M6 9l6 6 6-6" /></svg>';
+    var lines = row.detail.map(function (l) {
+      return '<span class="truncate text-[11.5px] leading-[1.6] '
+        + (row.detailMono ? 'font-mono ' : '')
+        + (l.tone === 'add' ? 'text-green' : 'text-ink-2') + '">'
+        + l.text + '</span>';
+    }).join('');
+    return '<div data-row="' + idx + '" style="animation:fade-up 300ms cubic-bezier(0.23,1,0.32,1) both">'
+      + '<button type="button" aria-expanded="false" class="group/row -mx-[3px] flex h-7 w-[calc(100%_+_6px)] min-w-0 items-center gap-2 rounded-control px-[3px] text-left transition-colors duration-100 hover:bg-hover-2">'
+      +   '<span class="relative flex size-4 shrink-0 items-center justify-center text-ink-3">'
+      +     iconSvg + chevSvg
+      +   '</span>'
+      +   '<span class="shrink-0 text-[12.5px] font-medium text-ink">' + row.label + '</span>'
+      +   '<span class="inline-flex h-5.5 min-w-0 flex-1 cursor-pointer items-center truncate rounded-chip bg-field px-1.5 text-[11.5px] text-ink-2 shadow-hairline transition-colors duration-100 hover:bg-hover-2 '
+      +     (row.mono ? 'font-mono' : '') + '">' + row.chip + '</span>'
+      + '</button>'
+      + '<div class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+      +   '<div class="min-h-0 overflow-hidden">'
+      +     '<div class="mt-0.5 mb-1 ml-2 flex flex-col gap-0.5 border-l border-line py-0.5 pl-3.5">' + lines + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function addRow(idx) {
+    var wrap = document.createElement('div');
+    wrap.innerHTML = rowHtml(TC_STEPS[idx], idx);
+    var node = wrap.firstChild;
+    rowsEl.appendChild(node);
+    var btn = node.querySelector('button');
+    btn.addEventListener('click', function () { toggleRow(idx, node); });
+  }
+
+  function toggleRow(idx, node) {
+    var on = !openRows[idx];
+    openRows[idx] = on;
+    var btn = node.querySelector('button');
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var detail = node.lastElementChild;
+    detail.style.gridTemplateRows = on ? '1fr' : '0fr';
+    detail.style.opacity = on ? '1' : '0';
+    var iconSvg = node.querySelector('button > span > svg:first-child');
+    var chevSvg = node.querySelector('button > span > svg:last-child');
+    iconSvg.classList.toggle('opacity-0', on);
+    chevSvg.classList.toggle('opacity-0', !on);
+    chevSvg.classList.toggle('opacity-100', on);
+    chevSvg.style.transform = on ? 'rotate(0deg)' : 'rotate(-90deg)';
+  }
+
+  function chipsHtml() {
+    var out = '<div class="mt-2.5 flex max-w-full flex-wrap gap-1.5 border-t border-line pt-2.5">';
+    TC_DIFFS.forEach(function (d, i) {
+      out += '<span class="relative" data-diffchip data-file="' + d.file + '">'
+        + '<button type="button" aria-expanded="false" aria-label="Show diff for ' + d.file + '" class="inline-flex h-7 max-w-full items-center gap-2 rounded-chip bg-surface px-2 font-mono text-[11.5px] text-ink shadow-btn transition-colors duration-100 hover:bg-hover" style="animation:pop-in 250ms cubic-bezier(0.23,1,0.32,1) ' + (i * 80) + 'ms both">'
+        +   '<span class="min-w-0 truncate">' + d.file + '</span>'
+        +   '<span class="shrink-0 text-green tabular-nums">+' + d.add + '</span>'
+        +   (d.del > 0 ? '<span class="shrink-0 text-red tabular-nums">−' + d.del + '</span>' : '')
+        + '</button>'
+        + '</span>';
+    });
+    out += '<button type="button" class="inline-flex h-7 items-center rounded-chip px-1.5 font-mono text-[11.5px] text-ink-3 underline decoration-transparent underline-offset-2 transition-colors duration-100 hover:text-ink-2 hover:decoration-current" style="animation:fade-in 300ms ease-out ' + (TC_DIFFS.length * 80) + 'ms both">' + TC_COPY.more + '</button>';
+    out += '</div>';
+    return out;
+  }
+
+  function findDiff(file) {
+    for (var i = 0; i < TC_DIFFS.length; i++) if (TC_DIFFS[i].file === file) return TC_DIFFS[i];
+    return { add: 0, del: 0 };
+  }
+
+  var currentPreview = null;
+
+  function renderPreview(file, x, pos, fitsBelow) {
+    var d = findDiff(file);
+    var lines = TC_DIFF_LINES[file] || [];
+    var stat = '<span class="text-green">+' + d.add + '</span>'
+      + (d.del > 0 ? '<span class="text-red"> −' + d.del + '</span>' : '');
+    var body = lines.map(function (line) {
+      var tone = line.tone === 'add' ? 'bg-green-tint text-green'
+        : line.tone === 'del' ? 'bg-red-tint text-red' : 'text-ink-2';
+      var sign = line.tone === 'add' ? '+' : line.tone === 'del' ? '−' : ' ';
+      return '<div class="flex gap-2 px-2.5 whitespace-pre ' + tone + '">'
+        + '<span class="w-3 shrink-0 select-none">' + sign + '</span>'
+        + '<span class="min-w-0 truncate">' + line.text + '</span>'
+        + '</div>';
+    }).join('');
+    portal.innerHTML =
+      '<div class="fixed z-50 w-72 overflow-hidden rounded-[10px] bg-surface shadow-overlay" style="'
+      + 'left:' + x + 'px;'
+      + (fitsBelow ? 'top:' + pos + 'px;' : 'bottom:' + pos + 'px;')
+      + 'animation:pop-in 160ms cubic-bezier(0.23,1,0.32,1) both;'
+      + 'transform-origin:' + (fitsBelow ? 'top left' : 'bottom left') + '">'
+      +   '<div class="flex items-center justify-between border-b border-line px-2.5 py-1.5 font-mono text-[11px]">'
+      +     '<span class="min-w-0 truncate text-ink-2">' + file + '</span>'
+      +     '<span class="shrink-0 tabular-nums">' + stat + '</span>'
+      +   '</div>'
+      +   '<div class="py-1 font-mono text-[11px] leading-[1.8]">' + body + '</div>'
+      + '</div>';
+  }
+
+  function openPreview(file, currentTarget) {
+    var chip = currentTarget.closest('[data-diffchip]');
+    if (!chip) return;
+    var rect = chip.getBoundingClientRect();
+    var lines = TC_DIFF_LINES[file] || [];
+    var previewHeight = 38 + lines.length * 19;
+    var fitsBelow = rect.bottom + 6 + previewHeight <= window.innerHeight - 12;
+    var x = Math.max(12, Math.min(rect.left, window.innerWidth - 300));
+    var pos = fitsBelow ? rect.bottom + 6 : window.innerHeight - rect.top + 6;
+    currentPreview = file;
+    var btn = chip.querySelector('button');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    renderPreview(file, x, pos, fitsBelow);
+  }
+
+  function closePreview(file) {
+    if (currentPreview === file) {
+      currentPreview = null;
+      portal.innerHTML = '';
+    }
+    var chip = chipsEl.querySelector('[data-diffchip][data-file="' + file + '"]');
+    if (chip) {
+      var btn = chip.querySelector('button');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function showChips() {
+    chipsEl.innerHTML = chipsHtml();
+    var wrappers = chipsEl.querySelectorAll('[data-diffchip]');
+    for (var i = 0; i < wrappers.length; i++) {
+      (function (wrap) {
+        var file = wrap.getAttribute('data-file');
+        var btn = wrap.querySelector('button');
+        wrap.addEventListener('mouseenter', function () { openPreview(file, wrap); });
+        wrap.addEventListener('mouseleave', function () { closePreview(file); });
+        btn.addEventListener('focus', function () { openPreview(file, wrap); });
+        btn.addEventListener('blur', function () { closePreview(file); });
+      })(wrappers[i]);
+    }
+  }
+
+  function tick() {
+    if (step >= total) return;
+    setTimeout(function () {
+      step += 1;
+      if (step <= TC_STEPS.length) addRow(step - 1);
+      if (step >= total) showChips();
+      tick();
+    }, TC_STEP_MS);
+  }
+
+  document.getElementById('tc-header').addEventListener('click', function () {
+    open = !open;
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    expandEl.style.gridTemplateRows = open ? '1fr' : '0fr';
+    expandEl.style.opacity = open ? '1' : '0';
+    chevEl.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
+  });
+
+  tick();
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

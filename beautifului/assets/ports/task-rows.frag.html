@@ -1,0 +1,296 @@
+<!-- title: Task Rows -->
+<!--@classes:
+  flex w-full max-w-110 flex-col
+  gap-0 self-start overflow-hidden rounded-card bg-surface shadow-card
+  min-h-[196px] gap-2
+  self-stretch overflow-hidden transition-[border-radius,background-color] duration-300 hover:bg-inset
+  border-b border-line last:border-0 bg-surface shadow-card
+  flex h-11 w-full items-center gap-2.5 px-2.5 text-left
+  flex size-6 shrink-0 items-center justify-center
+  min-w-0 flex-1 truncate text-[13px] font-medium text-ink
+  text-[12.5px] text-ink-2 tabular-nums
+  -ml-2 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3
+  transition-transform duration-300
+  grid transition-[grid-template-rows,opacity] duration-300 overflow-hidden
+  mb-2.5 grid grid-cols-[24px_1fr] gap-2.5 px-2.5
+  mx-auto h-full w-px bg-line flex flex-col gap-1.5
+  flex items-center justify-between
+  text-[12px] text-ink-2
+  font-mono text-[11.5px] text-ink-3 tabular-nums
+  inline-flex h-5.5 items-center rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green
+  inline-flex h-5.5 items-center gap-1.5 rounded-full bg-red-tint px-2 text-[11.5px] font-medium text-red
+  flex size-5.5 shrink-0 items-center justify-center rounded-full text-white bg-red bg-green
+  relative inline-flex shrink-0 items-center justify-center absolute inset-0 flex
+  relative text-[10.5px] font-semibold tabular-nums text-ink
+-->
+<!-- 来源：components/primitives/TaskRows.tsx（上游 MIT）
+     变体：Capsules（独立圆角卡）/ List（单卡 + 分隔线）
+     保真：TICKS=[600,900,2400,1400,2400,600] 逐字照搬，驱动 6 拍状态机 ——
+           rows 80ms 错峰入场（fade-up 450ms）、row1 ring 扫过、row1 展开、
+           row1 收起 + row2 翻 Failed（红底 + 旋转 retry 图标）、row2 收敛 Completed。
+           row2 = tick<3 ? pending : tick===3 ? failed : done。
+           SpinnerRing：size24/stroke2，r=11，c=2πr，活动弧 dasharray=`${c*0.28} ${c*0.72}`，
+           活动时 svg 走 spin 1.1s linear infinite（数值按上游算式实时求，未取整）。
+           展开默认值 open = manualOpen[key] ?? (key==='index' && tick===2)；点击后由
+           manualOpen 接管。展开区的每条 detail 在「开」时按 120+j*100ms 错峰 fade-up。
+           Badge pop-in 300ms、Failed/Completed 药丸 fade-in 200ms 均照搬。
+     细节：为忠实还原 DOM，状态药丸是「有则插入、无则移除」（而非占位空 span），
+           否则会多出一个 gap-2.5 的间隙；spinner 只在签名变化时重绘，避免每拍重启旋转。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>任务行</strong> — 一次 Agent 运行的任务列表，带状态机演示：三行 80ms 错峰入场，
+    第一行先转环再展开明细，随后收起、第二行翻成 <em>Failed</em>（红色 + 旋转重试图标），
+    最后收敛为 <em>Completed</em>。每行都可点击展开/收起明细（<code>Chevron</code> 翻转）。
+    变体 <code>Capsules</code> 是独立圆角卡，<code>List</code> 是单卡加分隔线。
+  </p>
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Capsules" aria-pressed="true">Capsules</button>
+    <button type="button" class="port-variant-btn" data-variant="List" aria-pressed="false">List</button>
+  </div>
+  <div id="task-rows-host"></div>
+</div>
+
+<script>
+/* ── 上游常量 1:1 ──────────────────────────────────────────── */
+var TR_TICKS = [600, 900, 2400, 1400, 2400, 600];
+
+var TR_ROWS = [
+  { key: 'verify', label: 'Verified vendor records', amount: '12 suppliers', status: 'done',
+    details: [
+      { label: 'Matched tax and contact IDs', meta: '12/12' },
+      { label: 'Flagged stale records', meta: '0' }
+    ] },
+  { key: 'index', label: 'Build reorder task list', amount: '7 SKUs', status: 'running', step: 2,
+    details: [
+      { label: 'Reading POS export', meta: '3 files' },
+      { label: 'Scoring stockout risk', meta: '68%' }
+    ] },
+  { key: 'draft', label: 'Draft supplier emails', amount: '2 messages', status: 'sequence', step: 3,
+    details: [
+      { label: 'Cone supplier follow-up', meta: 'draft' },
+      { label: 'Pistachio reorder note', meta: 'draft' }
+    ] }
+];
+
+var TR_COPY = { completed: 'Completed', failed: 'Failed' };
+
+var TR_X = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>';
+var TR_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>';
+var TR_RETRY = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></svg>';
+
+(function () {
+  var host = document.getElementById('task-rows-host');
+
+  var tick = 0;
+  var manualOpen = {};
+  var isList = false;
+
+  function row2() { return tick < 3 ? 'pending' : tick === 3 ? 'failed' : 'done'; }
+
+  /* SpinnerRing：size=24, stroke=2, r=11, c=2πr（数值按上游算式，不取整） */
+  function spinnerRing(active, step) {
+    var size = 24, stroke = 2;
+    var r = (size - stroke) / 2;
+    var c = 2 * Math.PI * r;
+    var dash = (c * 0.28) + ' ' + (c * 0.72);
+    var svg = '<svg width="24" height="24" class="absolute inset-0"'
+      + (active ? ' style="animation:spin 1.1s linear infinite"' : '') + '>'
+      + '<circle cx="12" cy="12" r="11" fill="none" stroke="var(--line)" stroke-width="2" />'
+      + (active
+        ? '<circle cx="12" cy="12" r="11" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" stroke-dasharray="' + dash + '" />'
+        : '')
+      + '</svg>';
+    var label = (step === undefined || step === null) ? '' : String(step);
+    return '<span class="relative inline-flex shrink-0 items-center justify-center" style="width:24px;height:24px">'
+      + svg
+      + '<span class="relative text-[10.5px] font-semibold tabular-nums text-ink">' + label + '</span>'
+      + '</span>';
+  }
+
+  function badgeHtml(tone, inner) {
+    return '<span class="flex size-5.5 shrink-0 items-center justify-center rounded-full text-white '
+      + (tone === 'red' ? 'bg-red' : 'bg-green') + '" style="animation:pop-in 300ms cubic-bezier(0.23,1,0.32,1) both">'
+      + inner + '</span>';
+  }
+
+  function badgeFor(row) {
+    if (row.status === 'done') return badgeHtml('green', TR_CHECK);
+    if (row.status === 'running') return spinnerRing(true, row.step);
+    var r2 = row2();
+    if (r2 === 'pending') return spinnerRing(false, row.step);
+    if (r2 === 'failed') return badgeHtml('red', TR_X);
+    return badgeHtml('green', TR_CHECK);
+  }
+  function badgeSig(row) {
+    if (row.status === 'done') return 'done';
+    if (row.status === 'running') return 'running';
+    return 'seq:' + row2();
+  }
+
+  function pillFor(row) {
+    if (row.status === 'done') {
+      return '<span class="inline-flex h-5.5 items-center rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green">' + TR_COPY.completed + '</span>';
+    }
+    if (row.status === 'running') return null;
+    var r2 = row2();
+    if (r2 === 'failed') {
+      return '<span data-pill class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-red-tint px-2 text-[11.5px] font-medium text-red" style="animation:fade-in 200ms ease-out both">'
+        + TR_COPY.failed + ' <span style="animation:spin 1.2s linear infinite" class="flex">' + TR_RETRY + '</span></span>';
+    }
+    if (r2 === 'done') {
+      return '<span data-pill class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-green-tint px-2 text-[11.5px] font-medium text-green" style="animation:fade-in 200ms ease-out both">'
+        + TR_COPY.completed + '</span>';
+    }
+    return null;
+  }
+  function pillSig(row) {
+    if (row.status === 'done') return 'completed';
+    if (row.status === 'running') return null;
+    var r2 = row2();
+    return r2 === 'failed' ? 'failed' : r2 === 'done' ? 'completed' : null;
+  }
+
+  function rowHtml(row, i) {
+    var detailLines = row.details.map(function (d) {
+      return '<div data-dline class="flex items-center justify-between">'
+        + '<span class="text-[12px] text-ink-2">' + d.label + '</span>'
+        + '<span class="font-mono text-[11.5px] text-ink-3 tabular-nums">' + d.meta + '</span>'
+        + '</div>';
+    }).join('');
+    return '<div data-row="' + row.key + '" class="self-stretch overflow-hidden transition-[border-radius,background-color] duration-300 hover:bg-inset" style="border-radius:22px;animation:fade-up 450ms cubic-bezier(0.23,1,0.32,1) ' + (i * 80) + 'ms both">'
+      + '<button type="button" data-toggle aria-expanded="false" class="flex h-11 w-full items-center gap-2.5 px-2.5 text-left">'
+      +   '<span data-badge class="flex size-6 shrink-0 items-center justify-center"></span>'
+      +   '<span class="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">' + row.label + '</span>'
+      +   '<span class="text-[12.5px] text-ink-2 tabular-nums">' + row.amount + '</span>'
+      +   '<span data-chev class="-ml-2 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3">'
+      +     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="transform:rotate(0)"><path d="M6 9l6 6 6-6" /></svg>'
+      +   '</span>'
+      + '</button>'
+      + '<div data-detail class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+      +   '<div class="overflow-hidden">'
+      +     '<div class="mb-2.5 grid grid-cols-[24px_1fr] gap-2.5 px-2.5">'
+      +       '<span aria-hidden class="mx-auto h-full w-px bg-line"></span>'
+      +       '<div class="flex flex-col gap-1.5">' + detailLines + '</div>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  var container = document.createElement('div');
+  container.id = 'tr-container';
+  container.innerHTML = TR_ROWS.map(rowHtml).join('');
+  host.appendChild(container);
+
+  /* 每行的 DOM 引用 + 上一次签名，避免无谓重绘（spinner 不重启） */
+  var meta = {};
+  TR_ROWS.forEach(function (row) {
+    var el = container.querySelector('[data-row="' + row.key + '"]');
+    meta[row.key] = {
+      row: row,
+      el: el,
+      button: el.querySelector('[data-toggle]'),
+      badge: el.querySelector('[data-badge]'),
+      chev: el.querySelector('[data-chev]'),
+      detail: el.querySelector('[data-detail]'),
+      dlines: el.querySelectorAll('[data-dline]'),
+      badgeSig: null,
+      pillSig: undefined,
+      open: null
+    };
+  });
+
+  function isOpenFor(m, currentTick) {
+    if (Object.prototype.hasOwnProperty.call(manualOpen, m.row.key)) return manualOpen[m.row.key];
+    return m.row.key === 'index' && currentTick === 2;
+  }
+
+  function applyBadgePill(m) {
+    var bs = badgeSig(m.row);
+    if (bs !== m.badgeSig) { m.badge.innerHTML = badgeFor(m.row); m.badgeSig = bs; }
+    var ps = pillSig(m.row);
+    if (ps !== m.pillSig) {
+      var old = m.el.querySelector('[data-pill]');
+      if (old) old.remove();
+      if (ps !== null) {
+        var html = pillFor(m.row);
+        if (html) {
+          var tmp = document.createElement('span');
+          tmp.innerHTML = html;
+          m.el.querySelector('button').insertBefore(tmp.firstChild, m.chev);
+        }
+      }
+      m.pillSig = ps;
+    }
+  }
+
+  function applyOpen(m, open) {
+    m.el.style.borderRadius = isList ? '0px' : (open ? '14px' : '22px');
+    m.el.querySelector('button').setAttribute('aria-expanded', open ? 'true' : 'false');
+    m.chev.querySelector('svg').style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
+    m.detail.style.gridTemplateRows = open ? '1fr' : '0fr';
+    m.detail.style.opacity = open ? '1' : '0';
+    var j;
+    if (open && m.open !== true) {
+      for (j = 0; j < m.dlines.length; j++) {
+        m.dlines[j].style.animation = 'fade-up 300ms cubic-bezier(0.23,1,0.32,1) ' + (120 + j * 100) + 'ms both';
+      }
+    } else if (!open) {
+      for (j = 0; j < m.dlines.length; j++) m.dlines[j].style.animation = '';
+    }
+    m.open = open;
+  }
+
+  function sync() {
+    TR_ROWS.forEach(function (row) {
+      var m = meta[row.key];
+      applyBadgePill(m);
+      applyOpen(m, isOpenFor(m, tick));
+    });
+  }
+
+  function applyVariant() {
+    container.className = 'flex w-full max-w-110 flex-col ' + (isList ? 'gap-0 self-start overflow-hidden rounded-card bg-surface shadow-card' : 'min-h-[196px] gap-2');
+    TR_ROWS.forEach(function (row) {
+      var el = meta[row.key].el;
+      el.classList.toggle('border-b', isList);
+      el.classList.toggle('border-line', isList);
+      el.classList.toggle('last:border-0', isList);
+      el.classList.toggle('bg-surface', !isList);
+      el.classList.toggle('shadow-card', !isList);
+    });
+  }
+
+  TR_ROWS.forEach(function (row) {
+    meta[row.key].button.addEventListener('click', function () {
+      var m = meta[row.key];
+      manualOpen[row.key] = !isOpenFor(m, tick);
+      sync();
+    });
+  });
+
+  function runTicks() {
+    if (tick >= TR_TICKS.length - 1) return;
+    setTimeout(function () {
+      tick += 1;
+      sync();
+      runTicks();
+    }, TR_TICKS[tick]);
+  }
+
+  var btns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      for (var j = 0; j < btns.length; j++) btns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      isList = this.getAttribute('data-variant') === 'List';
+      applyVariant();
+      sync();
+    });
+  }
+
+  applyVariant();
+  sync();
+  runTicks();
+})();
+</script>

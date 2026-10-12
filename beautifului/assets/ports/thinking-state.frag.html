@@ -1,0 +1,302 @@
+<!-- title: Thinking -->
+<!--@classes: bg-accent bg-orange bg-green whitespace-normal leading-relaxed text-ink-2 font-medium text-ink animated-underline font-mono bg-inset hover:bg-hover-->
+<!-- 来源：components/primitives/ThinkingState.tsx（上游 MIT）
+     变体：Steps / Reasoning / Search / Coding（画廊里以标签切换，此处带上 port-variants 切换条）。
+     保真：STAGES = [800, 600, 1800, 2600, 1600] 逐字照搬；working = stage<3；
+           autoExpanded = 1<=stage<4；visible = stage<2 ? 0 : stage===2 ? min(2,rows) : rows；
+           行入场 fade-up 320ms cubic-bezier(0.23,1,0.32,1) + i*120ms 逐条错开；
+           竖线高度按 trace 实测高度（offsetHeight）动画到 -2px，与上游 useLayoutEffect 一致。
+     降级：无。行节点采用「只追加不重建」策略，复现 React key 复用后旧行动画不重播的行为。
+     演示取舍：上游跑一遍即停，移植件把它循环重放（便于直接观看）；首屏从 stage 2 起步，
+           避开 0~1.4s「轨迹已展开但还没有行」的空窗期。时序常量本身未做任何压缩。
+     markup 与上游逐类对齐：border-[1.5px] 与 duration-100/300/400 都用上游原类名
+           （twsubset 现已把任意边框宽度编译成 border-width，并按 transition-* → duration-* 的顺序
+           输出，故不需要内联兜底）。
+     @classes 里声明的是 JS 三元/变量产生的分支类（TONES 三色、primary 文本样式、row.mono、
+     选中态 bg-inset / hover:bg-hover），它们不出现在静态 class 属性里，必须显式声明。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>思考轨迹</strong> — 可展开的 Agent 推理 trace，四个变体：
+    <code>Steps</code> 步骤清单（旋转指示器 → 灰勾）、<code>Reasoning</code> 散文式推理、
+    <code>Search</code> 检索轨迹（查询词 + 来源链接）、<code>Coding</code> 工具轨迹（读文件 / 改文件 / 跑命令）。
+    轨迹跑完一次后停在已完成态，仍可手动展开/折叠。
+  </p>
+
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Steps" aria-pressed="true">Steps</button>
+    <button type="button" class="port-variant-btn" data-variant="Reasoning" aria-pressed="false">Reasoning</button>
+    <button type="button" class="port-variant-btn" data-variant="Search" aria-pressed="false">Search</button>
+    <button type="button" class="port-variant-btn" data-variant="Coding" aria-pressed="false">Coding</button>
+  </div>
+
+  <div id="think-host" class="w-[380px] max-w-full"></div>
+</div>
+
+<script>
+(function () {
+  /* ── 时序常量：逐字照搬上游 ────────────────────────────────────
+   * const STAGES = [800, 600, 1800, 2600, 1600];
+   * 累进：stage0→1 @800ms，1→2 @1400ms，2→3 @3200ms，3→4 @5800ms。
+   * useSequence 在 stage >= steps.length-1 时停止，所以尾项 1600ms 不参与（与上游一致）。
+   * ──────────────────────────────────────────────────────────── */
+  var STAGES = [800, 600, 1800, 2600, 1600];
+
+  var VARIANTS = {
+    Steps: {
+      active: 'Thinking',
+      done: 'Thought for 4 seconds',
+      rows: [
+        { primary: 'Reading flavor briefs' },
+        { primary: 'Scanning supplier lists' },
+        { primary: 'Comparing tasting notes', secondary: '6 flavors' },
+        { primary: 'Writing the scoop report' }
+      ]
+    },
+    Reasoning: {
+      active: 'Thinking',
+      done: 'Thought for 4 seconds',
+      rows: [
+        { primary: 'Summer demand spikes for stone-fruit flavors — peach and apricot lead.' },
+        { primary: 'I should check cone inventory before promoting a waffle-bowl special.' }
+      ]
+    },
+    Search: {
+      active: 'Searching the web',
+      done: 'Searched the web',
+      query: 'best waffle cone supplier',
+      rows: [
+        { primary: 'Joy Cone', secondary: 'joycone.com', href: 'https://joycone.com/fs_products/waffle-cones/' },
+        { primary: 'WebstaurantStore', secondary: 'webstaurantstore.com', href: 'https://www.webstaurantstore.com/ice-cream-shop-supplies.html' },
+        { primary: 'The Konery', secondary: 'thekonery.com', href: 'https://www.thekonery.com/' }
+      ]
+    },
+    Coding: {
+      active: 'Running tools',
+      done: 'Ran 3 tools',
+      rows: [
+        { primary: 'Read', secondary: 'flavors.ts', mono: true },
+        { primary: 'Edit', secondary: 'ChurnSchedule.tsx', mono: true, add: 74, del: 41 },
+        { primary: 'Run', secondary: 'npm run freeze', mono: true }
+      ]
+    }
+  };
+
+  /* Dot 的三色轮转（上游 const TONES = ["bg-accent","bg-orange","bg-green"]） */
+  var TONES = ['bg-accent', 'bg-orange', 'bg-green'];
+
+  var CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M20 6L9 17l-5-5"/></svg>';
+  var SEARCH_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" class="shrink-0"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+  var SPINNER_SPAN = '<span class="size-3 shrink-0 rounded-full border-[1.5px] border-line-strong border-t-ink-2" style="animation:spin 700ms linear infinite"></span>';
+  var DOT_SVG = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M3.5 12h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>';
+  var CHEVRON_SVG_START = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="transform:rotate(';
+  var CHEVRON_SVG_END = 'deg)"><path d="M6 9l6 6 6-6"/></svg>';
+
+  var host = document.getElementById('think-host');
+  var state = { variant: 'Steps', stage: 0, manualExpanded: null, selectedTool: null, lineHeight: 0 };
+  var timers = [];
+  var els = null;
+
+  function clearTimers() {
+    for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+    timers = [];
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ── 外壳（只在切换变体时重建，行容器内只追加，见 sync） ────────── */
+  function buildShell() {
+    host.innerHTML =
+      '<div class="flex w-full max-w-95 flex-col" data-root style="transition:min-height 400ms cubic-bezier(0.23,1,0.32,1)">'
+      +   '<button type="button" data-header class="-mx-1.5 flex w-fit items-center gap-2 rounded-control px-1.5 py-1 transition-colors duration-100 hover:bg-hover-2">'
+      +     '<span data-sparkle></span>'
+      +     '<span role="status" class="contents" data-label></span>'
+      +     '<span data-chevron></span>'
+      +   '</button>'
+      +   '<div class="grid transition-[grid-template-rows,opacity] duration-400" data-grid style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +     '<div class="overflow-hidden">'
+      +       '<div class="relative mt-1 ml-[5px] pl-4">'
+      +         '<span aria-hidden class="absolute left-[3px] w-px bg-line" data-line style="top:-8px;height:0;transition:height 500ms cubic-bezier(0.23,1,0.32,1)"></span>'
+      +         '<div class="flex flex-col gap-1 py-1" data-trace></div>'
+      +       '</div>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>';
+    els = {
+      root: host.querySelector('[data-root]'),
+      header: host.querySelector('[data-header]'),
+      sparkle: host.querySelector('[data-sparkle]'),
+      label: host.querySelector('[data-label]'),
+      chevron: host.querySelector('[data-chevron]'),
+      grid: host.querySelector('[data-grid]'),
+      line: host.querySelector('[data-line]'),
+      trace: host.querySelector('[data-trace]')
+    };
+    els.header.addEventListener('click', function () {
+      var auto = state.stage >= 1 && state.stage < 4;
+      state.manualExpanded = !(state.manualExpanded === null ? auto : state.manualExpanded);
+      sync();
+    });
+    els.trace.addEventListener('click', function (event) {
+      var btn = event.target.closest('[data-tool]');
+      if (!btn) return;
+      var name = btn.getAttribute('data-tool');
+      state.selectedTool = state.selectedTool === name ? null : name;
+      sync();
+    });
+  }
+
+  /* ── 行内容（与上游 JSX 的 content 片段一一对应） ─────────────── */
+  function rowInner(variant, row, i, visible, working) {
+    var s = '';
+    if (variant === 'Search') {
+      s += '<span class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-white ' + TONES[i % 3] + '">' + DOT_SVG + '</span>';
+    }
+    if (variant === 'Steps') {
+      s += (i < visible - 1 || !working) ? CHECK_SVG : SPINNER_SPAN;
+    }
+    /* Reasoning 用散文排版，Search 的标题带下划线动效，其余是常规 list 文本 */
+    var primaryCls = variant === 'Reasoning'
+      ? 'whitespace-normal leading-relaxed text-ink-2'
+      : 'font-medium text-ink';
+    var underline = variant === 'Search' ? ' animated-underline' : '';
+    s += '<span class="min-w-0 truncate text-[12.5px] ' + primaryCls + underline + '">' + esc(row.primary) + '</span>';
+    if (row.secondary) {
+      s += '<span class="shrink-0 text-[11.5px] text-ink-3' + (row.mono ? ' font-mono' : '') + '">' + esc(row.secondary) + '</span>';
+    }
+    if (row.add !== undefined) {
+      s += '<span class="shrink-0 font-mono text-[11px] tabular-nums">'
+        + '<span class="text-green">+' + row.add + '</span> '
+        + '<span class="text-red">−' + row.del + '</span></span>';
+    }
+    return s;
+  }
+
+  /* 行元素：用 innerHTML 模板构造，好让行上的类名出现在 `class="..."` 字面量里
+   * （组装脚本只从 class="..." 收集类名；用 el.className = '...' 赋值的类会被静默丢弃）。 */
+  function rowEl(variant, row, i, visible, working) {
+    var anim = 'animation:fade-up 320ms cubic-bezier(0.23,1,0.32,1) ' + (i * 120) + 'ms both';
+    var inner = rowInner(variant, row, i, visible, working);
+    var wrap = document.createElement('div');
+
+    if (variant === 'Search') {
+      wrap.innerHTML = '<a href="' + row.href + '" target="_blank" rel="noreferrer" class="flex min-h-7 w-full items-center gap-2 rounded-[6px] px-1.5 py-0.5 text-left transition-colors duration-150 hover:bg-hover" style="' + anim + '">' + inner + '</a>';
+    } else if (variant === 'Coding') {
+      var picked = state.selectedTool === row.primary;
+      wrap.innerHTML = '<button type="button" aria-pressed="' + (picked ? 'true' : 'false') + '" data-tool="' + esc(row.primary) + '" class="flex min-h-7 w-full items-center gap-2 rounded-[6px] px-1.5 py-0.5 text-left transition-colors duration-150 ' + (picked ? 'bg-inset' : 'hover:bg-hover') + '" style="' + anim + '">' + inner + '</button>';
+    } else {
+      wrap.innerHTML = '<div class="flex min-h-7 w-full items-center gap-2 rounded-[6px] px-1.5 py-0.5 text-left" style="' + anim + '">' + inner + '</div>';
+    }
+    return wrap.firstChild;
+  }
+
+  /* ── 主渲染：更新外壳状态 + 只追加缺失的行 ─────────────────── */
+  function sync() {
+    var v = VARIANTS[state.variant];
+    var stage = state.stage;
+    var autoExpanded = stage >= 1 && stage < 4;
+    var expanded = state.manualExpanded === null ? autoExpanded : state.manualExpanded;
+    var working = stage < 3;
+    var visible = stage < 2 ? 0 : (stage === 2 ? Math.min(2, v.rows.length) : v.rows.length);
+
+    /* 头部：图标填充色 + 状态文案 + chevron 旋转 */
+    els.sparkle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="'
+      + (working ? 'var(--ink-2)' : 'var(--ink-3)')
+      + '"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>';
+
+    var labelHTML = working
+      ? '<span class="bg-clip-text text-[13px] font-medium whitespace-nowrap text-transparent" style="background-image:linear-gradient(90deg, var(--ink-3) 35%, var(--ink) 50%, var(--ink-3) 65%);background-size:200% 100%;animation:shimmer-text 1.4s linear infinite">' + esc(v.active) + '</span>'
+      : '<span class="text-[13px] font-medium whitespace-nowrap text-ink-2" style="animation:fade-in 350ms ease-out both">' + esc(v.done) + '</span>';
+    if (els.label.__html !== labelHTML) {
+      els.label.innerHTML = labelHTML;
+      els.label.__html = labelHTML;
+    }
+    els.header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    els.chevron.innerHTML = CHEVRON_SVG_START + (expanded ? 180 : 0) + CHEVRON_SVG_END;
+
+    /* 根容器：working 或展开时给 176px 最小高度，带 400ms 强曲线过渡 */
+    els.root.style.minHeight = (working || expanded) ? '176px' : '';
+
+    /* 展开/收起：grid-template-rows 1fr/0fr + opacity */
+    els.grid.style.gridTemplateRows = expanded ? '1fr' : '0fr';
+    els.grid.style.opacity = expanded ? '1' : '0';
+
+    /* 行：只追加缺失的节点（避免重建导致旧行动画重播，对齐 React key 复用行为），
+     * 已存在的行就地更新会变的部分：Steps 的指示器（spinner↔勾）、Coding 的选中态。 */
+    var trace = els.trace;
+    for (var i = 0; i < visible; i++) {
+      var node = trace.children[i];
+      if (!node) {
+        node = rowEl(state.variant, v.rows[i], i, visible, working);
+        trace.appendChild(node);
+      } else if (state.variant === 'Steps') {
+        node.innerHTML = rowInner('Steps', v.rows[i], i, visible, working);
+      } else if (state.variant === 'Coding') {
+        var picked = state.selectedTool === v.rows[i].primary;
+        node.className = 'flex min-h-7 w-full items-center gap-2 rounded-[6px] px-1.5 py-0.5 text-left transition-colors duration-150 '
+          + (picked ? 'bg-inset' : 'hover:bg-hover');
+        node.setAttribute('aria-pressed', picked ? 'true' : 'false');
+      }
+    }
+    if (state.variant === 'Search') {
+      if (stage >= 3 && !trace.querySelector('[data-more]')) {
+        var more = document.createElement('span');
+        more.className = 'text-[12px] text-ink-3';
+        more.setAttribute('data-more', '');
+        more.setAttribute('style', 'animation:fade-in 300ms ease-out both');
+        more.textContent = '+7 more';
+        trace.appendChild(more);
+      }
+    }
+
+    /* 竖线高度 = trace 实测高度 - 2px（上游 useLayoutEffect + offsetHeight） */
+    state.lineHeight = trace.offsetHeight;
+    els.line.style.height = (state.lineHeight ? state.lineHeight - 2 : 0) + 'px';
+  }
+
+  function schedule(onSettled) {
+    if (state.stage >= STAGES.length - 1) {
+      if (onSettled) onSettled();
+      return;
+    }
+    var delay = STAGES[state.stage];
+    timers.push(setTimeout(function () {
+      state.stage += 1;
+      sync();
+      schedule(onSettled);
+    }, delay));
+  }
+
+  /* 演示循环：上游是「跑一遍即停」，单文件移植件在这里把它循环重放，方便直接观看。
+   * 时序本身（STAGES 与上面的 stage→状态映射）完全照搬，没有压缩。
+   * 唯一演示取舍：首屏从 stage 2 起步 —— 上游 0~1.4s 的 stage 0/1 阶段
+   * visible=0（轨迹展开但还没有行），首帧会显得空；从 stage 2 起步可直接看到
+   * 「行逐个出现」。之后每次重放与切换变体都从 stage 0 完整播放。 */
+  var HOLD_MS = 2400;
+
+  function play(startStage) {
+    clearTimers();
+    state.stage = startStage;
+    state.manualExpanded = null;
+    state.selectedTool = null;
+    buildShell();
+    sync();
+    schedule(function () {
+      timers.push(setTimeout(function () { play(0); }, HOLD_MS));
+    });
+  }
+
+  var btns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      for (var j = 0; j < btns.length; j++) btns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      state.variant = this.getAttribute('data-variant');
+      play(0);
+    });
+  }
+  play(2);
+})();
+</script>

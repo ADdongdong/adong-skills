@@ -1,0 +1,298 @@
+<!-- title: Diff Table -->
+<!--@classes:
+  w-full max-w-95
+  relative overflow-hidden rounded-card bg-surface shadow-card
+  primitive-card-bar flex items-center justify-between border-b border-line
+  text-[12.5px] font-medium text-ink text-[11px] text-ink-3
+  w-full table-fixed border-collapse text-left w-[34%] w-[30%] w-[36%]
+  border-b border-line primitive-table-cell text-[12px] font-medium text-ink-3
+  border-b border-line transition-[background-color,filter,opacity] duration-150 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent
+  cursor-pointer hover:brightness-[0.985]
+  primitive-table-cell text-[13px] font-medium tabular-nums transition-colors duration-200
+  primitive-table-cell
+  inline-flex h-5.5 items-center gap-1.5 rounded-full bg-inset px-2 text-[11.5px] font-medium shadow-hairline transition-opacity duration-200
+  size-1.5 rounded-full bg-accent bg-ink-3 bg-orange bg-green text-ink-2
+  primitive-table-cell text-[12.5px] whitespace-nowrap transition-colors duration-200
+  flex items-center justify-between gap-2 min-w-0 truncate
+  flex size-4.5 shrink-0 items-center justify-center rounded-[5px] transition-[background-color,color,transform] duration-150
+  bg-red text-white bg-green text-white bg-inset text-ink-3 shadow-hairline
+  p-0 grid transition-[grid-template-rows,opacity] duration-200 overflow-hidden
+  grid grid-cols-[34%_30%_36%] items-center border-t border-line transition-[background-color,filter,opacity] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent
+  primitive-table-cell text-[13px] transition-colors duration-200
+  inline-flex h-5.5 items-center gap-1.5 rounded-full bg-surface px-2 text-[11.5px] font-medium shadow-hairline
+  primitive-card-footer flex min-h-11 items-center justify-between border-t border-line
+  inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green
+  flex size-4.5 items-center justify-center rounded-full bg-green text-white
+  text-[11.5px] tabular-nums text-ink-3 flex items-center gap-1.5
+  inline-flex items-center justify-center font-medium select-none transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] h-[27px] px-3 text-[12px] leading-none rounded-full gap-1.5
+-->
+<!-- 来源：components/primitives/DiffTable.tsx（上游 MIT）
+     保真：getBoundingClientRect 无关；时序照搬 useStage(STAGE_DELAYS=[180,260]) ——
+           0 平铺 → 1 删除行着色 → 2 完整 diff（新增行入场 + 页脚）。
+           逐格 diff：删除行 hover:brightness-[0.985]、行底 var(--red-tint)、
+           flavor 变红、category 芯片 opacity 0.55、supplier 变红 + 删除线
+           （text-decoration-color: color-mix(red 50%)）；新增行 var(--green-tint) 与
+           对应绿色。行级 include/exclude 用 IncludedMark（scale 0.92↔1 + 勾选 svg），
+           键盘 Enter/Space 可切换。表脚 Apply 遵循选择计数；应用后整行替换为
+           pop-in 的绿色 "N edits applied" 药丸。
+     Button.tsx 内联：variant=accent / size=sm（+ className text-[12px]）。
+           cva 里 size sm 的 text-[13px] 会被 className 的 text-[12px] 覆盖
+           （上游 cn=twMerge，后者胜出），故这里只保留 text-[12px]，还原真实字号。
+     表格 DOM：<table>/<colgroup>/<thead>/<tbody>/<tr>/<td> 与 data-* 保持上游原样。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>表格 diff</strong> — AI 提议的表格数据增删：入场时分两步扫过，先给待删除行上红色
+    底、再补上新增行与页脚。每一处改动都是可点控件：点击行即可在「应用/跳过」间切换该条改动，
+    <code>Enter</code>/<code>Space</code> 同样有效。页脚实时汇总 <em>removals · additions</em>，
+    点 <code>Apply</code> 后整行替换为绿色的完成药丸。
+  </p>
+  <div id="diff-table-host"></div>
+</div>
+
+<script>
+/* ── 上游常量 1:1 ──────────────────────────────────────────── */
+var DT_STAGE_DELAYS = [180, 260];
+
+var DT_ROWS = [
+  { key: 'rocky', id: 'Rocky Road', dept: 'Classic', email: 'aurora-scoops', removed: true },
+  { key: 'bubblegum', id: 'Bubblegum', dept: 'Retro', email: 'kumo-creamery', removed: true },
+  { key: 'mint', id: 'Mint Chip', dept: 'Classic', email: 'maple-orbit', removed: false }
+];
+
+var DT_DOT = { Classic: 'bg-accent', Retro: 'bg-ink-3', Seasonal: 'bg-orange' };
+
+var DT_CHECK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>';
+
+/* Button（atoms/Button.tsx，cva 手动展开为 class 分支：variant=accent, size=sm + text-[12px]） */
+var DT_BTN = 'inline-flex items-center justify-center font-medium select-none transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] h-[27px] px-3 text-[12px] leading-none rounded-full gap-1.5';
+
+var DT_TR_BASE = 'border-b border-line transition-[background-color,filter,opacity] duration-150 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent';
+/* focus-visible:ring-inset 说明：twsubset 的 ring 分支不含 inset 语义，
+   会退化成一条 --tw-ring-color 规则；焦点环颜色在聚焦时才可见，不影响静态保真。 */
+
+(function () {
+  var host = document.getElementById('diff-table-host');
+
+  var stage = 0;
+  var accepted = false;
+  var edits = { rocky: true, bubblegum: true, pistachio: true };
+
+  function removedCount() { return (edits.rocky ? 1 : 0) + (edits.bubblegum ? 1 : 0); }
+  function addedCount() { return edits.pistachio ? 1 : 0; }
+
+  function markClass(included, tone) {
+    return 'flex size-4.5 shrink-0 items-center justify-center rounded-[5px] transition-[background-color,color,transform] duration-150 '
+      + (included ? (tone === 'red' ? 'bg-red text-white' : 'bg-green text-white') : 'bg-inset text-ink-3 shadow-hairline');
+  }
+  function markHtml(included, tone) {
+    return '<span aria-hidden class="' + markClass(included, tone) + '" style="transform:scale(' + (included ? 1 : 0.92) + ')">' + (included ? DT_CHECK : '') + '</span>';
+  }
+  function updateMark(el, included, tone) {
+    if (!el) return;
+    el.className = markClass(included, tone);
+    el.style.transform = 'scale(' + (included ? 1 : 0.92) + ')';
+    el.innerHTML = included ? DT_CHECK : '';
+  }
+
+  function rowHtml(r) {
+    return '<tr data-key="' + r.key + '" class="' + DT_TR_BASE + '">'
+      + '<td data-cell="id" class="primitive-table-cell text-[13px] font-medium tabular-nums transition-colors duration-200">' + r.id + '</td>'
+      + '<td class="primitive-table-cell">'
+      +   '<span data-cell="pill" class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-inset px-2 text-[11.5px] font-medium shadow-hairline transition-opacity duration-200">'
+      +     '<span class="size-1.5 rounded-full ' + DT_DOT[r.dept] + '"></span>'
+      +     '<span class="text-ink-2">' + r.dept + '</span>'
+      +   '</span>'
+      + '</td>'
+      + '<td data-cell="sup" class="primitive-table-cell text-[12.5px] whitespace-nowrap transition-colors duration-200">'
+      +   '<span class="flex items-center justify-between gap-2">'
+      +     '<span class="min-w-0 truncate">' + r.email + '</span>'
+      +     '<span data-cell="mark"></span>'
+      +   '</span>'
+      + '</td>'
+      + '</tr>';
+  }
+
+  var addedRowHtml =
+    '<tr>'
+    + '<td colspan="3" class="p-0">'
+    +   '<div data-added class="grid transition-[grid-template-rows,opacity] duration-200" style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+    +     '<div class="overflow-hidden">'
+    +       '<div data-pist role="checkbox" tabindex="0" aria-checked="true" aria-label="Include adding Pistachio" class="grid grid-cols-[34%_30%_36%] items-center border-t border-line transition-[background-color,filter,opacity] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent cursor-pointer hover:brightness-[0.985]" style="background:var(--green-tint)">'
+    +         '<span data-cell="pid" class="primitive-table-cell text-[13px] font-medium tabular-nums transition-colors duration-200" style="color:var(--green)">Pistachio</span>'
+    +         '<span class="primitive-table-cell">'
+    +           '<span class="inline-flex h-5.5 items-center gap-1.5 rounded-full bg-surface px-2 text-[11.5px] font-medium shadow-hairline">'
+    +             '<span class="size-1.5 rounded-full bg-green"></span>'
+    +             '<span class="text-ink-2">Seasonal</span>'
+    +           '</span>'
+    +         '</span>'
+    +         '<span data-cell="psup" class="primitive-table-cell text-[13px] transition-colors duration-200" style="color:var(--green)">'
+    +           '<span class="flex items-center justify-between gap-2">'
+    +             '<span class="min-w-0 truncate">maple-orbit</span>'
+    +             '<span data-cell="pmark"></span>'
+    +           '</span>'
+    +         '</span>'
+    +       '</div>'
+    +     '</div>'
+    +   '</div>'
+    + '</td>'
+    + '</tr>';
+
+  host.innerHTML =
+    '<div class="w-full max-w-95">'
+    + '<div data-card class="relative overflow-hidden rounded-card bg-surface shadow-card">'
+    +   '<div class="primitive-card-bar flex items-center justify-between border-b border-line">'
+    +     '<span class="text-[12.5px] font-medium text-ink">Proposed menu cleanup</span>'
+    +     '<span data-hint class="text-[11px] text-ink-3" style="display:none">Click changed rows to toggle</span>'
+    +   '</div>'
+    +   '<table class="w-full table-fixed border-collapse text-left">'
+    +     '<colgroup><col class="w-[34%]" /><col class="w-[30%]" /><col class="w-[36%]" /></colgroup>'
+    +     '<thead><tr class="border-b border-line">'
+    +       '<th class="primitive-table-cell text-[12px] font-medium text-ink-3">Flavor</th>'
+    +       '<th class="primitive-table-cell text-[12px] font-medium text-ink-3">Category</th>'
+    +       '<th class="primitive-table-cell text-[12px] font-medium text-ink-3">Supplier</th>'
+    +     '</tr></thead>'
+    +     '<tbody>' + DT_ROWS.map(rowHtml).join('') + addedRowHtml + '</tbody>'
+    +   '</table>'
+    + '</div>'
+    + '</div>';
+
+  function toggleEdit(key) { edits[key] = !edits[key]; sync(); }
+
+  function bindRow(tr, key) {
+    tr.onclick = function () { toggleEdit(key); };
+    tr.onkeydown = function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleEdit(key); }
+    };
+  }
+
+  function sync() {
+    var settled = stage >= 2;
+
+    DT_ROWS.forEach(function (r) {
+      var tr = host.querySelector('tr[data-key="' + r.key + '"]');
+      var out = r.removed && stage >= 1 && edits[r.key];
+      var interactive = r.removed && settled && !accepted;
+
+      tr.style.background = out ? 'var(--red-tint)' : '';
+      if (r.removed) tr.setAttribute('aria-selected', edits[r.key] ? 'true' : 'false');
+      else tr.removeAttribute('aria-selected');
+
+      tr.querySelector('[data-cell="id"]').style.color = out ? 'var(--red)' : 'var(--ink)';
+      tr.querySelector('[data-cell="pill"]').style.opacity = out ? '0.55' : '1';
+
+      var sup = tr.querySelector('[data-cell="sup"]');
+      sup.style.color = out ? 'var(--red)' : 'var(--ink-2)';
+      sup.style.textDecorationLine = out ? 'line-through' : 'none';
+      sup.style.textDecorationColor = 'color-mix(in srgb, var(--red) 50%, transparent)';
+
+      var markBox = tr.querySelector('[data-cell="mark"]');
+      if (r.removed && settled) {
+        if (!markBox.firstChild) markBox.innerHTML = markHtml(edits[r.key], 'red');
+        else updateMark(markBox.firstChild, edits[r.key], 'red');
+      } else {
+        markBox.innerHTML = '';
+      }
+
+      if (interactive) {
+        tr.setAttribute('tabindex', '0');
+        tr.classList.add('cursor-pointer', 'hover:brightness-[0.985]');
+        bindRow(tr, r.key);
+      } else {
+        tr.removeAttribute('tabindex');
+        tr.classList.remove('cursor-pointer', 'hover:brightness-[0.985]');
+        tr.onclick = null; tr.onkeydown = null;
+      }
+    });
+
+    /* added row */
+    var addedWrap = host.querySelector('[data-added]');
+    addedWrap.style.gridTemplateRows = settled ? '1fr' : '0fr';
+    addedWrap.style.opacity = settled ? '1' : '0';
+
+    var pist = host.querySelector('[data-pist]');
+    pist.style.background = edits.pistachio ? 'var(--green-tint)' : '';
+    pist.setAttribute('aria-checked', edits.pistachio ? 'true' : 'false');
+    host.querySelector('[data-cell="pid"]').style.color = edits.pistachio ? 'var(--green)' : 'var(--ink-3)';
+    host.querySelector('[data-cell="psup"]').style.color = edits.pistachio ? 'var(--green)' : 'var(--ink-3)';
+    var pmarkBox = host.querySelector('[data-cell="pmark"]');
+    if (!pmarkBox.firstChild) pmarkBox.innerHTML = markHtml(edits.pistachio, 'green');
+    else updateMark(pmarkBox.firstChild, edits.pistachio, 'green');
+    if (accepted) {
+      pist.setAttribute('tabindex', '-1');
+      pist.classList.remove('cursor-pointer', 'hover:brightness-[0.985]');
+      pist.onclick = null; pist.onkeydown = null;
+    } else {
+      pist.setAttribute('tabindex', '0');
+      pist.classList.add('cursor-pointer', 'hover:brightness-[0.985]');
+      pist.onclick = function () { toggleEdit('pistachio'); };
+      pist.onkeydown = function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleEdit('pistachio'); }
+      };
+    }
+
+    host.querySelector('[data-hint]').style.display = (settled && !accepted) ? '' : 'none';
+
+    ensureFooter();
+    updateFooter();
+  }
+
+  function footerSummaryHtml() {
+    var rem = removedCount(), add = addedCount(), n = rem + add;
+    return '<span data-f="summary" class="text-[11.5px] tabular-nums text-ink-3">'
+      + rem + ' ' + (rem === 1 ? 'removal' : 'removals') + ' · ' + add + ' ' + (add === 1 ? 'addition' : 'additions')
+      + '</span>'
+      + '<span class="flex items-center gap-1.5">'
+      + '<button type="button" data-apply class="' + DT_BTN + '"' + (n === 0 ? ' disabled' : '') + '>'
+      + 'Apply ' + n + ' ' + (n === 1 ? 'change' : 'changes') + '</button>'
+      + '</span>';
+  }
+
+  function ensureFooter() {
+    if (stage < 2) return;
+    var card = host.querySelector('[data-card]');
+    if (card.querySelector('[data-footer]')) return;
+    var fc = document.createElement('div');
+    fc.setAttribute('data-footer', '1');
+    fc.className = 'primitive-card-footer flex min-h-11 items-center justify-between border-t border-line';
+    fc.style.animation = 'fade-up 180ms cubic-bezier(0.23,1,0.32,1) both';
+    fc.innerHTML = footerSummaryHtml();
+    card.appendChild(fc);
+    fc.querySelector('[data-apply]').addEventListener('click', function () { accepted = true; sync(); });
+  }
+
+  function updateFooter() {
+    if (stage < 2) return;
+    var fc = host.querySelector('[data-footer]');
+    if (!fc) return;
+    var rem = removedCount(), add = addedCount(), n = rem + add;
+    if (accepted) {
+      if (fc.getAttribute('data-done') !== '1') {
+        fc.setAttribute('data-done', '1');
+        fc.innerHTML = '<span class="inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green" style="animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both">'
+          + '<span class="flex size-4.5 items-center justify-center rounded-full bg-green text-white">' + DT_CHECK + '</span>'
+          + n + ' ' + (n === 1 ? 'edit' : 'edits') + ' applied</span>';
+      }
+      return;
+    }
+    var sum = fc.querySelector('[data-f="summary"]');
+    if (sum) {
+      sum.textContent = rem + ' ' + (rem === 1 ? 'removal' : 'removals') + ' · ' + add + ' ' + (add === 1 ? 'addition' : 'additions');
+      var btn = fc.querySelector('[data-apply]');
+      btn.textContent = 'Apply ' + n + ' ' + (n === 1 ? 'change' : 'changes');
+      if (n === 0) btn.setAttribute('disabled', ''); else btn.removeAttribute('disabled');
+    }
+  }
+
+  function runStages() {
+    if (stage >= DT_STAGE_DELAYS.length) return;
+    setTimeout(function () {
+      stage += 1;
+      sync();
+      runStages();
+    }, DT_STAGE_DELAYS[stage]);
+  }
+
+  sync();
+  runStages();
+})();
+</script>

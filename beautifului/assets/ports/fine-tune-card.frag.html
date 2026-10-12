@@ -1,0 +1,282 @@
+<!-- title: Fine-tune Card -->
+<!--@classes: text-accent text-ink-3 text-ink bg-field group-hover/glide-menu:bg-transparent-->
+<!-- 来源：components/primitives/FineTuneCard.tsx（上游 MIT）
+     依赖 primitives/GlideMenu.tsx，已内联为 Type 下拉里的 hover 高亮层。
+     保真：ScrubField 拖动 (clientX 位移 / 2) * step、↑↓←→(Shift ×10)、直接输入数字、
+           min/max 先 clamp 再 Math.round；分段滑块 width:calc((100% - 4px)/3)、left:2、
+           transition-transform 300ms cubic-bezier(0.23,1,0.32,1)；
+           头部 Adjust 微光(shimmer-text 1.4s) ↔ Edited 徽标(pop-in 250ms)；
+           Type 菜单 pop-in 200ms、transform-origin:bottom-right —— 常量逐字照搬。
+     增强：上游卡片只通过 onChange 抛出状态、自身没有预览元素。为兑现
+           「控件要真的改到预览元素上」，移植件在卡片旁加了一块「Flavor card」
+           样本，W/H/Radius/Opacity 直接写入它的 inline style。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>微调卡</strong> — Agent 在设计检查器里调整元素的属性：把 <code>W</code> / <code>H</code> /
+    <code>Radius</code> / <code>Opacity%</code> 旁的标签当作「scrub 手柄」横向拖动即可改数值，
+    也可用 ↑↓（按住 ⇧ 步进 ×10）或直接输入；底部 <code>Type</code> 是内联了 <code>GlideMenu</code>
+    的下拉。卡片本身只负责抛状态，右侧样本元素实时反映几何与不透明度变化。
+  </p>
+
+  <div class="flex flex-wrap items-center justify-center gap-6">
+    <div class="grid place-items-center p-3" style="min-width:360px;min-height:220px">
+      <div id="ft-preview" class="flex items-center justify-center overflow-hidden bg-surface shadow-raised" style="width:324px;height:96px;border-radius:28px;opacity:1">
+        <span id="ft-preview-label" class="px-4 text-center text-[13px] font-medium text-ink-3">Select type</span>
+      </div>
+    </div>
+    <div id="ft-card-host" class="shrink-0"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游常量（FineTuneCard.tsx） */
+  var FIELDS = [
+    { key: 'width',   label: 'W',       value: 324, min: 40,  max: 999 },
+    { key: 'height',  label: 'H',       value: 96,  min: 24,  max: 999 },
+    { key: 'radius',  label: 'Radius',  value: 28,  min: 0,   max: 64  },
+    { key: 'opacity', label: 'Opacity', value: 100, min: 0,   max: 100, suffix: '%' }
+  ];
+  var SEGMENTS = ['row', 'col', 'grid'];
+  var OPTIONS = ['Seasonal', 'Classic', 'Limited'];
+  var LABELS = { title: 'Flavor card', layout: 'Layout', type: 'Type', placeholder: 'Select type', adjust: 'Adjust', edited: 'Edited' };
+
+  var seg = 0;
+  var values = {};
+  for (var i = 0; i < FIELDS.length; i++) values[FIELDS[i].key] = FIELDS[i].value;
+  var menuOpen = false;
+  var typeValue = LABELS.placeholder;
+  var badgeDone = null;
+
+  var preview = document.getElementById('ft-preview');
+  var previewLabel = document.getElementById('ft-preview-label');
+  var host = document.getElementById('ft-card-host');
+
+  function clamp(f, v) { return Math.min(f.max, Math.max(f.min, Math.round(v))); }
+
+  /* SegmentIcon：小方块边框 1.2px currentColor（上游 border-[1.2px] border-current） */
+  function segIcon(kind) {
+    var dot = '<span class="size-1.5 rounded-[2px] border-[1.2px] border-current"></span>';
+    if (kind === 'row') return '<span class="flex gap-0.5">' + dot + dot + dot + '</span>';
+    if (kind === 'col') return '<span class="flex flex-col gap-0.5">' + dot + dot + '</span>';
+    return '<span class="grid grid-cols-2 gap-0.5">' + dot + dot + dot + dot + '</span>';
+  }
+
+  function segButton(kind, idx) {
+    var pressed = idx === seg;
+    return '<button type="button" data-seg="' + idx + '" aria-label="' + kind + ' layout" aria-pressed="' + pressed + '" '
+      + 'class="relative z-10 flex h-6 items-center justify-center transition-colors duration-200 ' + (pressed ? 'text-accent' : 'text-ink-3') + '">'
+      + segIcon(kind) + '</button>';
+  }
+
+  function scrubFieldHtml(f) {
+    return '<label data-field="' + f.key + '" class="flex h-6.5 min-w-0 items-center gap-1 rounded-chip py-1 pr-1 pl-0.5 transition-[background-color,box-shadow] duration-200" style="background:var(--field);box-shadow:none">'
+      + '<span data-handle="' + f.key + '" role="slider" aria-label="' + f.label + '" aria-valuenow="' + f.value + '" aria-valuemin="' + f.min + '" aria-valuemax="' + f.max + '" tabindex="0" '
+      +   'class="flex h-full shrink-0 cursor-ew-resize touch-none items-center rounded-[4px] px-0.5 text-[12px] text-ink-3 select-none hover:text-ink-2 focus-visible:text-accent-ink focus-visible:outline-none">' + f.label + '</span>'
+      + '<input data-input="' + f.key + '" inputmode="numeric" value="' + f.value + '" aria-label="' + f.label + ' value" '
+      +   'class="min-w-0 flex-1 bg-transparent text-[12px] text-ink tabular-nums outline-none" />'
+      + (f.suffix ? '<span class="shrink-0 pr-0.5 text-[11.5px] text-ink-3">' + f.suffix + '</span>' : '')
+      + '</label>';
+  }
+
+  function fieldPair(a, b) {
+    return '<div class="grid min-w-0 grid-cols-2 gap-2">' + scrubFieldHtml(FIELDS[a]) + scrubFieldHtml(FIELDS[b]) + '</div>';
+  }
+
+  host.innerHTML =
+    '<div class="relative w-full max-w-60 rounded-card bg-surface shadow-raised">'
+    + '<div class="primitive-card-bar flex items-center justify-between border-b border-line">'
+    +   '<span class="text-[13px] font-medium text-ink">' + LABELS.title + '</span>'
+    +   '<span id="ft-badge"></span>'
+    + '</div>'
+    + '<div class="primitive-card-pad flex flex-col gap-2 border-b border-line">'
+    +   '<p class="text-[12.5px] font-medium text-ink">' + LABELS.layout + '</p>'
+    +   '<div class="relative grid grid-cols-3 rounded-control bg-field p-0.5">'
+    +     '<span aria-hidden id="ft-seg-thumb" class="absolute inset-y-0.5 rounded-[6px] bg-surface shadow-btn transition-transform duration-300" style="width:calc((100% - 4px) / 3);left:2px;transform:translateX(0%);transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)"></span>'
+    +     segButton('row', 0) + segButton('col', 1) + segButton('grid', 2)
+    +   '</div>'
+    +   fieldPair(0, 1) + fieldPair(2, 3)
+    + '</div>'
+    + '<div class="primitive-card-footer flex items-center justify-between">'
+    +   '<span class="text-[12px] text-ink-3">' + LABELS.type + '</span>'
+    +   '<div class="relative -mr-0.5 w-30">'
+    +     '<button id="ft-menu-btn" type="button" aria-expanded="false" class="flex h-6.5 w-full items-center justify-between rounded-chip bg-inset py-1 pr-1 pl-2 shadow-hairline transition-shadow duration-200 focus-visible:outline-none">'
+    +       '<span id="ft-type-text" class="text-[12px] text-ink-3">' + typeValue + '</span>'
+    +       '<svg id="ft-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200" style="transform:rotate(0)"><path d="M6 9l6 6 6-6"></path></svg>'
+    +     '</button>'
+    +     '<div id="ft-menu"></div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+
+  var badge = document.getElementById('ft-badge');
+  var thumb = document.getElementById('ft-seg-thumb');
+  var typeText = document.getElementById('ft-type-text');
+  var caret = document.getElementById('ft-caret');
+  var menuBtn = document.getElementById('ft-menu-btn');
+  var menu = document.getElementById('ft-menu');
+
+  /* ── 状态同步（只做点更新，避免拖动时重建 DOM 打断 pointer capture）── */
+  function update() {
+    /* 预览元素：几何 + 不透明度真实生效 */
+    preview.style.width = values.width + 'px';
+    preview.style.height = values.height + 'px';
+    preview.style.borderRadius = values.radius + 'px';
+    preview.style.opacity = String(values.opacity / 100);
+
+    var hasType = typeValue !== LABELS.placeholder;
+    previewLabel.textContent = typeValue;
+    previewLabel.className = 'px-4 text-center text-[13px] font-medium ' + (hasType ? 'text-ink' : 'text-ink-3');
+
+    var changed = false;
+    for (var i = 0; i < FIELDS.length; i++) {
+      var f = FIELDS[i];
+      var v = values[f.key];
+      if (v !== f.value) changed = true;
+      var label = host.querySelector('[data-field="' + f.key + '"]');
+      var handle = host.querySelector('[data-handle="' + f.key + '"]');
+      var input = host.querySelector('[data-input="' + f.key + '"]');
+      var active = v !== f.value;
+      label.style.background = active ? 'var(--accent-tint)' : 'var(--field)';
+      label.style.boxShadow = active ? '0 0 0 1px var(--accent)' : 'none';
+      handle.setAttribute('aria-valuenow', String(v));
+      if (input) input.value = String(v);
+    }
+
+    /* 头部徽标：只在 done 状态翻转时重建，避免 pop-in 在拖动中反复重播 */
+    var done = seg !== 0 || changed || hasType;
+    if (done !== badgeDone) {
+      badgeDone = done;
+      if (done) {
+        badge.innerHTML = '<span class="flex items-center gap-1.5 text-[12px] font-medium text-green" style="animation:pop-in 250ms cubic-bezier(0.23,1,0.32,1) both">'
+          + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>' + LABELS.edited + '</span>';
+      } else {
+        badge.innerHTML = '<span class="flex items-center gap-1.5">'
+          + '<span class="flex size-4.5 items-center justify-center rounded-[5px] border border-accent/30 bg-accent-tint">'
+          +   '<svg width="9" height="9" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"></path></svg>'
+          + '</span>'
+          + '<span class="bg-clip-text text-[12px] font-medium text-transparent" style="background-image:linear-gradient(90deg, var(--accent) 35%, var(--accent-ink) 50%, var(--accent) 65%);background-size:200% 100%;animation:shimmer-text 1.4s linear infinite">' + LABELS.adjust + '</span>'
+          + '</span>';
+      }
+    }
+  }
+
+  function setValue(key, v) {
+    var f = null;
+    for (var i = 0; i < FIELDS.length; i++) if (FIELDS[i].key === key) f = FIELDS[i];
+    values[key] = clamp(f, v);
+    update();
+  }
+
+  /* ── ScrubField：拖动 / 键盘 / 直接输入 ── */
+  var drag = null;
+  for (var k = 0; k < FIELDS.length; k++) {
+    (function (f) {
+      var handle = host.querySelector('[data-handle="' + f.key + '"]');
+      var input = host.querySelector('[data-input="' + f.key + '"]');
+
+      handle.addEventListener('pointerdown', function (e) {
+        e.target.setPointerCapture(e.pointerId);
+        drag = { x: e.clientX, v: values[f.key] };
+      });
+      handle.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        setValue(f.key, drag.v + ((e.clientX - drag.x) / 2) * (f.step || 1));
+      });
+      handle.addEventListener('pointerup', function () { drag = null; });
+      handle.addEventListener('keydown', function (e) {
+        var mult = e.shiftKey ? 10 : 1;
+        var step = f.step || 1;
+        if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+          e.preventDefault(); setValue(f.key, values[f.key] + step * mult);
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+          e.preventDefault(); setValue(f.key, values[f.key] - step * mult);
+        }
+      });
+
+      input.addEventListener('input', function () {
+        var raw = this.value.replace(/[^\d-]/g, '');
+        if (raw === '' || raw === '-') return;
+        var n = Number(raw);
+        if (!isNaN(n)) setValue(f.key, n);
+      });
+    })(FIELDS[k]);
+  }
+
+  /* ── 分段控件 ── */
+  var segBtns = host.querySelectorAll('[data-seg]');
+  for (var s = 0; s < segBtns.length; s++) {
+    segBtns[s].addEventListener('click', function () {
+      seg = Number(this.getAttribute('data-seg'));
+      thumb.style.transform = 'translateX(' + seg * 100 + '%)';
+      for (var j = 0; j < segBtns.length; j++) {
+        var on = j === seg;
+        segBtns[j].setAttribute('aria-pressed', String(on));
+        segBtns[j].classList.toggle('text-accent', on);
+        segBtns[j].classList.toggle('text-ink-3', !on);
+      }
+      update();
+    });
+  }
+
+  /* ── Type 菜单（内联 GlideMenu）── */
+  function bindMenuGlide() {
+    var glide = document.getElementById('ft-glide');
+    if (!glide) return;
+    var hl = document.getElementById('ft-glide-hl');
+    function moveTo(target) {
+      if (!target || !target.closest) return;
+      var row = target.closest('[data-menu-row]');
+      if (!row || !glide.contains(row)) return;
+      var cr = glide.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      hl.style.top = (rr.top - cr.top) + 'px';
+      hl.style.height = rr.height + 'px';
+      hl.style.opacity = 1;
+    }
+    glide.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    glide.addEventListener('mouseleave', function () { hl.style.opacity = 0; });
+    glide.addEventListener('focusin', function (e) { moveTo(e.target); });
+    glide.addEventListener('focusout', function (e) { if (!glide.contains(e.relatedTarget)) hl.style.opacity = 0; });
+    var rows = glide.querySelectorAll('[data-menu-row]');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].addEventListener('click', function () {
+        typeValue = this.textContent;
+        menuOpen = false;
+        renderMenu();
+        update();
+      });
+    }
+  }
+
+  function renderMenu() {
+    menuBtn.setAttribute('aria-expanded', String(menuOpen));
+    menuBtn.style.boxShadow = menuOpen ? '0 0 0 1px var(--accent)' : '';
+    caret.style.transform = menuOpen ? 'rotate(180deg)' : 'rotate(0)';
+
+    if (!menuOpen) { menu.innerHTML = ''; return; }
+
+    var rows = '';
+    for (var i = 0; i < OPTIONS.length; i++) {
+      var item = OPTIONS[i];
+      var sel = item === typeValue;
+      rows += '<button data-menu-row type="button" class="relative z-10 flex h-6.5 w-full items-center rounded-[6px] px-2 text-left text-[12.5px] text-ink ' + (sel ? 'bg-field group-hover/glide-menu:bg-transparent' : '') + '">' + item + '</button>';
+    }
+    menu.innerHTML = '<div class="absolute right-0 bottom-8 z-10 w-30 rounded-[10px] bg-surface p-1 shadow-raised" style="animation:pop-in 200ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:bottom right">'
+      + '<div id="ft-glide" class="group/glide-menu relative flex flex-col gap-px">'
+      +   '<span aria-hidden id="ft-glide-hl" class="pointer-events-none absolute inset-x-0 rounded-[6px] bg-field" style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease"></span>'
+      +   rows
+      + '</div>'
+      + '</div>';
+    bindMenuGlide();
+  }
+
+  menuBtn.addEventListener('click', function () {
+    menuOpen = !menuOpen;
+    renderMenu();
+  });
+
+  renderMenu();
+  update();
+})();
+</script>

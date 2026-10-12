@@ -1,0 +1,1690 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sidebar Nav — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ══ sidebar-nav.css（上游 registry 内嵌，不在 git 树里）══ */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — SidebarNav
+ * The 52↔224px collapsible sidebar tree.
+ * Copy this block only alongside SidebarNav; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.sidebar-row {
+  width: 208px;
+  transition-duration: var(--sidebar-copy-duration);
+  transition-timing-function: var(--sidebar-easing);
+}
+
+.sidebar-copy {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--sidebar-copy-duration) ease-out,
+    transform var(--sidebar-copy-duration) var(--sidebar-easing);
+}
+
+.sidebar-logo,
+.sidebar-collapse-control,
+.sidebar-expand-control {
+  transition-duration: var(--sidebar-copy-duration);
+  transition-timing-function: ease-out;
+}
+
+.sidebar-expand-control {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sidebar-glide-highlight {
+  right: 8px;
+  left: 8px;
+}
+
+[data-sidebar-collapsed="true"] .sidebar-row {
+  width: 36px;
+}
+
+[data-sidebar-collapsed="true"] .sidebar-copy {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(calc(var(--sidebar-copy-offset) * -1));
+}
+
+[data-sidebar-collapsed="true"] .sidebar-workspace-control {
+  pointer-events: none;
+}
+
+[data-sidebar-collapsed="true"] .sidebar-logo,
+[data-sidebar-collapsed="true"] .sidebar-collapse-control {
+  pointer-events: none;
+  opacity: 0;
+}
+
+[data-sidebar-collapsed="true"] .sidebar-expand-control {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+[data-sidebar-collapsed="true"] .sidebar-glide-highlight {
+  right: auto;
+  width: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* ── records table ────────────────────────────────────────
+ * The grid is deliberately more architectural than card-like:
+ * one quiet surface, precise rules, and color reserved for
+ * meaning. The first column remains an anchor while both axes
+ * can move independently inside the table viewport.
+ */
+
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-[background-color,color,transform]"] {
+  transition-property: background-color,color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[background-color,transform]"] {
+  transition-property: background-color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[opacity,background-color,color,transform]"] {
+  transition-property: opacity,background-color,color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[opacity,background-color,color]"] {
+  transition-property: opacity,background-color,color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[opacity,transform]"] {
+  transition-property: opacity,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[width,background-color,color,transform]"] {
+  transition-property: width,background-color,color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[width,opacity]"] {
+  transition-property: width,opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[width]"] {
+  transition-property: width;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-100"] {
+  transition-duration: 100ms;
+}
+
+[class~="duration-150"] {
+  transition-duration: 150ms;
+}
+
+[class~="-translate-x-1"] {
+  translate: calc(0.25rem * -1) 0;
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="active:scale-[0.96]"]:active {
+  scale: 0.96;
+}
+
+[class~="active:scale-[0.98]"]:active {
+  scale: 0.98;
+}
+
+[class~="active:scale-[0.99]"]:active {
+  scale: 0.99;
+}
+
+[class~="bg-field"] {
+  background-color: var(--field);
+}
+
+[class~="bg-hover-2"] {
+  background-color: var(--hover-2);
+}
+
+[class~="bg-ink"] {
+  background-color: var(--ink);
+}
+
+[class~="bg-line"] {
+  background-color: var(--line);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="bg-transparent"] {
+  background-color: transparent;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="border-t"] {
+  border-top-width: 1px;
+  border-style: solid;
+}
+
+[class~="contents"] {
+  display: contents;
+}
+
+[class~="fixed"] {
+  position: fixed;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="flex-1"] {
+  flex: 1 1 0%;
+}
+
+[class~="flex-col"] {
+  flex-direction: column;
+}
+
+[class~="focus-within:text-ink-2"]:focus-within {
+  color: var(--ink-2);
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="font-semibold"] {
+  font-weight: 600;
+}
+
+[class~="gap-1.5"] {
+  gap: 0.375rem;
+}
+
+[class~="gap-px"] {
+  gap: 1px;
+}
+
+[class~="group/glide"]:hover [class~="group-hover/glide:bg-transparent"] {
+  background-color: transparent;
+}
+
+[class~="h-10"] {
+  height: 2.5rem;
+}
+
+[class~="h-8"] {
+  height: 2rem;
+}
+
+[class~="h-9"] {
+  height: 2.25rem;
+}
+
+[class~="h-[600px]"] {
+  height: 600px;
+}
+
+[class~="h-px"] {
+  height: 1px;
+}
+
+[class~="hover:bg-hover-2"]:hover {
+  background-color: var(--hover-2);
+}
+
+[class~="hover:bg-line-strong"]:hover {
+  background-color: var(--line-strong);
+}
+
+[class~="hover:text-ink"]:hover {
+  color: var(--ink);
+}
+
+[class~="inset-0"] {
+  inset: 0rem;
+}
+
+[class~="inset-x-0"] {
+  left: 0rem;
+  right: 0rem;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="left-2"] {
+  left: 0.5rem;
+}
+
+[class~="mb-1"] {
+  margin-bottom: 0.25rem;
+}
+
+[class~="mb-2.5"] {
+  margin-bottom: 0.625rem;
+}
+
+[class~="min-h-0"] {
+  min-height: 0rem;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="ml-1"] {
+  margin-left: 0.25rem;
+}
+
+[class~="ml-1.5"] {
+  margin-left: 0.375rem;
+}
+
+[class~="ml-2"] {
+  margin-left: 0.5rem;
+}
+
+[class~="mr-2"] {
+  margin-right: 0.5rem;
+}
+
+[class~="mt-3"] {
+  margin-top: 0.75rem;
+}
+
+[class~="mx-2"] {
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+[class~="my-1"] {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+[class~="opacity-0"] {
+  opacity: 0.0;
+}
+
+[class~="opacity-100"] {
+  opacity: 1.0;
+}
+
+[class~="outline-none"] {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="overflow-y-auto"] {
+  overflow-y: auto;
+}
+
+[class~="p-1.5"] {
+  padding: 0.375rem;
+}
+
+[class~="placeholder:text-ink-3"]::placeholder {
+  color: var(--ink-3);
+}
+
+[class~="pointer-events-auto"] {
+  pointer-events: auto;
+}
+
+[class~="pointer-events-none"] {
+  pointer-events: none;
+}
+
+[class~="pt-3"] {
+  padding-top: 0.75rem;
+}
+
+[class~="px-2"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[class~="py-2"] {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="right-0"] {
+  right: 0rem;
+}
+
+[class~="right-2"] {
+  right: 0.5rem;
+}
+
+[class~="rotate-180"] {
+  rotate: 180deg;
+}
+
+[class~="rounded-[14px]"] {
+  border-radius: 14px;
+}
+
+[class~="rounded-[7px]"] {
+  border-radius: 7px;
+}
+
+[class~="rounded-[8px]"] {
+  border-radius: 8px;
+}
+
+[class~="rounded-control"] {
+  border-radius: var(--radius-control);
+}
+
+[class~="shadow-hairline"] {
+  box-shadow: var(--shadow-hairline);
+}
+
+[class~="shadow-overlay"] {
+  box-shadow: var(--shadow-overlay);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-5"] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+[class~="size-6"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+[class~="size-8"] {
+  width: 2rem;
+  height: 2rem;
+}
+
+[class~="size-9"] {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+[class~="tabular-nums"] {
+  font-variant-numeric: tabular-nums;
+}
+
+[class~="text-[11px]"] {
+  font-size: 11px;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-[13.5px]"] {
+  font-size: 13.5px;
+}
+
+[class~="text-[13px]"] {
+  font-size: 13px;
+}
+
+[class~="text-[14px]"] {
+  font-size: 14px;
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-left"] {
+  text-align: left;
+}
+
+[class~="text-surface"] {
+  color: var(--surface);
+}
+
+[class~="top-0"] {
+  top: 0rem;
+}
+
+[class~="top-0.5"] {
+  top: 0.125rem;
+}
+
+[class~="top-1"] {
+  top: 0.25rem;
+}
+
+[class~="translate-x-0"] {
+  translate: 0rem 0;
+}
+
+[class~="truncate"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[class~="w-64"] {
+  width: 16rem;
+}
+
+[class~="w-[164px]"] {
+  width: 164px;
+}
+
+[class~="w-[208px]"] {
+  width: 208px;
+}
+
+[class~="w-[224px]"] {
+  width: 224px;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="z-10"] {
+  z-index: 10;
+}
+
+[class~="z-20"] {
+  z-index: 20;
+}
+
+[class~="z-50"] {
+  z-index: 50;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Sidebar Nav -->
+<!--@classes: translate-x-0 opacity-100 pointer-events-auto opacity-0 pointer-events-none -translate-x-1 bg-hover-2 group-hover/glide:bg-transparent text-ink rotate-180 -->
+<!-- 来源：components/primitives/SidebarNav.tsx（上游 MIT）
+     保真：几何 224px 展开 / 52px 收起、内层固定 224px 树被外壳裁剪、
+           「两种状态下每个 rail 图标都居中在 x=26」——逐字保留；
+           SIDEBAR_MOTION(duration 280 / copyDuration 180 / copyOffset 8 /
+           easing cubic-bezier(0.16,1,0.3,1)) 与 CHAT_SEARCH_MOTION(180/28) 照搬；
+           折叠、工作区菜单、聊天搜索、聊天历史过滤、GlideMenu 滑动高亮全部保留。
+     依赖降级：上游 import 的付费图标库 @central-icons-react（12 个图标）已替换为
+           **lucide（ISC）等价图标的内联 SVG**，视觉略有差异（线条更简洁）。
+           映射：Popsicle2→ice-cream-cone、ChevronDownSmall→chevron-down、
+           MagnifyingGlass→search、CrossSmall→x、EditBig→square-pen、
+           Home→home、UserAdd→user-plus、Checkmark1Small→check、
+           PlusMedium→plus、SettingsGear1→settings、
+           SidebarLeftArrow→panel-left-close（展开态 rotate-180）、
+           ArrowBoxLeft→log-out。
+     GlideMenu（primitives/GlideMenu.tsx）已内联为 initGlide()。
+     @classes 声明的是 JS 里分支/动态产生的类（导航选中态、搜索开合态、
+     折叠时展开控件的 rotate-180）。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>侧边导航</strong> — 可折叠的工作区 / 聊天导航树。展开 224px、收起 52px，
+    收起时靠裁剪保持每个 rail 图标居中（x=26）。含工作区切换菜单、聊天搜索、
+    聊天历史与滑动高亮（GlideMenu）——鼠标在行间移动时高亮块会「滑」过去。
+    <em>付费图标已替换为 lucide 等价图标。</em>
+  </p>
+  <div id="sb-host"></div>
+</div>
+
+<script>
+(function () {
+  /* ── lucide 等价图标（ISC）——替换 @central-icons-react（付费） ── */
+  function svg(inner, size, extra) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra ? ' class="' + extra + '"' : '') + '>' + inner + '</svg>';
+  }
+  var I = {
+    home: function (s) { return svg('<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', s); },
+    userAdd: function (s) { return svg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>', s); },
+    editBig: function (s) { return svg('<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>', s); },
+    chevronDown: function (s) { return svg('<path d="m6 9 6 6 6-6"/>', s); },
+    search: function (s) { return svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', s); },
+    cross: function (s) { return svg('<path d="M18 6 6 18M6 6l12 12"/>', s); },
+    check: function (s) { return svg('<path d="M20 6 9 17l-5-5"/>', s); },
+    plus: function (s) { return svg('<path d="M5 12h14M12 5v14"/>', s); },
+    settings: function (s) { return svg('<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>', s); },
+    sidebar: function (s, extra) { return svg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>', s, extra); },
+    logOut: function (s) { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>', s); },
+    popsicle: function (s) { return svg('<path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/>', s); }
+  };
+
+  var WORKSPACE = { key: "creamery", name: "Creamery Ops", monogram: "C" };
+  var NAV_ITEMS = [
+    { key: "home", label: "Home", icon: I.home(18) },
+    { key: "invite", label: "Invite users", icon: I.userAdd(18), count: "3/10" }
+  ];
+  var DEFAULT_RECENTS = [
+    { id: "suppliers", label: "Supplier records" },
+    { id: "todos", label: "Urgent to-dos this morning" },
+    { id: "flavor", label: "Flavor page ticket" },
+    { id: "workload", label: "Workload summary" },
+    { id: "offboarding", label: "Off-board a supplier" },
+    { id: "restock", label: "Batch restock function" },
+    { id: "edits", label: "Propose flavor edits" },
+    { id: "subway", label: "Subway surfing" }
+  ];
+
+  var SIDEBAR_MOTION = { expandedWidth: 224, collapsedWidth: 52, duration: 280, copyDuration: 180, copyOffset: 8, easing: "cubic-bezier(0.16, 1, 0.3, 1)" };
+  var CHAT_SEARCH_MOTION = { duration: 180, closedWidth: 28, easing: "cubic-bezier(0.16, 1, 0.3, 1)" };
+
+  var GLIDE_STYLE = 'top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease';
+
+  /* ── state ── */
+  var collapsed = false;
+  var currentNav = "chats";
+  var activeTitle = null;
+  var workspaceOpen = false;
+  var searchOpen = false;
+  var query = "";
+
+  /* ── markup ── */
+  function railButton(icon, label, active, count, navKey) {
+    return '<button data-row type="button" ' + (navKey ? 'data-nav="' + navKey + '" ' : '') + 'class="sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98] '
+      + (active ? "bg-hover-2 group-hover/glide:bg-transparent" : "") + '">'
+      + '<span class="flex size-5 shrink-0 items-center justify-center ' + (active ? "text-ink" : "text-ink-2") + '">' + icon + '</span>'
+      + '<span class="sidebar-copy ml-1.5 min-w-0 flex-1 truncate text-[14px] font-medium ' + (active ? "text-ink" : "text-ink-2") + '">' + label + '</span>'
+      + (count ? '<span class="sidebar-copy mr-2 shrink-0 text-[12px] font-medium tabular-nums text-ink-3">' + count + '</span>' : '')
+      + '</button>';
+  }
+
+  function railHTML() {
+    var h = railButton(I.editBig(18), "New chat", false, null, "chats");
+    NAV_ITEMS.forEach(function (item) {
+      h += railButton(item.icon, item.label, currentNav === item.key, item.count, item.key);
+    });
+    return h;
+  }
+
+  function recentButton(item, active) {
+    return '<button data-row type="button" data-recent="' + item.id + '" title="' + item.label + '" class="sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98] '
+      + (active ? "bg-hover-2 group-hover/glide:bg-transparent" : "") + '">'
+      + '<span class="sidebar-copy min-w-0 flex-1 truncate text-[14px] font-medium ' + (active ? "text-ink" : "text-ink-2") + '">' + item.label + '</span>'
+      + '</button>';
+  }
+
+  function asideHTML() {
+    return '<aside data-sidebar-collapsed="false" aria-label="Workspace navigation" class="relative flex shrink-0 overflow-hidden transition-[width] h-[600px]" '
+      + 'style="width:' + SIDEBAR_MOTION.expandedWidth + 'px;transition-duration:' + SIDEBAR_MOTION.duration + 'ms;transition-timing-function:' + SIDEBAR_MOTION.easing + ';'
+      + '--sidebar-copy-duration:' + SIDEBAR_MOTION.copyDuration + 'ms;--sidebar-copy-offset:' + SIDEBAR_MOTION.copyOffset + 'px;--sidebar-easing:' + SIDEBAR_MOTION.easing + '">'
+      + '<div class="flex min-h-0 w-[224px] shrink-0 flex-col">'
+      +   '<div class="relative mb-2.5 h-10 shrink-0">'
+      +     '<button data-workspace-trigger type="button" aria-expanded="false" class="sidebar-workspace-control absolute left-2 top-1 flex h-8 w-[164px] items-center rounded-[8px] px-2 text-left transition-[background-color,transform] duration-100 hover:bg-hover-2 active:scale-[0.99]">'
+      +       '<span class="sidebar-logo flex size-5 shrink-0 items-center justify-center text-ink">' + I.popsicle(18) + '</span>'
+      +       '<span class="sidebar-copy ml-1.5 min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2">' + WORKSPACE.name + '</span>'
+      +       '<span class="sidebar-copy ml-1 flex shrink-0 text-ink-3">' + I.chevronDown(16) + '</span>'
+      +     '</button>'
+      +     '<button type="button" aria-label="Collapse sidebar" data-collapse class="sidebar-collapse-control absolute right-2 top-1 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color] duration-150 hover:bg-hover-2 hover:text-ink">' + I.sidebar(18) + '</button>'
+      +     '<button type="button" aria-label="Expand sidebar" data-expand class="sidebar-expand-control absolute left-2 top-0.5 flex size-9 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color] duration-150 hover:bg-hover-2 hover:text-ink">' + I.sidebar(18, "rotate-180") + '</button>'
+      +   '</div>'
+      /* primary nav — gliding hover */
+      +   '<div data-glide-root data-row-selector="[data-row]" class="group/glide relative flex flex-col gap-px">'
+      +     '<span aria-hidden data-glide-layer class="pointer-events-none absolute sidebar-glide-highlight rounded-[7px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +     '<div data-rail-rows class="contents">' + railHTML() + '</div>'
+      +   '</div>'
+      +   '<div class="mt-3 min-h-0 flex-1 overflow-y-auto">'
+      +     '<div class="sidebar-copy relative mx-2 mb-1 h-8">'
+      +       '<div data-chats-label aria-hidden="false" class="absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-3 transition-[opacity,transform] translate-x-0 opacity-100" style="transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms;transition-timing-function:' + CHAT_SEARCH_MOTION.easing + '">'
+      +         I.chevronDown(16) + '<span>Chats</span>'
+      +       '</div>'
+      +       '<button type="button" aria-label="Search chats" aria-expanded="false" data-search-open class="absolute right-0 top-0 z-10 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color,transform] hover:bg-hover-2 hover:text-ink active:scale-[0.96] opacity-100" style="transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms">' + I.search(16) + '</button>'
+      +       '<div data-search-field class="absolute right-0 top-0 z-20 flex h-8 items-center overflow-hidden rounded-[8px] bg-field text-ink-3 shadow-hairline transition-[width,opacity] focus-within:text-ink-2 pointer-events-none opacity-0" style="width:' + CHAT_SEARCH_MOTION.closedWidth + 'px;transition-duration:' + CHAT_SEARCH_MOTION.duration + 'ms;transition-timing-function:' + CHAT_SEARCH_MOTION.easing + '">'
+      +         '<span class="ml-2 flex shrink-0 items-center justify-center">' + I.search(15) + '</span>'
+      +         '<input data-search-input type="text" placeholder="Search chats" aria-label="Search chat history" class="ml-1.5 min-w-0 flex-1 bg-transparent text-[13px] font-medium text-ink outline-none placeholder:text-ink-3">'
+      +         '<button type="button" aria-label="Close chat search" data-search-close class="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-ink-3 transition-[background-color,color,transform] duration-150 hover:bg-hover-2 hover:text-ink active:scale-[0.96]">' + I.cross(16) + '</button>'
+      +       '</div>'
+      +     '</div>'
+      +     '<div data-glide-root data-row-selector="[data-row]" class="group/glide relative flex flex-col gap-px">'
+      +       '<span aria-hidden data-glide-layer class="pointer-events-none absolute sidebar-glide-highlight rounded-[7px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="sidebar-copy mx-2 mt-3 w-[208px] border-t border-line pt-3">'
+      +     '<button type="button" data-footer class="flex h-8 w-full items-center justify-center gap-1.5 rounded-control bg-hover-2 text-[12.5px] font-medium text-ink transition-[background-color,transform] duration-150 hover:bg-line-strong active:scale-[0.98]">Upgrade</button>'
+      +   '</div>'
+      + '</div>'
+      + '</aside>';
+  }
+
+  var host = document.getElementById('sb-host');
+  host.innerHTML = asideHTML();
+
+  var aside = host.querySelector('aside');
+  var railRows = host.querySelector('[data-rail-rows]');
+  var recentsRoot = host.querySelector('[data-glide-root][data-row-selector]');
+  /* the recents glide root is the 2nd glide root */
+  var glideRoots = host.querySelectorAll('[data-glide-root]');
+  var recentsGlideRoot = glideRoots[1];
+
+  /* ── GlideMenu (inlined from primitives/GlideMenu.tsx) ── */
+  function initGlide(root) {
+    var sel = root.getAttribute('data-row-selector') || '[data-menu-row]';
+    var layer = root.querySelector('[data-glide-layer]');
+    function moveTo(target) {
+      if (!(target instanceof Element)) return;
+      var row = target.closest(sel);
+      if (!row || !root.contains(row)) return;
+      var cr = root.getBoundingClientRect();
+      var rr = row.getBoundingClientRect();
+      layer.style.top = (rr.top - cr.top) + 'px';
+      layer.style.height = rr.height + 'px';
+      layer.style.opacity = '1';
+    }
+    root.addEventListener('mouseover', function (event) { moveTo(event.target); });
+    root.addEventListener('mouseleave', function () { layer.style.opacity = '0'; });
+    root.addEventListener('focusin', function (event) { moveTo(event.target); });
+    root.addEventListener('focusout', function (event) { if (!root.contains(event.relatedTarget)) layer.style.opacity = '0'; });
+  }
+  initGlide(host.querySelector('[data-glide-root]'));
+  initGlide(recentsGlideRoot);
+
+  /* ── recents rendering / filtering ── */
+  function renderRecents() {
+    var q = query.trim().toLowerCase();
+    var visible = DEFAULT_RECENTS.filter(function (r) { return r.label.toLowerCase().indexOf(q) >= 0; });
+    var html = visible.map(function (item) {
+      return recentButton(item, item.label === activeTitle);
+    }).join('');
+    if (query && visible.length === 0) {
+      html += '<div class="sidebar-copy mx-2 px-2 py-2 text-[12.5px] text-ink-3">No chats found</div>';
+    }
+    /* replace everything after the glide layer */
+    var nodes = recentsGlideRoot.querySelectorAll(':scope > *:not([data-glide-layer])');
+    for (var i = 0; i < nodes.length; i++) nodes[i].remove();
+    recentsGlideRoot.insertAdjacentHTML('beforeend', html);
+    recentsGlideRoot.querySelector('[data-glide-layer]').style.opacity = '0';
+  }
+  renderRecents();
+
+  /* ── workspace menu (portal) ── */
+  function workspaceMenuHTML(top, left) {
+    function row(h, iconCls, icon, label, extra) {
+      return '<button data-menu-row type="button" class="relative z-10 flex ' + h + ' w-full items-center gap-1.5 rounded-[8px] px-2 text-left">'
+        + '<span class="' + iconCls + '">' + icon + '</span>'
+        + '<span class="min-w-0 flex-1 truncate text-[13.5px] text-ink">' + label + '</span>'
+        + (extra || '') + '</button>';
+    }
+    return '<div data-workspace-menu class="fixed z-50 w-64 rounded-[14px] bg-surface p-1.5 shadow-overlay" '
+      + 'style="top:' + top + 'px;left:' + left + 'px;animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:top left">'
+      + '<div data-glide-root data-row-selector="[data-menu-row]" class="relative flex flex-col gap-px">'
+      +   '<span aria-hidden data-glide-layer class="pointer-events-none absolute inset-x-0 rounded-[8px] bg-hover-2" style="' + GLIDE_STYLE + '"></span>'
+      +   '<button data-menu-row type="button" class="relative z-10 flex h-10 w-full items-center gap-1.5 rounded-[8px] px-2 text-left">'
+      +     '<span class="flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-ink text-[11px] font-semibold text-surface">' + WORKSPACE.monogram + '</span>'
+      +     '<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink">' + WORKSPACE.name + '</span>'
+      +     '<span class="shrink-0 text-ink">' + I.check(18) + '</span>'
+      +   '</button>'
+      +   '<div class="my-1 h-px bg-line"></div>'
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.plus(16), "New workspace")
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.settings(16), "Workspace settings")
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.userAdd(16), "Invite team members")
+      +   '<div class="my-1 h-px bg-line"></div>'
+      +   row("h-9", "flex size-5 shrink-0 items-center justify-center text-ink-2", I.logOut(16), "Sign out")
+      + '</div></div>';
+  }
+
+  function openWorkspace() {
+    var trigger = host.querySelector('[data-workspace-trigger]');
+    var rect = trigger.getBoundingClientRect();
+    var div = document.createElement('div');
+    div.innerHTML = workspaceMenuHTML(rect.bottom + 6, rect.left);
+    var menu = div.firstChild;
+    document.body.appendChild(menu);
+    initGlide(menu.querySelector('[data-glide-root]'));
+    workspaceOpen = true;
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+  function closeWorkspace() {
+    var menu = document.querySelector('[data-workspace-menu]');
+    if (menu) menu.remove();
+    workspaceOpen = false;
+    var trigger = host.querySelector('[data-workspace-trigger]');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('pointerdown', function (event) {
+    if (!workspaceOpen) return;
+    var t = event.target;
+    if (!t.closest('[data-workspace-trigger]') && !t.closest('[data-workspace-menu]')) closeWorkspace();
+  });
+
+  /* ── collapse ── */
+  function setCollapsed(next) {
+    collapsed = next;
+    aside.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false');
+    aside.style.width = (collapsed ? SIDEBAR_MOTION.collapsedWidth : SIDEBAR_MOTION.expandedWidth) + 'px';
+    var wb = host.querySelector('[data-workspace-trigger]');
+    wb.setAttribute('aria-hidden', collapsed);
+    wb.setAttribute('tabindex', collapsed ? '-1' : '0');
+    var col = host.querySelector('[data-collapse]');
+    col.setAttribute('aria-hidden', collapsed);
+    col.setAttribute('tabindex', collapsed ? '-1' : '0');
+    var exp = host.querySelector('[data-expand]');
+    exp.setAttribute('aria-hidden', !collapsed);
+    exp.setAttribute('tabindex', collapsed ? '0' : '-1');
+  }
+  host.querySelector('[data-workspace-trigger]').addEventListener('click', function () {
+    if (workspaceOpen) closeWorkspace(); else openWorkspace();
+  });
+  host.querySelector('[data-collapse]').addEventListener('click', function () {
+    closeWorkspace();
+    setSearch(false);
+    setCollapsed(true);
+  });
+  host.querySelector('[data-expand]').addEventListener('click', function () { setCollapsed(false); });
+
+  /* ── chat search (CHAT_SEARCH_MOTION storyboard) ── */
+  function setSearch(open) {
+    searchOpen = open;
+    var label = host.querySelector('[data-chats-label]');
+    var openBtn = host.querySelector('[data-search-open]');
+    var field = host.querySelector('[data-search-field]');
+    label.className = 'absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-3 transition-[opacity,transform] ' + (open ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100");
+    label.setAttribute('aria-hidden', open);
+    openBtn.className = 'absolute right-0 top-0 z-10 flex size-8 items-center justify-center rounded-[8px] text-ink-3 transition-[opacity,background-color,color,transform] hover:bg-hover-2 hover:text-ink active:scale-[0.96] ' + (open ? "pointer-events-none opacity-0" : "opacity-100");
+    openBtn.setAttribute('aria-expanded', open);
+    field.className = 'absolute right-0 top-0 z-20 flex h-8 items-center overflow-hidden rounded-[8px] bg-field text-ink-3 shadow-hairline transition-[width,opacity] focus-within:text-ink-2 ' + (open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0");
+    field.style.width = open ? '100%' : CHAT_SEARCH_MOTION.closedWidth + 'px';
+    if (open) {
+      var input = host.querySelector('[data-search-input]');
+      input.focus();
+    }
+  }
+  host.querySelector('[data-search-open]').addEventListener('click', function () { setSearch(true); });
+  host.querySelector('[data-search-close]').addEventListener('click', function () {
+    setSearch(false);
+    query = "";
+    host.querySelector('[data-search-input]').value = "";
+    renderRecents();
+  });
+  var searchInput = host.querySelector('[data-search-input]');
+  searchInput.addEventListener('input', function () { query = searchInput.value; renderRecents(); });
+  searchInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      setSearch(false);
+      query = "";
+      searchInput.value = "";
+      renderRecents();
+    }
+  });
+
+  /* ── rail / recents click handling ── */
+  host.querySelector('[data-rail-rows]').addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-row]');
+    if (!btn) return;
+    var navKey = btn.getAttribute('data-nav');
+    if (navKey) currentNav = navKey;
+    if (btn.getAttribute('data-nav') === null) currentNav = "chats"; /* New chat */
+    if (btn.getAttribute('data-nav') === 'chats') activeTitle = null;
+    /* re-render rail active states */
+    railRows.innerHTML = railHTML();
+    renderRecents();
+  });
+  /* keep the New chat button also selecting chats */
+  recentsGlideRoot.addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-recent]');
+    if (!btn) return;
+    currentNav = "chats";
+    activeTitle = btn.getAttribute('title');
+    railRows.innerHTML = railHTML();
+    renderRecents();
+  });
+
+  setCollapsed(false);
+  setSearch(false);
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!-- title: Chat -->
+<!--@classes: bg-field opacity-50 hover:opacity-75-->
+<!-- 来源：components/primitives/ChatComposer.tsx（上游 MIT）
+     保真：phase 状态机 sent →(500ms) reply1 →(1400ms) reply2 →(1200ms) done 逐字照搬；
+           气泡 transition-[opacity,transform] duration-300、Section 的
+           opacity/filter/transform + duration-400 + cubic-bezier(0.23,1,0.32,1)、
+           fade-up 400ms 入场动画、DOM 层级与全部工具类均与上游一致。
+     降级：useState/useEffect → 普通变量 + setTimeout；Section 用 display 显隐 +
+           重放 fade-up（上游靠 React 复用节点，只在新挂载时播一次动画），
+           所以同一次对话里每段回复只会入场一次，视觉与上游等价。
+     @classes 里是标签页激活态的分支类，它们是 JS 三元产生的，不在静态 class 属性里。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>聊天面板</strong> — 带标签页的 Agent 对话区：顶部 <code>Flavors / Suppliers</code> 切换上下文，
+    中间是按序落地的两段推理回复（每段自带 label / sub / 耗时），底部是钉在卡片底部的输入 composer。
+    发送一段新问题会重放整条回复序列；卡片高度固定 <code>h-[288px]</code>，所以内容区滚动而外壳不抖。
+  </p>
+
+  <!-- 宿主给一个显式宽度：上游卡片是 `w-full max-w-95`（380px），
+       而 .port-frame 是 shrink-to-fit 的，不给定宽的话 w-full 会被内容量成 342px。 -->
+  <div class="w-[380px] max-w-full">
+  <div class="flex h-[288px] w-full max-w-95 flex-col self-start overflow-hidden rounded-[14px] bg-surface shadow-card">
+    <!-- header — tabs + actions -->
+    <div class="flex shrink-0 items-center justify-between border-b border-line p-1.5">
+      <div class="flex items-center" role="group" aria-label="上下文标签">
+        <button type="button" data-tab="Flavors" aria-pressed="true"
+          class="rounded-[6px] px-2 py-[3px] text-[13px] text-ink transition-[background-color,opacity] duration-100 bg-field">Flavors</button>
+        <button type="button" data-tab="Suppliers" aria-pressed="false"
+          class="rounded-[6px] px-2 py-[3px] text-[13px] text-ink transition-[background-color,opacity] duration-100 opacity-50 hover:opacity-75">Suppliers</button>
+      </div>
+      <div class="flex items-center gap-1">
+        <button type="button" aria-label="Action"
+          class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        <button type="button" aria-label="Action"
+          class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+          </svg>
+        </button>
+        <button type="button" aria-label="Action"
+          class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></g>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- conversation — fixed region so the card never changes shape -->
+    <div id="cc-thread" class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pt-2.5 pb-1"></div>
+
+    <!-- composer -->
+    <div class="mt-auto shrink-0 p-1.5">
+      <div id="cc-composer" role="presentation"
+        class="flex cursor-text flex-col gap-2 rounded-control border border-line bg-field p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-[border-color,box-shadow] duration-150 focus-within:border-line-strong focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
+        <input id="cc-input" type="text" value="" placeholder="Prompt or tag a flavor with @" aria-label="Chat prompt"
+          class="min-h-4.5 bg-transparent text-[13px] leading-[1.4] text-ink outline-none placeholder:text-ink-3" />
+        <div class="flex items-center justify-end">
+          <button id="cc-send" type="button" aria-label="Send" disabled
+            class="flex size-7 items-center justify-center rounded-[8px] transition-[background-color,color,transform] duration-200 enabled:active:scale-[0.96]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+/* ── 逐字照搬上游的脚本化回复与默认文案 ───────────────────────── */
+var MESSAGES = [
+  { label: "Sales History", sub: "Flavor Data", time: "4s", body: "Pulled 3 summers of mint chip sales for comparison." },
+  { label: "Comparison",    sub: "Trend Detection", time: "2s", body: "Mint chip is up 12% with stronger weekend peaks." }
+];
+var INITIAL_PROMPT = "Compare mint chip to last summer";
+/* 上游 useEffect 的三段延时：sent 500 / reply1 1400 / reply2 1200 → done */
+var PHASE_NEXT = {
+  sent:   { next: "reply1", ms: 500 },
+  reply1: { next: "reply2", ms: 1400 },
+  reply2: { next: "done",   ms: 1200 }
+};
+
+(function () {
+  var thread = document.getElementById('cc-thread');
+  var input = document.getElementById('cc-input');
+  var sendBtn = document.getElementById('cc-send');
+  var composer = document.getElementById('cc-composer');
+  var phase = 'done';
+  var draft = '';
+  var submitted = INITIAL_PROMPT;
+  var tab = 'Flavors';
+  var timer = null;
+
+  /* ── thread：气泡 + 两个 Section 槽位，只建一次 ────────────── */
+  function sectionHTML(m) {
+    return '<div class="flex items-center gap-1 text-[12px] leading-[1.3]">'
+         +   '<span class="font-medium text-ink">' + m.label + '</span>'
+         +   '<span class="text-ink-2">' + m.sub + '</span>'
+         +   '<span class="text-ink">for ' + m.time + '</span>'
+         + '</div>'
+         + '<p class="text-[13px] leading-normal text-ink">' + m.body + '</p>';
+  }
+  /* opacity/filter/transform + duration-400 + 强曲线 + fade-up 入场，均照上游 */
+  function secSlot(i) {
+    return '<div data-sec="' + i + '" style="display:none"'
+         + ' class="flex w-full flex-col gap-1.5 transition-[opacity,filter,transform] duration-400">'
+         + sectionHTML(MESSAGES[i])
+         + '</div>';
+  }
+  thread.innerHTML =
+      '<div class="flex justify-end pl-14">'
+    +   '<div id="cc-bubble" class="rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink transition-[opacity,transform] duration-300">'
+    +     submitted
+    +   '</div>'
+    + '</div>'
+    + secSlot(0) + secSlot(1);
+
+  var bubble = document.getElementById('cc-bubble');
+  var secs = [thread.querySelector('[data-sec="0"]'), thread.querySelector('[data-sec="1"]')];
+
+  function styleSection(el, resolving) {
+    el.style.transitionTimingFunction = 'cubic-bezier(0.23, 1, 0.32, 1)';
+    el.style.transformOrigin = 'top left';
+    el.style.opacity = resolving ? '0.55' : '1';
+    el.style.filter = resolving ? 'blur(0.5px)' : 'blur(0)';
+    el.style.transform = resolving ? 'scale(0.985)' : 'scale(1)';
+  }
+  function setSection(el, show, resolving) {
+    var wasShown = el.style.display !== 'none';
+    el.style.display = show ? '' : 'none';
+    if (show && !wasShown) {
+      /* 相当于 React 重新挂载：重放 fade-up 400ms */
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = 'fade-up 400ms cubic-bezier(0.23,1,0.32,1) both';
+    }
+    styleSection(el, resolving);
+  }
+  function apply(p) {
+    var show1 = p === 'reply1' || p === 'reply2' || p === 'done';
+    var show2 = p === 'reply2' || p === 'done';
+    setSection(secs[0], show1, false);
+    setSection(secs[1], show2, p === 'reply2');
+  }
+  function setPhase(p) {
+    phase = p;
+    apply(p);
+    if (timer) clearTimeout(timer);
+    var step = PHASE_NEXT[p];
+    if (step) timer = setTimeout(function () { setPhase(step.next); }, step.ms);
+  }
+
+  /* ── composer ─────────────────────────────────────────────── */
+  function canSend() { return draft.trim().length > 0; }
+  function paintSend() {
+    var ok = canSend();
+    sendBtn.disabled = !ok;
+    sendBtn.style.background = ok ? 'var(--ink)' : 'var(--line-strong)';
+    sendBtn.style.color = ok ? 'var(--surface)' : 'var(--ink-2)';
+  }
+  function send() {
+    if (!canSend()) return;
+    submitted = draft.trim();
+    bubble.textContent = submitted;
+    draft = '';
+    input.value = '';
+    paintSend();
+    setPhase('sent');
+  }
+
+  input.addEventListener('input', function () { draft = input.value; paintSend(); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+  sendBtn.addEventListener('click', send);
+  composer.addEventListener('click', function () { input.focus(); });
+
+  /* ── header tabs ──────────────────────────────────────────── */
+  var tabBtns = document.querySelectorAll('[data-tab]');
+  function paintTabs() {
+    for (var i = 0; i < tabBtns.length; i++) {
+      var on = tabBtns[i].getAttribute('data-tab') === tab;
+      tabBtns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      tabBtns[i].className = 'rounded-[6px] px-2 py-[3px] text-[13px] text-ink '
+        + 'transition-[background-color,opacity] duration-100 '
+        + (on ? 'bg-field' : 'opacity-50 hover:opacity-75');
+    }
+  }
+  for (var t = 0; t < tabBtns.length; t++) {
+    tabBtns[t].addEventListener('click', function () {
+      tab = this.getAttribute('data-tab');
+      paintTabs();
+    });
+  }
+
+  /* ── 初始状态：上游 phase 初值就是 "done"（两段回复已可见）──── */
+  paintSend();
+  paintTabs();
+  setPhase('done');
+})();
+</script>

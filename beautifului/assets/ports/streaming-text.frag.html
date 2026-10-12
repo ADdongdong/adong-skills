@@ -1,0 +1,257 @@
+<!-- title: Streaming Text -->
+<!--@classes: inline-->
+<!-- 来源：components/primitives/StreamingText.tsx（上游 MIT）
+     保真：WORD_MS = 55 / HOLD_MS = 3400 逐字照搬；逐词揭示（不是逐字），
+           cite token → 内联来源 chip（pop-in 250ms）；尾部 2px 光标在自己 settle 后由
+           fade-in 150ms 出现；来源头像堆叠用 .source-avatar（上游自定义类）；
+           来源清单展开/收起走 grid-template-rows 1fr/0fr + opacity（cubic-bezier(0.23,1,0.32,1)）；
+           追问按钮在 done 后按 i*90ms 逐条 fade-up；三个来源图标是上游内联的 data-URI SVG，原样保留。
+     降级：无。
+     说明：上游 StreamingText 用的是「逐词揭示」，并没有引用 atoms/StreamText.tsx 或
+           atoms/Shimmer.tsx（那两个原子只被 SelectionActions.tsx 使用），所以这里没有内联它们。
+     markup 与上游逐类对齐（transition-opacity/… 与 duration-* 都用上游原类名；
+           twsubset 现已把 transition-* 排在 duration-* 之前输出，不需要内联兜底）。
+     节点策略：token（含 chip）与光标按「只追加」维护，避免每 55ms 重建导致
+           chip 的 pop-in 与光标的 fade-in 反复重播（React 里 by-key 复用节点，不会重播）。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>流式回答</strong> — 逐词流出的答案：文字流完前光标常亮，
+    引用处内联一枚来源 chip（favicon + 域名），流完后依次出现复制 / 重试 / 点赞 / 点踩操作行、
+    可展开的来源清单与两条「追问」建议。适用于聊天或 Agent 回复的流式渲染。
+  </p>
+
+  <div id="stream-host" class="w-[380px] max-w-full"></div>
+</div>
+
+<script>
+(function () {
+  /* ── 时序常量：逐字照搬上游 ──────────────────────────────────── */
+  var WORD_MS = 55;    // const WORD_MS = 55;
+  var HOLD_MS = 3400;  // const HOLD_MS = 3400;
+
+  /* 逐词切分，中间插一个 cite 占位 token（上游 TOKENS 构造方式一致） */
+  var TOKENS = [];
+  'Pistachio is your fastest-growing flavor — sales are up 23% this month and margins beat vanilla by 8 points.'
+    .split(' ').forEach(function (t) { TOKENS.push({ text: t }); });
+  TOKENS.push({ text: '', cite: true });
+  'Stone-fruit flavors are trending in the same range.'
+    .split(' ').forEach(function (t) { TOKENS.push({ text: t }); });
+
+  var FOLLOW_UPS = [
+    'Which flavors sell best in winter',
+    'Compare gelato and soft serve margins'
+  ];
+
+  /* 上游内联的 data-URI 图标（含单引号，故用双引号 JS 字符串承载） */
+  var SOURCE_IMAGES = {
+    scoop: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231f7a5f'/%3E%3Cpath d='M20 36c0 7 5.4 12 12 12s12-5 12-12H20Z' fill='%23fff'/%3E%3Ccircle cx='32' cy='25' r='11' fill='%23bff3dd'/%3E%3Cpath d='M24 24c4-7 13-7 17 0' fill='none' stroke='%231f7a5f' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E",
+    trends: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f6fec'/%3E%3Cpath d='M15 43 27 31l8 7 14-18' fill='none' stroke='%23fff' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='49' cy='20' r='5' fill='%23bfe0ff'/%3E%3C/svg%3E",
+    market: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e56d24'/%3E%3Cpath d='M17 45V25h8v20h-8Zm11 0V16h8v29h-8Zm11 0V30h8v15h-8Z' fill='%23fff'/%3E%3Cpath d='M16 49h32' stroke='%23ffd6b8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E"
+  };
+
+  var SOURCES = [
+    { name: 'Scoop Data', domain: 'scoopdata.io', href: 'https://scoopdata.io/', image: SOURCE_IMAGES.scoop },
+    { name: 'Trends Index', domain: 'trends.google.com', href: 'https://trends.google.com/trends/', image: SOURCE_IMAGES.trends },
+    { name: 'Market Basket', domain: 'marketbasket.io', href: 'https://marketbasket.io/', image: SOURCE_IMAGES.market }
+  ];
+
+  /* ACTION_ICONS：复制 / 重试 / 点赞 / 点踩（上游四段内联 SVG 子元素） */
+  var ACTION_ICONS = [
+    '<g><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>',
+    '<path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/>',
+    '<path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z"/>',
+    '<path d="M17 14V2M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z"/>'
+  ];
+
+  var FOLLOW_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 10l-5 5 5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>';
+
+  var host = document.getElementById('stream-host');
+  var els = null;
+  var state = { count: 0, sourcesOpen: false, tokenNodes: 0, followUpAnimated: false };
+  var timer = null;
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* 内联来源 chip（SourceChip：favicon 3px 圆角 + 域名，pop-in 250ms）
+   * 用 innerHTML 模板构造：组装脚本只从 `class="..."` 字面量收集类名，
+   * 若改用 el.className='...'，这些类不会进 CSS，chip 会退化成行内文本。 */
+  var CHIP_TEMPLATE =
+    '<a target="_blank" rel="noreferrer" data-tok class="ml-0 mr-1 inline-flex h-4.5 translate-y-[-1px] items-center gap-1 rounded-[5px] bg-inset pr-[3px] pl-[3px] align-middle font-mono text-[10.5px] text-ink-2 shadow-hairline transition-colors duration-150 hover:bg-hover hover:text-ink" style="animation:pop-in 250ms cubic-bezier(0.23,1,0.32,1) both">'
+    + '<img alt="" class="source-avatar size-3 rounded-[3px]"><span></span></a>';
+
+  /* 光标：上游自己的小方块 + fade-in（不是 StreamText 原子的 .stream-caret） */
+  var CARET_TEMPLATE =
+    '<span class="ml-0.5 inline-block h-3 w-0.5 translate-y-0.5 rounded-full bg-ink" style="animation:fade-in 150ms ease-out both"></span>';
+
+  function fromTemplate(html) {
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    return wrap.firstChild;
+  }
+
+  function chipEl(src) {
+    var a = fromTemplate(CHIP_TEMPLATE);
+    a.href = src.href;
+    a.querySelector('img').src = src.image;
+    a.querySelector('span').textContent = src.domain;
+    return a;
+  }
+
+  function buildShell() {
+    var actionButtons = '';
+    for (var i = 0; i < ACTION_ICONS.length; i++) {
+      actionButtons +=
+        '<button type="button" aria-label="Action" class="flex size-6 items-center justify-center rounded-[6px] text-ink-3 transition-colors duration-100 hover:bg-hover-2 hover:text-ink-2">'
+        + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ACTION_ICONS[i] + '</svg>'
+        + '</button>';
+    }
+
+    var avatars = '';
+    for (var j = 0; j < SOURCES.length; j++) {
+      avatars += '<img src="' + SOURCES[j].image + '" alt="" class="source-avatar size-3.5 rounded-full bg-surface shadow-[0_0_0_1.5px_var(--canvas)]">';
+    }
+
+    var sourceList = '';
+    for (var k = 0; k < SOURCES.length; k++) {
+      var s = SOURCES[k];
+      sourceList +=
+        '<a href="' + s.href + '" target="_blank" rel="noreferrer" class="flex items-center gap-2 rounded-[6px] px-1.5 py-1 text-[12px] text-ink-2 transition-colors duration-150 hover:bg-hover hover:text-ink">'
+        + '<img src="' + s.image + '" alt="" class="source-avatar size-4 rounded-[4px]">'
+        + '<span class="animated-underline">' + esc(s.name) + '</span>'
+        + '<span class="ml-auto font-mono text-[10.5px] text-ink-3">' + esc(s.domain) + '</span>'
+        + '</a>';
+    }
+
+    var followButtons = '';
+    for (var f = 0; f < FOLLOW_UPS.length; f++) {
+      followButtons +=
+        '<button type="button" data-follow class="-mx-1.5 flex items-center gap-2 rounded-[7px] border-b border-line px-1.5 py-1.5 text-left text-[12.5px] text-ink transition-colors duration-100 hover:bg-hover-2" style="opacity:0">'
+        + FOLLOW_ICON + esc(FOLLOW_UPS[f])
+        + '</button>';
+    }
+
+    host.innerHTML =
+      '<div class="min-h-[15.5rem] w-full max-w-95">'
+      +   '<p class="text-[13px] leading-relaxed text-ink" data-p></p>'
+      +   '<div class="mt-2 flex items-center gap-0.5 transition-opacity duration-400" data-actions style="opacity:0;pointer-events:none">'
+      +     actionButtons
+      +     '<button type="button" data-sources-toggle aria-expanded="false" class="ml-1.5 flex items-center gap-1.5 rounded-[6px] px-1 py-0.5 text-left transition-colors duration-150 hover:bg-hover">'
+      +       '<span class="flex -space-x-1">' + avatars + '</span>'
+      +       '<span class="text-[12px] text-ink-2">10 sources</span>'
+      +     '</button>'
+      +   '</div>'
+      +   '<div class="grid transition-[grid-template-rows,opacity] duration-300" data-sources-panel style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +     '<div class="overflow-hidden">'
+      +       '<div class="mt-1.5 flex flex-col rounded-[10px] bg-inset p-1 shadow-hairline">' + sourceList + '</div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="mt-2.5 transition-opacity duration-400" data-followups style="opacity:0;pointer-events:none">'
+      +     '<p class="text-[12px] font-medium text-ink-2">Follow-ups</p>'
+      +     '<div class="mt-0.5 flex flex-col">' + followButtons + '</div>'
+      +   '</div>'
+      + '</div>';
+
+    els = {
+      p: host.querySelector('[data-p]'),
+      actions: host.querySelector('[data-actions]'),
+      toggle: host.querySelector('[data-sources-toggle]'),
+      panel: host.querySelector('[data-sources-panel]'),
+      followUps: host.querySelector('[data-followups]'),
+      caret: null
+    };
+    els.toggle.addEventListener('click', function () {
+      state.sourcesOpen = !state.sourcesOpen;
+      sync();
+    });
+    var fbs = host.querySelectorAll('[data-follow]');
+    for (var b = 0; b < fbs.length; b++) {
+      fbs[b].addEventListener('click', function () {
+        this.setAttribute('data-picked', 'true');
+      });
+    }
+  }
+
+  /* 逐词揭示：上游是「只增不减」的 count，这里同样只追加节点，避免动画重播 */
+  function syncTokens(count) {
+    if (count < state.tokenNodes) {
+      var kids = els.p.children;
+      for (var i = kids.length - 1; i >= 0; i--) {
+        if (kids[i] !== els.caret) els.p.removeChild(kids[i]);
+      }
+      state.tokenNodes = 0;
+    }
+    while (state.tokenNodes < count) {
+      var t = TOKENS[state.tokenNodes];
+      var node;
+      if (t.cite) {
+        node = chipEl(SOURCES[0]);
+      } else {
+        node = document.createElement('span');
+        node.className = 'inline';
+        node.setAttribute('data-tok', '');
+        node.textContent = t.text + ' ';
+      }
+      if (els.caret && els.caret.parentNode === els.p) els.p.insertBefore(node, els.caret);
+      else els.p.appendChild(node);
+      state.tokenNodes++;
+    }
+  }
+
+  function sync() {
+    var done = state.count >= TOKENS.length;
+
+    /* 光标：流完前显示（fade-in 150ms 淡入），settle 后移除。
+     * 注意上游这里用的是自己的小方块 + fade-in，而不是 StreamText 原子的 .stream-caret。 */
+    if (!done && !els.caret) {
+      els.caret = fromTemplate(CARET_TEMPLATE);
+      els.p.appendChild(els.caret);
+    } else if (done && els.caret) {
+      els.caret.remove();
+      els.caret = null;
+    }
+
+    syncTokens(state.count);
+
+    /* 操作行 + 来源面板 + 追问：整体按 done 切换透明度与可点性 */
+    els.actions.style.opacity = done ? '1' : '0';
+    els.actions.style.pointerEvents = done ? 'auto' : 'none';
+    els.followUps.style.opacity = done ? '1' : '0';
+    els.followUps.style.pointerEvents = done ? 'auto' : 'none';
+
+    var open = done && state.sourcesOpen;
+    els.panel.style.gridTemplateRows = open ? '1fr' : '0fr';
+    els.panel.style.opacity = open ? '1' : '0';
+    els.toggle.setAttribute('aria-expanded', state.sourcesOpen ? 'true' : 'false');
+
+    /* 追问在 done 的上升沿按 i*90ms 逐条入场（只播一次，不随其它状态变更重播） */
+    if (done && !state.followUpAnimated) {
+      state.followUpAnimated = true;
+      var fbs = host.querySelectorAll('[data-follow]');
+      for (var i = 0; i < fbs.length; i++) {
+        fbs[i].setAttribute('style', 'animation:fade-up 350ms cubic-bezier(0.23,1,0.32,1) ' + (i * 90) + 'ms both');
+      }
+    } else if (!done && state.followUpAnimated) {
+      state.followUpAnimated = false;
+      var reset = host.querySelectorAll('[data-follow]');
+      for (var j = 0; j < reset.length; j++) reset[j].setAttribute('style', 'opacity:0');
+    }
+  }
+
+  /* count 每 tick +1；到末尾后停 HOLD_MS 再回到 0 循环（上游 loop=true 的默认行为） */
+  function tick() {
+    var done = state.count >= TOKENS.length;
+    timer = setTimeout(function () {
+      state.count = state.count >= TOKENS.length ? 0 : state.count + 1;
+      sync();
+      tick();
+    }, done ? HOLD_MS : WORD_MS);
+  }
+
+  buildShell();
+  sync();
+  tick();
+})();
+</script>

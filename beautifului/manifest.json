@@ -1,0 +1,24 @@
+{
+  "name": "beautifului",
+  "version": "1.0.0",
+  "category": "web-ui",
+  "description": "Beautiful UI（beautifului.dev，MIT）21 个 AI 原生 UI 组件的 React 原码 + 零依赖单文件 HTML 移植版，并可按用户正在构建的 AI 工具推荐该用哪些组件。",
+  "description_en": "Beautiful UI (beautifului.dev, MIT): 21 AI-native UI primitives as React source plus zero-dependency single-file HTML ports, with scenario-based component recommendation.",
+  "homepage": "https://www.beautifului.dev",
+  "upstream_repo": "https://github.com/slev12397/beautiful-ui",
+  "license": "MIT",
+  "copyright": "Shane Levine (Turbo)",
+  "compat": [
+    "react>=19",
+    "tailwindcss>=4",
+    "html",
+    "flask"
+  ],
+  "provides": {
+    "react_source": "assets/upstream/components/",
+    "html_ports": "assets/html/",
+    "preview": "assets/preview/index.html",
+    "foundation_css": "assets/foundation.standalone.css",
+    "registry_offline": "assets/registry-offline/"
+  }
+}

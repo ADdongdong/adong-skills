@@ -1,0 +1,88 @@
+<!-- title: Context Cards -->
+<!--@classes: bg-red bg-green-->
+<!-- 来源：components/primitives/ContextCards.tsx（上游 MIT）
+     保真：检索到的 chunk 一次性入场后常驻。头部 fade-in 400ms ease-out；
+           每张卡按索引错开 fade-up 400ms cubic-bezier(0.23,1,0.32,1)（i*100ms）；
+           来源 chip 在 700ms 后整体揭示（opacity 0→1、scale 0.95→1，
+           transition-[opacity,transform,background-color] 300ms cubic-bezier(0.23,1,0.32,1)，
+           并各自延迟 i*80ms）—— 时序常量逐字照搬。
+     DOM 层级与上游一致（卡片 / primitive-card-bar / 正文 / chip 行）。
+     依赖降级：无（纯 HTML/CSS/JS）。badge 的 bg-red / bg-green 由数据生成，
+     故在 @classes 中声明。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>上下文卡</strong> — Agent 检索到的资料块（chunk）：进入时整组错开 <code>fade-up</code> 上浮，
+    顶部一行是标题 + 字符数，正文是片段内容，底部是来源 chip（在 700ms 后按 80ms 逐一
+    缩放淡入）。用于回答前先把「我参考了哪些资料」摆给用户看。
+  </p>
+
+  <div id="cc-host" style="width:380px;max-width:100%"></div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游常量（ContextCards.tsx） */
+  var LABELS = { header: 'All chunks', count: '32' };
+  var CHUNKS = [
+    {
+      title: 'Vendor onboarding rule',
+      chars: '290 characters',
+      body: 'Cold-chain certification must be verified before a new dairy can be added to the reorder workflow.',
+      source: 'Dairy Onboarding SOP.pdf',
+      badge: 'PDF',
+      tone: 'bg-red'
+    },
+    {
+      title: 'Seasonal demand row',
+      chars: '1,250 characters',
+      body: 'Q4 velocity table: pistachio +18%, vanilla +6%, rocky road -11%; retire flavors below 40 scoops weekly.',
+      source: 'Sales Velocity Export.csv',
+      badge: 'CSV',
+      tone: 'bg-green'
+    }
+  ];
+
+  var rows = '';
+  for (var i = 0; i < CHUNKS.length; i++) {
+    var c = CHUNKS[i];
+    rows += '<div class="overflow-hidden rounded-card bg-surface shadow-card" style="animation:fade-up 400ms cubic-bezier(0.23,1,0.32,1) ' + (i * 100) + 'ms both">'
+      + '<div class="primitive-card-bar flex items-center gap-2.5 border-b border-line">'
+      +   '<span class="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-ink">'
+      +     '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>'
+      +     '<span class="truncate">' + c.title + '</span>'
+      +   '</span>'
+      +   '<span class="ml-auto shrink-0 text-[12px] text-ink-3 tabular-nums">' + c.chars + '</span>'
+      + '</div>'
+      + '<p class="px-3 pt-2 pb-1 text-[12.5px] leading-relaxed text-ink-2">' + c.body + '</p>'
+      + '<div class="px-3 pb-3">'
+      +   '<span data-chip class="inline-flex h-6 items-center gap-1.5 rounded-full bg-inset px-2 text-[12px] font-medium text-ink-2 shadow-btn transition-[opacity,transform,background-color] duration-300 hover:bg-hover" '
+      +     'style="opacity:0;transform:scale(0.95);transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1);transition-delay:' + (i * 80) + 'ms">'
+      +     '<span class="flex size-3.5 items-center justify-center rounded-[4px] text-[7px] font-bold text-white ' + c.tone + '">' + c.badge + '</span>'
+      +     c.source
+      +     '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>'
+      +   '</span>'
+      + '</div>'
+      + '</div>';
+  }
+
+  var host = document.getElementById('cc-host');
+  host.innerHTML =
+    '<div class="flex w-full max-w-95 flex-col gap-2">'
+    + '<div class="flex items-center gap-2 px-0.5" style="animation:fade-in 400ms ease-out both">'
+    +   '<span class="text-[13px] font-semibold text-ink">' + LABELS.header + '</span>'
+    +   '<span class="inline-flex h-5 items-center rounded-md bg-inset px-1.5 text-[11.5px] font-medium text-ink-2 shadow-hairline tabular-nums">' + LABELS.count + '</span>'
+    + '</div>'
+    + rows
+    + '</div>';
+
+  /* 700ms 后来源 chip 揭示（对应上游 chipsShown 状态） */
+  setTimeout(function () {
+    var chips = host.querySelectorAll('[data-chip]');
+    for (var i = 0; i < chips.length; i++) {
+      chips[i].style.opacity = '1';
+      chips[i].style.transform = 'scale(1)';
+    }
+  }, 700);
+})();
+</script>

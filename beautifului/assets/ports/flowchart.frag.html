@@ -1,0 +1,424 @@
+<!-- title: Flowchart -->
+<!--@classes: right-0 left-0 invisible bg-hover-2 bg-field hover:bg-hover-2 shadow-card hover:shadow-raised w-36 w-44 w-64 shadow-[0_0_0_1.5px_var(--accent),0_2px_10px_rgba(0,0,0,0.045)] focus-visible:shadow-[0_0_0_1.5px_var(--accent)] leading-tight leading-snug text-ink-3 shrink-0 truncate min-w-0 flex-1 max-w-full pl-[49px] absolute flex -translate-x-1/2 touch-none flex-col items-start gap-1.5 w-full cursor-pointer rounded-[18px] bg-surface text-left outline-none transition-shadow duration-150 -->
+<!-- 来源：components/primitives/Flowchart.tsx（上游 MIT）
+     保真：布局常量 PAD_Y=24 / ROW_GAP=64 / PILL_OFFSET=30 逐字照搬；
+           节点拖拽（pointer capture + 3px 阈值 + 画布内夹取）、连接线贝塞尔
+           （k = clamp(|dy|*0.55, 24, 84)）、chip 下拉菜单（pop-in 180ms 入场 +
+           高亮层 top/height 220ms cubic-bezier(0.23,1,0.32,1) 滑动）全部保留；
+           菜单 hover 高亮与「选中节点点亮连线」逻辑一致。
+     降级：无 —— 组件纯自绘，无外部依赖。
+     @classes 里声明的是 JS 模板拼接产生的分支/动态类：
+       Menu 的左右对齐(right-0/left-0)、选中勾(invisible)、
+       chip 开合态(bg-hover-2 / bg-field / hover:bg-hover-2)、
+       节点选中阴影(shadow-[...]) 与默认阴影(shadow-card/hover:shadow-raised)、
+       以及 chip 宽度(w-36/w-44/w-64)。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>流程图 / 工作流画布</strong> — 点阵画布上的 Trigger 步骤与 If/Else 条件步骤，
+    由一条随拖拽实时重算的贝塞尔连接线相连。点节点可选中（描边与连线一并点亮），
+    点条件里的 chip 会弹出下拉菜单（与 PromptBar 模型选择器同一套动效）。
+    卡片可拖到画布任意位置。
+  </p>
+  <div id="flow-host" class="w-[520px] max-w-full"></div>
+</div>
+
+<script>
+/* 上游常量与数据，逐字照搬（Flowchart.tsx） */
+(function () {
+  var PURPLE = "#9a5cff";
+  var AMBER = "#f09a2f";
+  function mix(hue, pct, base) {
+    base = base || "var(--surface)";
+    return "color-mix(in srgb, " + hue + " " + pct + "%, " + base + ")";
+  }
+
+  var PAD_Y = 24;
+  var ROW_GAP = 64;
+  var PILL_OFFSET = 30; /* kind pill + gap above a card */
+
+  var NODES = [
+    {
+      id: "trigger", row: 0, x: 0.5, w: 300,
+      kind: { label: "Trigger", hue: PURPLE }, hue: PURPLE,
+      title: "New order created", caption: "Trigger when a new order is created"
+    },
+    {
+      id: "cond", row: 1, x: 0.5, w: 356,
+      kind: { label: "If / Else", hue: AMBER }, condition: true
+    }
+  ];
+  var EDGES = [{ from: "trigger", to: "cond" }];
+  var EST_H = { trigger: 92, cond: 134 };
+
+  var PROPERTIES = ["flavor", "topping", "size", "scoops"];
+  var FLAVORS = [
+    { name: "Rocky Road", tag: "Classic" },
+    { name: "Mint Chip", tag: "Classic" },
+    { name: "Pistachio", tag: "Seasonal" },
+    { name: "Bubblegum", tag: "Retro" }
+  ];
+  var TOPPINGS = [
+    { name: "Brown butter bourbon brittle crunch" },
+    { name: "Rainbow sprinkles" },
+    { name: "Hot fudge" },
+    { name: "Candied pecans" }
+  ];
+
+  /* ── icons ── */
+  function coneIcon(size) {
+    size = size || 16;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"></path>'
+      + '<path d="M17 7A5 5 0 0 0 7 7"></path>'
+      + '<path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"></path></svg>';
+  }
+  function chevron() {
+    return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-ink-3"><path d="m6 9 6 6 6-6"></path></svg>';
+  }
+  function handle() {
+    var s = '<svg width="10" height="16" viewBox="0 0 10 16" class="shrink-0 cursor-grab text-ink-3/70">';
+    [3, 8, 13].forEach(function (y) {
+      s += '<circle cx="3" cy="' + y + '" r="1.1" fill="currentColor"></circle>';
+      s += '<circle cx="7.5" cy="' + y + '" r="1.1" fill="currentColor"></circle>';
+    });
+    return s + '</svg>';
+  }
+  function checkIcon() {
+    return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+  }
+
+  /* ── the condition card body (If/and rows with chips) ── */
+  var values = {
+    prop1: "flavor", val1: "Rocky Road",
+    prop2: "topping", val2: "Brown butter bourbon brittle crunch"
+  };
+  var openId = null;
+
+  function sourceChip() {
+    return '<span data-ui class="inline-flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-surface px-1.5 text-[12px] font-medium text-ink shadow-btn">'
+      + '<span class="text-ink-2">' + coneIcon(12) + '</span>order</span>';
+  }
+
+  function menuHTML(id, items, width, align) {
+    var valueIndex = -1;
+    for (var i = 0; i < items.length; i++) if (items[i].name === values[id]) valueIndex = i;
+    var rows = "";
+    for (var k = 0; k < items.length; k++) {
+      var it = items[k];
+      rows += '<button type="button" data-menu-item="' + it.name + '" class="relative z-10 flex h-7.5 w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 text-left">'
+        + '<span class="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">' + it.name + '</span>'
+        + (it.tag ? '<span class="shrink-0 text-[11px] text-ink-3">' + it.tag + '</span>' : '')
+        + '<span class="shrink-0 text-ink ' + (it.name === values[id] ? "" : "invisible") + '">' + checkIcon() + '</span>'
+        + '</button>';
+    }
+    return '<div data-menu class="absolute bottom-full z-20 mb-1.5 rounded-[10px] bg-surface p-1 shadow-raised ' + width + ' ' + (align === "right" ? "right-0" : "left-0") + '" '
+      + 'style="animation:pop-in 180ms cubic-bezier(0.23,1,0.32,1) both;transform-origin:' + (align === "right" ? "bottom right" : "bottom left") + '">'
+      + '<span aria-hidden data-glide class="pointer-events-none absolute inset-x-1 rounded-[6px] bg-hover" '
+      + 'style="top:0;height:0;opacity:0;transition:top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease"></span>'
+      + rows + '</div>';
+  }
+
+  function selectChip(id, items, width, extra) {
+    extra = extra || {};
+    var open = openId === id;
+    var align = extra.align || "left";
+    return '<span data-ui data-chip-id="' + id + '" class="relative inline-flex min-w-0">'
+      + '<button type="button" data-select-chip="' + id + '" aria-expanded="' + open + '" '
+      + 'class="inline-flex h-6 min-w-0 cursor-pointer items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium text-ink transition-colors duration-100 '
+      + (open ? "bg-hover-2" : "bg-field hover:bg-hover-2") + '">'
+      + (extra.dot ? '<span class="size-1.5 shrink-0 rounded-full" style="background:' + AMBER + '"></span>' : '')
+      + '<span class="min-w-0 truncate">' + values[id] + '</span>' + chevron()
+      + '</button>'
+      + (open ? menuHTML(id, items, width, align) : '')
+      + '</span>';
+  }
+
+  function conditionHTML() {
+    return '<div class="w-full rounded-[18px] bg-surface shadow-card transition-shadow duration-150 hover:shadow-raised">'
+      + '<div class="flex flex-col gap-1.5 px-3 py-2.5">'
+      +   '<div class="flex min-w-0 items-center gap-1.5">'
+      +     handle()
+      +     '<span class="w-7 text-[12.5px] text-ink-2">If</span>'
+      +     sourceChip()
+      +     selectChip("prop1", PROPERTIES.map(function (n) { return { name: n }; }), "w-36")
+      +     '<span class="text-[12.5px] text-ink-2">is</span>'
+      +     selectChip("val1", FLAVORS, "w-44", { dot: true, align: "right" })
+      +   '</div>'
+      +   '<div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">'
+      +     handle()
+      +     '<span class="w-7 text-[12.5px] text-ink-2">and</span>'
+      +     sourceChip()
+      +     selectChip("prop2", PROPERTIES.map(function (n) { return { name: n }; }), "w-36")
+      +     '<span class="text-[12.5px] text-ink-2">is</span>'
+      +     '<span class="max-w-full pl-[49px]">' + selectChip("val2", TOPPINGS, "w-64", { dot: true }) + '</span>'
+      +   '</div>'
+      + '</div></div>';
+  }
+
+  function stepBody(node) {
+    return '<div class="flex items-center gap-2.5 p-2.5">'
+      + '<span class="flex size-9 shrink-0 items-center justify-center rounded-[8px]" style="'
+      +   'background:' + mix(node.hue, 12) + ';color:' + node.hue + ';box-shadow:0 0 0 1px ' + mix(node.hue, 20) + '">'
+      + coneIcon(16) + '</span>'
+      + '<span class="min-w-0 text-left">'
+      +   '<span class="block truncate text-[13px] font-semibold leading-tight text-ink">' + node.title + '</span>'
+      +   '<span class="mt-0.5 block text-[12px] leading-snug text-ink-2">' + node.caption + '</span>'
+      + '</span></div>';
+  }
+
+  /* ── canvas ── */
+  var host = document.getElementById('flow-host');
+  host.innerHTML =
+    '<div id="flow-canvas" class="relative w-full select-none overflow-hidden rounded-card bg-page shadow-hairline" style="'
+    + 'background-image:radial-gradient(var(--line-strong) 1px, transparent 1.25px);background-size:22px 22px;background-position:center">'
+    + '<svg id="flow-svg" class="pointer-events-none absolute inset-0"></svg>'
+    + '<div id="flow-nodes"></div></div>';
+
+  var canvas = document.getElementById('flow-canvas');
+  var svg = document.getElementById('flow-svg');
+  var wrap = document.getElementById('flow-nodes');
+  var nodeEls = {};
+  var pathEls = {};
+
+  var heights = { trigger: EST_H.trigger, cond: EST_H.cond };
+  var offsets = {};
+  var selected = null;
+  var drag = null;
+
+  function buildNodes() {
+    NODES.forEach(function (node) {
+      var el = document.createElement('div');
+      el.className = 'absolute flex -translate-x-1/2 touch-none flex-col items-start gap-1.5';
+      var pill = node.kind
+        ? '<span class="inline-flex h-6 items-center rounded-[6px] px-2 text-[11.5px] font-medium" style="'
+          + 'background:' + mix(node.kind.hue, 14, "var(--page)") + ';color:' + mix(node.kind.hue, 80, "var(--ink)") + '">'
+          + node.kind.label + '</span>'
+        : '';
+      var body;
+      if (node.condition) {
+        body = '<div data-cond-card class="w-full">' + conditionHTML() + '</div>';
+      } else {
+        body = '<button type="button" data-node-button class="w-full cursor-pointer rounded-[18px] bg-surface text-left outline-none transition-shadow duration-150 focus-visible:shadow-[0_0_0_1.5px_var(--accent)] '
+          + (selected === node.id ? "shadow-[0_0_0_1.5px_var(--accent),0_2px_10px_rgba(0,0,0,0.045)]" : "shadow-card hover:shadow-raised")
+          + '">' + stepBody(node) + '</button>';
+      }
+      el.innerHTML = pill + body;
+      el.setAttribute('data-node', node.id);
+      wrap.appendChild(el);
+      nodeEls[node.id] = el;
+      bindNode(node, el);
+    });
+    EDGES.forEach(function (edge) {
+      var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', 'var(--line-strong)');
+      p.setAttribute('stroke-width', '1.25');
+      p.setAttribute('class', 'transition-[stroke] duration-150');
+      svg.appendChild(p);
+      pathEls[edge.from + '-' + edge.to] = p;
+    });
+  }
+
+  function rowInfo() {
+    var rows = [];
+    NODES.forEach(function (n) { if (rows.indexOf(n.row) === -1) rows.push(n.row); });
+    rows.sort(function (a, b) { return a - b; });
+    var rowH = rows.map(function (r) {
+      return Math.max.apply(null, NODES.filter(function (n) { return n.row === r; }).map(function (n) {
+        return heights[n.id] || 90;
+      }));
+    });
+    var rowY = [];
+    rows.forEach(function (_, i) { rowY[i] = i === 0 ? PAD_Y : rowY[i - 1] + rowH[i - 1] + ROW_GAP; });
+    return { rows: rows, rowH: rowH, rowY: rowY, canvasH: rowY[rows.length - 1] + rowH[rowH.length - 1] + PAD_Y };
+  }
+
+  function cw() { return canvas.clientWidth || 480; }
+
+  function place(n, info, W) {
+    var w = Math.min(n.w, W * 0.92);
+    var off = offsets[n.id];
+    return {
+      w: w,
+      cx: n.x * W + (off ? off.dx : 0),
+      top: info.rowY[info.rows.indexOf(n.row)] + (off ? off.dy : 0)
+    };
+  }
+
+  function anchors(n, info, W) {
+    var p = place(n, info, W);
+    return {
+      top: { x: p.cx, y: p.top + (n.kind ? PILL_OFFSET : 0) },
+      bottom: { x: p.cx, y: p.top + (heights[n.id] || 90) }
+    };
+  }
+
+  function byId(id) { for (var i = 0; i < NODES.length; i++) if (NODES[i].id === id) return NODES[i]; return null; }
+
+  function bezier(edge, info, W) {
+    var from = anchors(byId(edge.from), info, W).bottom;
+    var to = anchors(byId(edge.to), info, W).top;
+    var k = Math.min(Math.max(Math.abs(to.y - from.y) * 0.55, 24), 84);
+    return 'M ' + from.x + ' ' + from.y + ' C ' + from.x + ' ' + (from.y + k) + ', ' + to.x + ' ' + (to.y - k) + ', ' + to.x + ' ' + to.y;
+  }
+
+  function layout() {
+    var W = cw();
+    var info = rowInfo();
+    canvas.style.height = info.canvasH + 'px';
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', info.canvasH);
+    NODES.forEach(function (n) {
+      var p = place(n, info, W);
+      var el = nodeEls[n.id];
+      el.style.left = p.cx + 'px';
+      el.style.top = p.top + 'px';
+      el.style.width = p.w + 'px';
+      el.style.zIndex = drag && drag.id === n.id ? 2 : 1;
+    });
+    EDGES.forEach(function (edge) {
+      var lit = selected === edge.from || selected === edge.to;
+      var p = pathEls[edge.from + '-' + edge.to];
+      p.setAttribute('d', bezier(edge, info, W));
+      p.setAttribute('stroke', lit ? 'var(--accent)' : 'var(--line-strong)');
+    });
+  }
+
+  /* measure node heights after paint, then re-layout */
+  function measure() {
+    var changed = false;
+    NODES.forEach(function (n) {
+      var h = nodeEls[n.id].offsetHeight;
+      if (h && Math.abs(h - (heights[n.id] || 0)) > 0.5) { heights[n.id] = h; changed = true; }
+    });
+    if (changed) layout();
+  }
+
+  /* ── dragging ── */
+  function bindNode(node, el) {
+    el.addEventListener('pointerdown', function (event) {
+      if (event.target.closest('[data-ui]')) return;
+      var off = offsets[node.id];
+      drag = {
+        id: node.id, startX: event.clientX, startY: event.clientY,
+        baseDx: off ? off.dx : 0, baseDy: off ? off.dy : 0, moved: false,
+        /* pointer capture redirects the later `click` to this wrapper, so we
+           remember whether the press started on the card button and select on
+           pointerup instead of relying on a click event. */
+        onButton: !!event.target.closest('[data-node-button]')
+      };
+      el.setPointerCapture(event.pointerId);
+    });
+    el.addEventListener('pointermove', function (event) {
+      if (!drag || drag.id !== node.id) return;
+      var dx = drag.baseDx + event.clientX - drag.startX;
+      var dy = drag.baseDy + event.clientY - drag.startY;
+      if (!drag.moved && Math.hypot(dx - drag.baseDx, dy - drag.baseDy) < 3) return;
+      drag.moved = true;
+      var W = cw();
+      var info = rowInfo();
+      var p = place(node, info, W);
+      var h = heights[node.id] || 90;
+      var baseCx = node.x * W;
+      var baseTop = info.rowY[info.rows.indexOf(node.row)];
+      var cx = Math.min(Math.max(baseCx + dx, p.w / 2 + 8), W - p.w / 2 - 8);
+      var top = Math.min(Math.max(baseTop + dy, 8), info.canvasH - h - 8);
+      offsets[node.id] = { dx: cx - baseCx, dy: top - baseTop };
+      layout();
+    });
+    function up(event) {
+      if (!drag || drag.id !== node.id) return;
+      var wasClick = !drag.moved && drag.onButton && event.type === 'pointerup';
+      if (el.hasPointerCapture && el.hasPointerCapture(event.pointerId)) {
+        el.releasePointerCapture(event.pointerId);
+      }
+      drag = null;
+      if (wasClick) {
+        selected = selected === node.id ? null : node.id;
+        rebuildTriggerButtons();
+        layout();
+      }
+    }
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  }
+
+  /* chips + menu items (node selection happens in the pointerup handler above,
+     because pointer capture would otherwise retarget the click to the wrapper) */
+  wrap.addEventListener('click', function (event) {
+    var chip = event.target.closest('[data-select-chip]');
+    if (chip) {
+      var cid = chip.getAttribute('data-select-chip');
+      openId = openId === cid ? null : cid;
+      refreshCondition();
+      measure();
+      return;
+    }
+    var item = event.target.closest('[data-menu-item]');
+    if (item) {
+      var span = item.closest('[data-chip-id]');
+      if (span) {
+        values[span.getAttribute('data-chip-id')] = item.getAttribute('data-menu-item');
+        openId = null;
+        refreshCondition();
+        measure();
+      }
+    }
+  });
+
+  /* menu hover → glide the highlight between rows */
+  wrap.addEventListener('mouseover', function (event) {
+    var item = event.target.closest('[data-menu-item]');
+    if (!item) return;
+    var menu = item.closest('[data-menu]');
+    var glide = menu.querySelector('[data-glide]');
+    glide.style.top = item.offsetTop + 'px';
+    glide.style.height = item.offsetHeight + 'px';
+    glide.style.opacity = '1';
+  });
+  wrap.addEventListener('mouseleave', function () {
+    var glides = wrap.querySelectorAll('[data-glide]');
+    for (var i = 0; i < glides.length; i++) glides[i].style.opacity = '0';
+  });
+
+  /* click anywhere else closes the menu */
+  document.addEventListener('pointerdown', function (event) {
+    if (openId === null) return;
+    if (event.target.closest('[data-ui]')) return;
+    openId = null;
+    refreshCondition();
+    measure();
+  });
+
+  function rebuildTriggerButtons() {
+    NODES.forEach(function (node) {
+      if (node.condition) return;
+      var btn = nodeEls[node.id].querySelector('[data-node-button]');
+      btn.setAttribute('aria-pressed', selected === node.id);
+      var cls = 'w-full cursor-pointer rounded-[18px] bg-surface text-left outline-none transition-shadow duration-150 focus-visible:shadow-[0_0_0_1.5px_var(--accent)] ';
+      cls += selected === node.id
+        ? 'shadow-[0_0_0_1.5px_var(--accent),0_2px_10px_rgba(0,0,0,0.045)]'
+        : 'shadow-card hover:shadow-raised';
+      btn.className = cls;
+    });
+  }
+
+  function refreshCondition() {
+    var card = wrap.querySelector('[data-cond-card]');
+    if (card) card.innerHTML = conditionHTML();
+  }
+
+  buildNodes();
+  layout();
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { measure(); });
+    ro.observe(canvas);
+    NODES.forEach(function (n) { ro.observe(nodeEls[n.id]); });
+  }
+  /* upstream measures inside useLayoutEffect (before paint); we match with a
+     microtask + a frame so web-font metrics settle the same way. */
+  Promise.resolve().then(measure);
+  requestAnimationFrame(function () { requestAnimationFrame(measure); });
+  window.addEventListener('load', measure);
+})();
+</script>

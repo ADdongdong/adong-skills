@@ -1,0 +1,238 @@
+<!-- title: Code Block -->
+<!--@classes:
+  w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card
+  flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]
+  inline-flex min-w-0 items-center gap-[7px]
+  truncate font-mono leading-none text-ink shrink-0 text-ink-3
+  ml-auto inline-flex items-center gap-2 font-mono text-[12px] leading-none tabular-nums
+  text-green text-red
+  -mr-1 ml-auto flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium transition-colors duration-100 hover:bg-hover
+  text-ink-3 hover:text-ink
+  py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2
+  relative pointer-events-none absolute inset-y-0 left-5 w-px bg-line
+  relative grid grid-cols-[20px_minmax(0,1fr)] items-start
+  bg-green-tint bg-red-tint absolute inset-y-0 left-0 w-[3px]
+  select-none text-center text-[11px] text-ink-3
+  pr-3 pl-1 break-words whitespace-pre-wrap rounded-[3px]
+-->
+<!-- 来源：components/primitives/CodeBlock.tsx（上游 MIT）
+     变体：Code（带行号列表）/ Diff（unified diff）
+     保真：两条视图共用同一套语法着色 —— 关键字/条件 → var(--accent-ink)，
+           字符串/数字 → var(--orange)，函数调用 → var(--ink) 且 font-weight:500；
+           TOKEN 正则与 highlight() 的 token 顺序逐字照搬。diff 的 gutter 单列
+           （删除行用旧行号，新增/上下文用新行号）、左侧 3px 色条（新增实心绿、
+           删除红色斜纹 hatch）、green/red 行底 tint、词级 add/del 高亮
+           （color-mix 18% + box-decoration-break:clone）全部照搬。
+     Copy：写剪贴板后 1500ms 内显示 "Copied"（绿）；离线/无权限时静默失败，
+           与上游 `navigator.clipboard.writeText(...).then(...)` 行为一致，
+           仅额外加了 catch 防止控制台出现未捕获的 rejection。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>代码块</strong> — 浅色编辑器面板，两种视图在卡片内切换：
+    <code>Code</code> 是带行号的代码列表，<code>Diff</code> 是统一 diff
+    （旧/新 gutter、绿红强调条与行底色、词级增删高亮）。两者共用同一套语法着色与换行策略。
+    点击右上角 <code>Copy</code> 复制全文，1.5 秒内回显 <code>Copied</code>。
+  </p>
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Code" aria-pressed="true">Code</button>
+    <button type="button" class="port-variant-btn" data-variant="Diff" aria-pressed="false">Diff</button>
+  </div>
+  <div id="codeblock-host"></div>
+</div>
+
+<script>
+/* ── 逐字照搬上游的语法着色规则 ────────────────────────────── */
+var CB_FILE = 'churn.ts';
+
+var CB_KEYWORDS = new Set(['import', 'from', 'export', 'default', 'async', 'function', 'const', 'let', 'var', 'await', 'return', 'if', 'else', 'for', 'while', 'new', 'throw', 'try', 'catch', 'null', 'true', 'false', 'undefined']);
+var CB_TOKEN = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|\b\d+(?:\.\d+)?\b|\b(?:import|from|export|default|async|function|const|let|var|await|return|if|else|for|while|new|throw|try|catch|null|true|false|undefined)\b|[A-Za-z_$][\w$]*(?=\s*\())/g;
+
+function cbEsc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* React 会自动转义文本；这里手动转义，其余逻辑 1:1 */
+function cbHighlight(text) {
+  var out = '';
+  var last = 0;
+  var m;
+  CB_TOKEN.lastIndex = 0;
+  while ((m = CB_TOKEN.exec(text)) !== null) {
+    var idx = m.index;
+    var t = m[0];
+    if (idx > last) out += '<span>' + cbEsc(text.slice(last, idx)) + '</span>';
+    var color;
+    var weight = '';
+    if (/^["'`]/.test(t) || /^\d/.test(t)) color = 'var(--orange)';            /* string / number */
+    else if (CB_KEYWORDS.has(t)) color = 'var(--accent-ink)';                   /* keyword / import / conditional */
+    else { color = 'var(--ink)'; weight = 'font-weight:500'; }                  /* function call */
+    out += '<span style="color:' + color + (weight ? ';' + weight : '') + '">' + cbEsc(t) + '</span>';
+    last = idx + t.length;
+  }
+  if (last < text.length) out += '<span>' + cbEsc(text.slice(last)) + '</span>';
+  return out;
+}
+
+var CB_CODE_LINES = [
+  'export async function churnBatch() {',
+  '  const flavor = await getFlavor("pistachio");',
+  '  const base = await dairy.fetch({ flavor });',
+  '  await freezer.store(base, { temp: "-16C" });',
+  '  if (!base.approved) return null;',
+  '  return base.gallons;',
+  '}'
+];
+
+var CB_DIFF = [
+  { old: 1, cur: 1, type: 'ctx', pieces: [{ text: 'export async function churnBatch() {' }] },
+  { old: 2, cur: 2, type: 'ctx', pieces: [{ text: '  const flavor = await getFlavor("pistachio");' }] },
+  { old: 3, cur: 3, type: 'ctx', pieces: [{ text: '  const base = await dairy.fetch({ flavor });' }] },
+  { old: 4, cur: null, type: 'del', pieces: [{ text: '  await freezer.store(base, { temp: ' }, { text: '"-14C"', change: 'del' }, { text: ' });' }] },
+  { old: null, cur: 4, type: 'add', pieces: [{ text: '  await freezer.store(base, { temp: ' }, { text: '"-16C"', change: 'add' }, { text: ' });' }] },
+  { old: null, cur: 5, type: 'add', pieces: [{ text: '  if (!base.approved) return null;' }] },
+  { old: 5, cur: 6, type: 'ctx', pieces: [{ text: '  return base.gallons;' }] },
+  { old: 6, cur: 7, type: 'ctx', pieces: [{ text: '}' }] }
+];
+
+var CB_HATCH = 'repeating-linear-gradient(45deg, var(--red) 0, var(--red) 1.5px, transparent 1.5px, transparent 3px)';
+
+(function () {
+  var host = document.getElementById('codeblock-host');
+  var variant = 'Code';
+  var copied = false;
+
+  function fileIcon() {
+    return '<svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-ink-3"><path d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>';
+  }
+
+  function piecesHtml(pieces) {
+    return pieces.map(function (p) {
+      if (p.change) {
+        var add = p.change === 'add';
+        var bg = 'color-mix(in srgb, var(--' + (add ? 'green' : 'red') + ') 18%, transparent)';
+        return '<span class="rounded-[3px]" style="background:' + bg + ';padding:0 2px;margin:0 -1px;-webkit-box-decoration-break:clone;box-decoration-break:clone">' + cbHighlight(p.text) + '</span>';
+      }
+      return '<span>' + cbHighlight(p.text) + '</span>';
+    }).join('');
+  }
+
+  function diffBody() {
+    var added = CB_DIFF.filter(function (r) { return r.type === 'add'; }).length;
+    var removed = CB_DIFF.filter(function (r) { return r.type === 'del'; }).length;
+    var rows = CB_DIFF.map(function (r) {
+      var add = r.type === 'add';
+      var del = r.type === 'del';
+      var num = del ? r.old : r.cur;            /* 单列 gutter：删除行用旧号，其余用新号 */
+      var bar = (add || del)
+        ? '<span class="absolute inset-y-0 left-0 w-[3px]" style="background:' + (add ? 'var(--green)' : CB_HATCH) + '"></span>'
+        : '';
+      var numCls = add ? 'text-green' : del ? 'text-red' : 'text-ink-3';
+      return '<div class="relative grid grid-cols-[20px_minmax(0,1fr)] items-start ' + (add ? 'bg-green-tint' : del ? 'bg-red-tint' : '') + '">'
+        + bar
+        + '<span class="select-none text-center text-[11px] ' + numCls + '">' + (num == null ? '' : num) + '</span>'
+        + '<code class="pr-3 pl-1 break-words whitespace-pre-wrap">' + piecesHtml(r.pieces) + '</code>'
+        + '</div>';
+    }).join('');
+    return { html: rows, added: added, removed: removed };
+  }
+
+  function codeBody() {
+    return CB_CODE_LINES.map(function (line, i) {
+      return '<div class="grid grid-cols-[20px_minmax(0,1fr)] items-start">'
+        + '<span class="select-none text-center text-[11px] text-ink-3">' + (i + 1) + '</span>'
+        + '<code class="pr-3 pl-1 break-words whitespace-pre-wrap">' + cbHighlight(line) + '</code>'
+        + '</div>';
+    }).join('');
+  }
+
+  function render() {
+    var isDiff = variant === 'Diff';
+    var head;
+    if (isDiff) {
+      var d = diffBody();
+      head = '<span class="ml-auto inline-flex items-center gap-2 font-mono text-[12px] leading-none tabular-nums">'
+        + '<span class="text-green">+' + d.added + '</span>'
+        + '<span class="text-red">-' + d.removed + '</span>'
+        + '</span>';
+      host.innerHTML =
+        '<div class="w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card">'
+        + '<div class="flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]">'
+        +   '<span class="inline-flex min-w-0 items-center gap-[7px]">' + fileIcon()
+        +     '<span class="truncate font-mono leading-none text-ink">' + CB_FILE + '</span></span>'
+        +   head
+        + '</div>'
+        + '<div class="py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2">'
+        +   '<div class="relative">'
+        +     '<span class="pointer-events-none absolute inset-y-0 left-5 w-px bg-line"></span>'
+        +     d.html
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+    } else {
+      var checkSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>';
+      var copySvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>';
+      head = '<button type="button" id="cb-copy" aria-label="Copy code" class="-mr-1 ml-auto flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium transition-colors duration-100 hover:bg-hover ' + (copied ? 'text-green' : 'text-ink-3 hover:text-ink') + '">'
+        + (copied ? checkSvg : copySvg)
+        + (copied ? 'Copied' : 'Copy')
+        + '</button>';
+      host.innerHTML =
+        '<div class="w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card">'
+        + '<div class="flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]">'
+        +   '<span class="inline-flex min-w-0 items-center gap-[7px]">' + fileIcon()
+        +     '<span class="truncate font-mono leading-none text-ink">' + CB_FILE + '</span></span>'
+        +   head
+        + '</div>'
+        + '<div class="py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2">'
+        +   '<div class="relative">'
+        +     '<span class="pointer-events-none absolute inset-y-0 left-5 w-px bg-line"></span>'
+        +     codeBody()
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+      document.getElementById('cb-copy').addEventListener('click', doCopy);
+    }
+  }
+
+  function doCopy() {
+    var raw = CB_CODE_LINES.join('\n');
+    var done = function () {
+      copied = true;
+      render();
+      setTimeout(function () { copied = false; render(); }, 1500);
+    };
+    /* 上游直接 navigator.clipboard.writeText(raw).then(setCopied)。
+       file:// / 非安全上下文下该 API 可能被拒，补一个 execCommand 兜底，
+       仍是「成功才回显 Copied」，不改变语义。 */
+    var fallback = function () {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = raw;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) done();
+      } catch (e) { /* 剪贴板完全不可用：静默，与上游一致 */ }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(raw).then(done).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  var btns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      for (var j = 0; j < btns.length; j++) btns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      variant = this.getAttribute('data-variant');
+      render();
+    });
+  }
+  render();
+})();
+</script>

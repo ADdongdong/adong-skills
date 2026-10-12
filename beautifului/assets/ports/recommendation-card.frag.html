@@ -1,0 +1,221 @@
+<!-- title: Recommendation Card -->
+<!--@classes:
+  inline-flex items-center justify-center font-medium select-none transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none
+  h-[27px] leading-none rounded-full gap-1.5
+  bg-surface text-ink shadow-btn hover:bg-inset aria-expanded:bg-hover px-2.5 text-[12.5px]
+  bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3
+  bg-ink text-canvas hover:opacity-90 dark:bg-ink dark:text-canvas shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3
+  bg-green text-white hover:brightness-95 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3
+  mx-0.5 inline-flex items-center gap-1 rounded-full bg-field py-px pl-[3px] pr-1.5 align-middle shadow-hairline
+  flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold leading-none text-white
+  text-[12px] font-medium text-ink
+  mx-0.5 inline-flex items-center rounded-full px-1.5 py-0 align-middle text-[12px] font-medium bg-field text-ink-2
+  bg-green-tint text-green
+  mx-0.5 inline-flex items-center rounded-full px-1.5 py-0 align-middle text-[12px] font-medium
+-->
+<!-- 来源：components/primitives/RecommendationCard.tsx（上游 MIT）
+     内联了 3 个原子：atoms/Button.tsx（cva 变体手写为 class 分支，含 tailwind-merge 的去重结果：
+     Alternatives 调用方传 px-2.5 / text-[12.5px]，覆盖 size sm 的 px-3 / text-[13px]；
+     主按钮调用方只传 text-[12.5px]，所以仍保留 size sm 的 px-3。两处都按合并后的最终类写死）、
+     atoms/EntityChip.tsx（含 Monogram，默认色 #e08a3c 为上游默认值）、atoms/ValuePill.tsx（5 种 tone 的 tint + ring）。
+     保真：备选抽屉用 grid-template-rows 0fr→1fr + opacity，300ms + cubic-bezier(0.16,1,0.3,1)；
+           正文切换重放 fade-in 180ms ease-out；置信度仪表 3 格、transition-colors duration-300；
+           抽屉行 hover:bg-hover、transition-colors duration-100 全部照搬。
+     降级：无 npm 依赖。cn/tailwind-merge 的类合并提前算好写死。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>建议卡片</strong> — Agent 给出一个行动建议 + 置信度仪表（3 格信号条），
+    点 <code>Alternatives</code> 从底部展开抽屉列出其它备选；选一条会把它提升为主建议并重放淡入，
+    主按钮随之换文案与配色（accent / primary）。点 <code>Accept</code> 后按钮转为绿色 success 态。
+    适合「Agent 建议 + 人来拍板」的场景。
+  </p>
+
+  <div class="w-full max-w-95 overflow-hidden rounded-card bg-surface shadow-card">
+    <div class="primitive-card-pad">
+      <span class="text-[14px] font-medium text-ink">Want me to place this restock order?</span>
+      <p id="rc-body" class="mt-1.5 min-h-12 text-[13px] leading-relaxed text-ink-2"></p>
+    </div>
+
+    <!-- alternatives drawer — 卡片内一个明确的新区段 -->
+    <div id="rc-drawer" class="grid transition-[grid-template-rows,opacity] duration-300"
+      style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.16, 1, 0.3, 1)">
+      <div class="overflow-hidden">
+        <div class="border-t border-line bg-surface px-2 py-2">
+          <p class="px-1.5 pb-1 text-[11px] font-medium text-ink-3">Other options</p>
+          <div id="rc-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="primitive-card-footer flex items-center justify-between gap-3 bg-surface">
+      <span class="flex items-center gap-2">
+        <span id="rc-meter" class="flex items-end gap-0.5"></span>
+        <span id="rc-label" class="text-[12.5px] font-medium text-ink-2"></span>
+      </span>
+      <span class="-mr-0.5 flex items-center gap-2">
+        <button id="rc-alt" type="button" aria-expanded="false"></button>
+        <button id="rc-cta" type="button"></button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* ── 内联 atoms/Button.tsx：cva 变体手写为 class 分支 ───────────
+   * base + size sm 为公共部分；调用方 className（px-2.5 / text-[12.5px]）
+   * 经 tailwind-merge 覆盖 size 的 px-3 / text-[13px]，这里直接写最终值。 */
+  var BTN_BASE = 'inline-flex items-center justify-center font-medium select-none '
+    + 'transition-[transform,background-color,opacity] duration-150 ease-out '
+    + 'active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none '
+    + 'h-[27px] leading-none rounded-full gap-1.5';
+  var BTN = {
+    secondary: BTN_BASE + ' bg-surface text-ink shadow-btn hover:bg-inset aria-expanded:bg-hover px-2.5 text-[12.5px]',
+    accent:    BTN_BASE + ' bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3 text-[12.5px]',
+    primary:   BTN_BASE + ' bg-ink text-canvas hover:opacity-90 dark:bg-ink dark:text-canvas shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3 text-[12.5px]',
+    success:   BTN_BASE + ' bg-green text-white hover:brightness-95 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] px-3 text-[12.5px]'
+  };
+
+  /* ── 内联 atoms/EntityChip.tsx（含 Monogram，默认色沿用上游 #e08a3c）*/
+  function monogram(text, color) {
+    return '<span class="flex size-4 shrink-0 items-center justify-center rounded-full '
+         + 'text-[9px] font-semibold leading-none text-white" style="background:' + (color || '#e08a3c') + '">'
+         + text + '</span>';
+  }
+  function entityChip(name, color) {
+    return '<span class="mx-0.5 inline-flex items-center gap-1 rounded-full bg-field '
+         + 'py-px pl-[3px] pr-1.5 align-middle shadow-hairline">'
+         + monogram(name.charAt(0), color)
+         + '<span class="text-[12px] font-medium text-ink">' + name + '</span>'
+         + '</span>';
+  }
+
+  /* ── 内联 atoms/ValuePill.tsx：5 种 tone 的 class + 描边 ring ─── */
+  var PILL_TONES = {
+    neutral: { cls: 'bg-field text-ink-2', ring: 'var(--shadow-hairline)' },
+    green:   { cls: 'bg-green-tint text-green', ring: '0 0 0 1px color-mix(in oklch, var(--green) 28%, transparent)' },
+    orange:  { cls: 'bg-orange-tint text-orange', ring: '0 0 0 1px color-mix(in oklch, var(--orange) 28%, transparent)' },
+    red:     { cls: 'bg-red-tint text-red', ring: '0 0 0 1px color-mix(in oklch, var(--red) 28%, transparent)' },
+    accent:  { cls: 'bg-accent-tint text-accent-ink', ring: '0 0 0 1px color-mix(in oklch, var(--accent) 28%, transparent)' }
+  };
+  function valuePill(text, tone) {
+    var t = PILL_TONES[tone || 'neutral'];
+    return '<span class="mx-0.5 inline-flex items-center rounded-full px-1.5 py-0 '
+         + 'align-middle text-[12px] font-medium ' + t.cls + '" style="box-shadow:' + t.ring + '">'
+         + text + '</span>';
+  }
+
+  /* ── 上游 OPTIONS 逐字照搬 ───────────────────────────────── */
+  var OPTIONS = [
+    {
+      key: 'high',
+      html: 'Reorder waffle cones from ' + entityChip('Cone King') + ' with lead time ' + valuePill('7 days', 'green'),
+      short: 'Reorder from Cone King · 7-day lead',
+      signal: 3, tone: 'var(--green)', label: 'High confidence',
+      cta: 'Accept', ctaVariant: 'accent'
+    },
+    {
+      key: 'review',
+      html: 'Switch vanilla to ' + valuePill('Vanilla Madagascar', 'neutral') + ' for peak season.',
+      short: 'Switch to Vanilla Madagascar',
+      signal: 2, tone: 'var(--orange)', label: 'Needs review',
+      cta: 'Configure', ctaVariant: 'primary'
+    },
+    {
+      key: 'none',
+      html: 'Fall back to a <span class="font-medium text-ink">full restock</span> across every SKU.',
+      short: 'Full restock across every SKU',
+      signal: 0, tone: 'var(--ink-3)', label: 'No signal',
+      cta: 'Accept full restock', ctaVariant: 'primary'
+    }
+  ];
+
+  /* 置信度仪表：3 格信号条，bar < signal 上色，否则用 --line-strong */
+  function meterHTML(signal, tone) {
+    var bars = '';
+    for (var bar = 0; bar < 3; bar++) {
+      bars += '<span class="w-1 rounded-full transition-colors duration-300" style="height:10px;background:'
+            + (bar < signal ? tone : 'var(--line-strong)') + '"></span>';
+    }
+    return bars;
+  }
+
+  var body = document.getElementById('rc-body');
+  var rowsEl = document.getElementById('rc-rows');
+  var meter = document.getElementById('rc-meter');
+  var label = document.getElementById('rc-label');
+  var altBtn = document.getElementById('rc-alt');
+  var ctaBtn = document.getElementById('rc-cta');
+  var drawer = document.getElementById('rc-drawer');
+
+  var selected = 0;
+  var open = false;
+  var accepted = false;
+
+  function renderBody() {
+    var o = OPTIONS[selected];
+    body.innerHTML = o.html;
+    /* React 的 key={active.key} → 换选项时重放 fade-in */
+    body.style.animation = 'none';
+    void body.offsetWidth;
+    body.style.animation = 'fade-in 180ms ease-out both';
+  }
+
+  function renderRows() {
+    var html = '';
+    for (var i = 0; i < OPTIONS.length; i++) {
+      if (i === selected) continue;
+      var o = OPTIONS[i];
+      html += '<button type="button" data-pick="' + i + '" '
+           +  'class="flex w-full items-center gap-2.5 rounded-control px-1.5 py-1.5 '
+           +  'text-left transition-colors duration-100 hover:bg-hover">'
+           +    '<span class="flex items-end gap-0.5">' + meterHTML(o.signal, o.tone) + '</span>'
+           +    '<span class="min-w-0 flex-1 truncate text-[12.5px] text-ink">' + o.short + '</span>'
+           +    '<span class="shrink-0 text-[11px] text-ink-3">' + o.label + '</span>'
+           +  '</button>';
+    }
+    rowsEl.innerHTML = html;
+    var picks = rowsEl.querySelectorAll('[data-pick]');
+    for (var p = 0; p < picks.length; p++) {
+      picks[p].addEventListener('click', function () {
+        selected = Number(this.getAttribute('data-pick'));
+        accepted = false;
+        renderBody();
+        renderRows();
+        renderFooter();
+      });
+    }
+  }
+
+  function renderFooter() {
+    var o = OPTIONS[selected];
+    meter.innerHTML = meterHTML(o.signal, o.tone);
+    label.textContent = o.label;
+    if (accepted) {
+      ctaBtn.className = BTN.success;
+      ctaBtn.textContent = 'Accepted';
+    } else {
+      ctaBtn.className = BTN[o.ctaVariant];
+      ctaBtn.textContent = o.cta;
+    }
+  }
+
+  altBtn.className = BTN.secondary;
+  altBtn.textContent = 'Alternatives';
+  altBtn.addEventListener('click', function () {
+    open = !open;
+    altBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    drawer.style.gridTemplateRows = open ? '1fr' : '0fr';
+    drawer.style.opacity = open ? '1' : '0';
+  });
+  ctaBtn.addEventListener('click', function () {
+    accepted = true;
+    renderFooter();
+  });
+
+  renderBody();
+  renderRows();
+  renderFooter();
+})();
+</script>

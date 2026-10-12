@@ -1,0 +1,411 @@
+<!-- title: Approval Card -->
+<!--@classes:
+  bg-ink text-canvas shadow-[inset_0_0_0_1.5px_var(--line-strong)] text-transparent
+  text-ink text-ink-2
+  size-1.5 rounded-full rounded-[5px] bg-canvas transition-transform duration-200
+  text-[13px] leading-none transition-colors duration-200
+  inline-flex items-center justify-center font-medium select-none transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none
+  h-[27px] px-3 text-[13px] leading-none rounded-full gap-1.5
+  bg-hover-2 text-ink hover:bg-line-strong
+  bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]
+  flex size-[18px] items-center justify-center rounded-[5px] transition-colors duration-100 enabled:hover:text-ink disabled:opacity-30
+-->
+<!-- 来源：components/primitives/ApprovalCard.tsx（上游 MIT）
+     内联了 atoms/Button.tsx（variant ghost / accent + size sm，cva 变体手写为 class 分支）
+     与 primitives/GlideMenu.tsx（单条滑动的 hover 高亮 + 键盘导航，见 initGlide）。
+     保真：ROLL_MS = 400、两张滑动曲线 SLIDE = "360ms cubic-bezier(0.22, 1, 0.36, 1)"、
+           滚动数字逐字符上下翻（transition transform 350ms cubic-bezier(0.4,0,0.2,1)，
+           双 rAF 后再落位）、卡片高度随题目高度过渡、单选 480ms 自动前进、
+           gap 26px 的问题栈、z-10 选项 / 绝对定位高亮层、aria-pressed / tabIndex 切换。
+     降级：useLayoutEffect + useRef 测量 → 直接读 offsetHeight / offsetTop；
+           React 的 key 重挂载 → mount() 重建；prefers-reduced-motion 时关闭过渡（同上游）。
+     @classes：① footer 的 Skip/Continue 与翻页按钮的类来自 JS 常量（不在 class="..." 里），
+               ② 选项勾选态的 class 分支同样由 JS 拼出（含 rounded-[5px]）。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>审批卡（Human-in-the-loop）</strong> — 一次只问一个问题：Agent 动手前向人确认。
+    单选（radio）选中后 480ms 自动翻页，多选（check）等你按 Continue；
+    每题都能填「自定义答案」，填空会清掉单选。问题栈整体上下滑动、卡片高度跟着过渡，
+    左下角的 <code>1 / 3</code> 是逐字符翻动的里程表；Skip 跳过本题（最后一题则收起卡片），
+    Continue / Send 走 accent 主按钮，无答案时禁用。
+  </p>
+
+  <div id="ap-host" class="w-full max-w-80"></div>
+</div>
+
+<script>
+(function () {
+  /* ── 上游 QUESTIONS / 文案 / 时序常量，逐字照搬 ─────────────── */
+  var QUESTIONS = [
+    { q: "How many flavors should we launch?", type: "radio", options: ["Three (core line)", "Five (full case)", "Just one hero"] },
+    { q: "Which mix-ins should we stock?",     type: "check", options: ["Chocolate chips", "Waffle bits", "Sprinkles"] },
+    { q: "Which market do we enter first?",    type: "radio", options: ["Food trucks", "Grocery freezers", "Scoop shops"] }
+  ];
+  var LABELS = { skip: "Skip", continue: "Continue", send: "Send", customPlaceholder: "Something else…", sentMessage: "Answers sent" };
+  var ROLL_MS = 400;
+  var SLIDE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  var SLIDE = '360ms ' + SLIDE_EASE;
+
+  var BTN_SM = 'inline-flex items-center justify-center font-medium select-none '
+    + 'transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] '
+    + 'disabled:opacity-50 disabled:pointer-events-none h-[27px] px-3 text-[13px] leading-none rounded-full gap-1.5 ';
+  var BTN_GHOST  = BTN_SM + 'bg-hover-2 text-ink hover:bg-line-strong';
+  var BTN_ACCENT = BTN_SM + 'bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]';
+
+  var NAV_BTN = 'flex size-[18px] items-center justify-center rounded-[5px] '
+    + 'transition-colors duration-100 enabled:hover:text-ink disabled:opacity-30';
+
+  function ico(path, size, sw) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" '
+      + 'stroke="currentColor" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + path + '</svg>';
+  }
+  var ICO_X = '<path d="M18 6L6 18M6 6l12 12" />';
+  var ICO_PREV = '<path d="M18 15l-6-6-6 6" />';
+  var ICO_NEXT = '<path d="M6 9l6 6 6-6" />';
+  var ICO_CHECK = '<path d="M20 6L9 17l-5-5" />';
+
+  var host = document.getElementById('ap-host');
+  var qi = 0;
+  var answers = {};      /* { qIdx: [optionIndex, ...] } */
+  var custom = {};       /* { qIdx: string } */
+  var sent = false;
+  var open = true;
+  var advanceTimer = null;
+  var qRefs = [];
+  var track = null;
+  var viewport = null;
+  var counter = null;
+  var continueBtn = null;
+
+  function last() { return qi === QUESTIONS.length - 1; }
+  function selected() { return answers[qi] || []; }
+  function hasAnswer() { return selected().length > 0 || !!(custom[qi] && custom[qi].trim()); }
+
+  /* ── GlideMenu：单条高亮层在菜单行之间滑动（照搬上游实现）───────
+   * onMouseOver → moveTo；onMouseLeave → 隐藏；
+   * onFocusCapture → moveTo；onBlurCapture → 焦点离开容器才隐藏。 */
+  function initGlide(container) {
+    var hl = container.querySelector('[data-hl]');
+    if (!hl) return;
+    var box = null, visible = false;
+    hl.style.transition = 'top 220ms cubic-bezier(0.23,1,0.32,1), '
+      + 'height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease';
+    function paint() {
+      hl.style.top = (box ? box.top : 0) + 'px';
+      hl.style.height = (box ? box.height : 0) + 'px';
+      hl.style.opacity = (box && visible) ? '1' : '0';
+    }
+    function moveTo(target) {
+      if (!(target instanceof Element)) return;
+      var row = target.closest('[data-menu-row]');
+      if (!(row instanceof HTMLElement) || !container.contains(row)) return;
+      var cr = container.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      box = { top: rr.top - cr.top, height: rr.height };
+      visible = true;
+      paint();
+    }
+    container.addEventListener('mouseover', function (e) { moveTo(e.target); });
+    container.addEventListener('mouseleave', function () { visible = false; paint(); });
+    container.addEventListener('focusin', function (e) { moveTo(e.target); });
+    container.addEventListener('focusout', function (e) {
+      if (!container.contains(e.relatedTarget)) { visible = false; paint(); }
+    });
+    paint();
+  }
+
+  /* ── RollingDigits：里程表数字，每个变化的字符向上/向下翻 ───────── */
+  function esc(s) { return s === '&' ? '&amp;' : s === '<' ? '&lt;' : s === '>' ? '&gt;' : s; }
+  function renderStaticDigits(el, value) {
+    var out = '';
+    for (var i = 0; i < value.length; i++) out += '<span>' + esc(value[i]) + '</span>';
+    el.innerHTML = out;
+  }
+  function rollDigits(el, next) {
+    var prev = el.getAttribute('data-prev');
+    if (prev === null) { el.setAttribute('data-prev', next); renderStaticDigits(el, next); return; }
+    if (prev === next) return;
+    el.setAttribute('data-prev', next);
+    var fromN = parseInt(prev, 10), toN = parseInt(next, 10);
+    var dir = (isFinite(fromN) && isFinite(toN) && toN < fromN) ? 'down' : 'up';
+    var html = '';
+    for (var i = 0; i < next.length; i++) {
+      var o = prev[i] || '', n = next[i] || '';
+      if (o === n) { html += '<span>' + esc(n) + '</span>'; continue; }
+      var top = dir === 'down' ? n : o;
+      var bottom = dir === 'down' ? o : n;
+      var restY = dir === 'down' ? '0' : '-1em';
+      var startY = dir === 'down' ? '-1em' : '0';
+      html += '<span style="display:inline-block;position:relative;overflow:hidden;height:1em;line-height:1em;vertical-align:-0.05em">'
+        + '<span data-roll style="display:flex;flex-direction:column;'
+        + 'transition:transform 350ms cubic-bezier(0.4, 0, 0.2, 1);transform:translateY(' + startY + ')">'
+        + '<span style="height:1em;line-height:1em">' + esc(top) + '</span>'
+        + '<span style="height:1em;line-height:1em">' + esc(bottom) + '</span>'
+        + '</span></span>';
+    }
+    el.innerHTML = html;
+    var rolls = el.querySelectorAll('[data-roll]');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        for (var r = 0; r < rolls.length; r++) rolls[r].style.transform = 'translateY(' + restY + ')';
+      });
+    });
+    setTimeout(function () {
+      if (el.getAttribute('data-prev') === next) renderStaticDigits(el, next);
+    }, ROLL_MS);
+  }
+
+  /* ── 问题栈的模板 ─────────────────────────────────────────── */
+  function questionHTML(question, qIdx) {
+    var opts = '';
+    for (var i = 0; i < question.options.length; i++) {
+      var mark = question.type === "radio"
+        ? '<span data-dot class="size-1.5 rounded-full bg-canvas transition-transform duration-200" style="transform:scale(0)"></span>'
+        : ico(ICO_CHECK, 12, 3);
+      opts += '<button type="button" data-menu-row data-opt="' + i + '" aria-pressed="false"'
+        +  ' class="relative z-10 flex items-center gap-1.5 rounded-control pl-1 pr-2 py-1 text-left transition-colors duration-100">'
+        +    '<span data-mark class="flex size-4 shrink-0 items-center justify-center transition-colors duration-200 '
+        +      (question.type === "radio" ? 'rounded-full' : 'rounded-[5px]') + '">'
+        +      mark
+        +    '</span>'
+        +    '<span data-otext class="text-[13px] leading-none transition-colors duration-200">'
+        +      question.options[i]
+        +    '</span>'
+        +  '</button>';
+    }
+    return '<div data-q="' + qIdx + '">'
+      +   '<div class="pr-7 text-[14px] font-medium text-ink">' + question.q + '</div>'
+      +   '<div data-glide class="group/glide-menu relative mt-2.5 flex flex-col gap-1">'
+      +     '<span aria-hidden data-hl class="pointer-events-none absolute inset-x-0 rounded-control bg-hover"></span>'
+      +     opts
+      +     '<label data-menu-row class="relative z-10 flex items-center gap-1.5 rounded-control pl-1 pr-2 py-1 transition-colors duration-100">'
+      +       '<input data-custom type="text" value="" placeholder="' + LABELS.customPlaceholder + '" aria-label="Custom answer"'
+      +         ' class="min-w-0 flex-1 bg-transparent pl-1.5 text-[13px] text-ink outline-none placeholder:text-ink-3" />'
+      +     '</label>'
+      +   '</div>'
+      + '</div>';
+  }
+
+  /* ── 三种渲染态（对应上游三个 return 分支）─────────────────── */
+  function mount() {
+    if (!open) {
+      host.className = '';
+      host.innerHTML = '<button type="button" data-open class="rounded-control bg-surface px-3 py-2 '
+        + 'text-[12.5px] font-medium text-ink shadow-btn transition-colors duration-150 hover:bg-hover">Open approval</button>';
+      host.querySelector('[data-open]').addEventListener('click', function () { open = true; mount(); });
+      return;
+    }
+
+    if (sent) {
+      host.className = 'flex w-full max-w-80 items-center gap-3';
+      host.style.animation = 'pop-in 260ms cubic-bezier(0.23,1,0.32,1) both';
+      host.innerHTML =
+          '<span class="inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green">'
+        +   '<span class="flex size-4.5 items-center justify-center rounded-full bg-green text-white">'
+        +     ico(ICO_CHECK, 11, 3)
+        +   '</span>'
+        +   LABELS.sentMessage
+        + '</span>'
+        + '<button type="button" data-reset class="text-[12px] font-medium text-ink-3 transition-colors duration-150 hover:text-ink">Start over</button>';
+      host.querySelector('[data-reset]').addEventListener('click', reset);
+      return;
+    }
+
+    /* open 且未提交：卡片本体 */
+    host.className = 'w-full max-w-80';
+    host.style.animation = '';
+    var qs = '';
+    for (var i = 0; i < QUESTIONS.length; i++) qs += questionHTML(QUESTIONS[i], i);
+
+    host.innerHTML =
+        '<div class="relative overflow-hidden rounded-card bg-surface shadow-card" style="animation:fade-up 380ms cubic-bezier(0.23,1,0.32,1) both">'
+      +   '<button type="button" aria-label="Dismiss" data-dismiss'
+      +     ' class="primitive-icon-button absolute right-2.5 top-2.5 z-10 text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">'
+      +     ico(ICO_X, 14, 2.2)
+      +   '</button>'
+      +   '<div class="primitive-card-pad">'
+      +     '<div data-viewport class="overflow-hidden" aria-live="polite">'
+      +       '<div data-track style="display:flex;flex-direction:column;gap:26px;'
+      +         'transform:translate3d(0,0px,0);will-change:transform">' + qs + '</div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="primitive-card-footer flex items-center justify-between gap-3">'
+      +     '<div class="flex items-center gap-1 text-ink-3">'
+      +       '<button type="button" aria-label="Previous question" data-prevbtn class="' + NAV_BTN + '">' + ico(ICO_PREV, 14, 2) + '</button>'
+      +       '<span data-counter class="inline-flex items-center text-[12px] font-medium tabular-nums text-ink-3"'
+      +         ' style="letter-spacing:-0.1px;line-height:1"></span>'
+      +       '<button type="button" aria-label="Next question" data-nextbtn class="' + NAV_BTN + '">' + ico(ICO_NEXT, 14, 2) + '</button>'
+      +     '</div>'
+      +     '<div class="-mr-0.5 flex items-center gap-1.5">'
+      +       '<button type="button" data-skip class="' + BTN_GHOST + '">' + LABELS.skip + '</button>'
+      +       '<button type="button" data-continue class="' + BTN_ACCENT + '">' + LABELS.continue + '</button>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>';
+
+    viewport = host.querySelector('[data-viewport]');
+    track = host.querySelector('[data-track]');
+    counter = host.querySelector('[data-counter]');
+    continueBtn = host.querySelector('[data-continue]');
+    qRefs = Array.prototype.slice.call(host.querySelectorAll('[data-q]'));
+
+    host.querySelector('[data-dismiss]').addEventListener('click', function () { open = false; mount(); });
+    host.querySelector('[data-prevbtn]').addEventListener('click', function () { goTo(qi - 1); });
+    host.querySelector('[data-nextbtn]').addEventListener('click', function () { goTo(qi + 1); });
+    host.querySelector('[data-skip]').addEventListener('click', function () { if (last()) { open = false; mount(); } else goTo(qi + 1); });
+    continueBtn.addEventListener('click', advance);
+
+    /* 每题：GlideMenu + 选项/自定义答案的事件 */
+    for (var k = 0; k < qRefs.length; k++) bindQuestion(k);
+
+    rollDigits(counter, (qi + 1) + ' / ' + QUESTIONS.length);
+    setActiveStates(false);
+    syncLayout(false);
+    for (var p = 0; p < qRefs.length; p++) paintQuestion(p);
+    updateFooter();
+  }
+
+  function bindQuestion(qIdx) {
+    var qEl = qRefs[qIdx];
+    var glide = qEl.querySelector('[data-glide]');
+    initGlide(glide);
+
+    var opts = qEl.querySelectorAll('[data-opt]');
+    for (var i = 0; i < opts.length; i++) {
+      (function (i, btn) {
+        btn.addEventListener('click', function () { if (qIdx === qi) toggle(i); });
+      })(i, opts[i]);
+    }
+    var input = qEl.querySelector('[data-custom]');
+    input.addEventListener('input', function () {
+      if (qIdx !== qi) return;
+      custom[qIdx] = input.value;
+      if (QUESTIONS[qIdx].type === 'radio') { answers[qIdx] = []; paintQuestion(qIdx); }
+      updateFooter();
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && qIdx === qi && hasAnswer()) { e.preventDefault(); advance(); }
+    });
+  }
+
+  /* ── 选项涂色（勾选态 → class 分支）──────────────────────── */
+  function paintQuestion(qIdx) {
+    var qEl = qRefs[qIdx];
+    if (!qEl) return;
+    var type = QUESTIONS[qIdx].type;
+    var picked = answers[qIdx] || [];
+    var opts = qEl.querySelectorAll('[data-opt]');
+    for (var i = 0; i < opts.length; i++) {
+      var on = picked.indexOf(i) !== -1;
+      opts[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      var mark = opts[i].querySelector('[data-mark]');
+      mark.className = 'flex size-4 shrink-0 items-center justify-center transition-colors duration-200 '
+        + (type === 'radio' ? 'rounded-full' : 'rounded-[5px]') + ' '
+        + (on ? 'bg-ink text-canvas'
+              : 'shadow-[inset_0_0_0_1.5px_var(--line-strong)] text-transparent');
+      var dot = mark.querySelector('[data-dot]');
+      if (dot) dot.style.transform = on ? 'scale(1)' : 'scale(0)';
+      var txt = opts[i].querySelector('[data-otext]');
+      txt.className = 'text-[13px] leading-none transition-colors duration-200 ' + (on ? 'text-ink' : 'text-ink-2');
+    }
+  }
+
+  /* ── 活动题：opacity / 指针 / aria-hidden / tabIndex ────────── */
+  function setActiveStates(withAnim) {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var anim = withAnim && !reduce;
+    for (var i = 0; i < qRefs.length; i++) {
+      var active = i === qi;
+      var el = qRefs[i];
+      el.style.opacity = active ? '1' : '0';
+      el.style.pointerEvents = active ? '' : 'none';
+      el.style.transition = anim ? 'opacity ' + SLIDE : 'none';
+      if (active) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
+      var focusables = el.querySelectorAll('[data-menu-row], input');
+      for (var f = 0; f < focusables.length; f++) focusables[f].tabIndex = active ? 0 : -1;
+    }
+  }
+
+  /* ── 高度 + 位移：读 offsetHeight / offsetTop（上游 useLayoutEffect）*/
+  function syncLayout(withAnim) {
+    var item = qRefs[qi];
+    if (!item) return;
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var anim = withAnim && !reduce;
+    viewport.style.height = item.offsetHeight + 'px';
+    track.style.transform = 'translate3d(0, ' + (-item.offsetTop) + 'px, 0)';
+    viewport.style.transition = anim ? 'height ' + SLIDE : 'none';
+    track.style.transition = anim ? 'transform ' + SLIDE : 'none';
+  }
+
+  function updateFooter() {
+    if (!continueBtn) return;
+    continueBtn.disabled = !hasAnswer();
+    continueBtn.textContent = last() ? LABELS.send : LABELS.continue;
+    var prevBtn = host.querySelector('[data-prevbtn]');
+    var nextBtn = host.querySelector('[data-nextbtn]');
+    if (prevBtn) prevBtn.disabled = qi <= 0;
+    if (nextBtn) nextBtn.disabled = last();
+  }
+
+  function goTo(next) {
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    applyQi(next);
+  }
+
+  /* 应用题号：换题并让卡片高度/问题栈滑动过去 */
+  function applyQi(next) {
+    var clamped = Math.min(Math.max(next, 0), QUESTIONS.length - 1);
+    if (clamped === qi) { updateFooter(); return; }
+    qi = clamped;
+    rollDigits(counter, (qi + 1) + ' / ' + QUESTIONS.length);
+    setActiveStates(true);
+    syncLayout(true);
+    updateFooter();
+  }
+
+  function send() {
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    sent = true;
+    mount();
+  }
+  function advance() { if (last()) send(); else goTo(qi + 1); }
+
+  function toggle(index) {
+    var type = QUESTIONS[qi].type;
+    var picked = answers[qi] || [];
+    var next;
+    if (type === 'radio') next = [index];
+    else next = picked.indexOf(index) !== -1
+      ? picked.filter(function (item) { return item !== index; })
+      : picked.concat([index]);
+    answers[qi] = next;
+    paintQuestion(qi);
+    updateFooter();
+    if (type === 'radio') {
+      custom[qi] = '';
+      var input = qRefs[qi].querySelector('[data-custom]');
+      if (input) input.value = '';
+      if (advanceTimer) clearTimeout(advanceTimer);
+      /* 上游：480ms 后自动前进（最后一题直接提交）*/
+      advanceTimer = setTimeout(function () {
+        advanceTimer = null;
+        if (last()) send(); else applyQi(qi + 1);
+      }, 480);
+    }
+  }
+
+  function reset() {
+    qi = 0;
+    answers = {};
+    custom = {};
+    sent = false;
+    open = true;
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    mount();
+  }
+
+  mount();
+})();
+</script>

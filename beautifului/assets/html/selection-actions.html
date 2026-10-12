@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selection Actions — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-[background-color,color,transform]"] {
+  transition-property: background-color,color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[background-color,transform]"] {
+  transition-property: background-color,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[max-width,opacity,margin]"] {
+  transition-property: max-width,opacity,margin;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[max-width,opacity,transform]"] {
+  transition-property: max-width,opacity,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[opacity,transform]"] {
+  transition-property: opacity,transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[transform,background-color,opacity]"] {
+  transition-property: transform,background-color,opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-[width]"] {
+  transition-property: width;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="transition-transform"] {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-150"] {
+  transition-duration: 150ms;
+}
+
+[class~="duration-200"] {
+  transition-duration: 200ms;
+}
+
+[class~="duration-400"] {
+  transition-duration: 400ms;
+}
+
+[class~="ease-out"] {
+  transition-timing-function: cubic-bezier(0,0,0.2,1);
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="active:scale-[0.94]"]:active {
+  scale: 0.94;
+}
+
+[class~="active:scale-[0.96]"]:active {
+  scale: 0.96;
+}
+
+[class~="bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface))]"] {
+  background-color: color-mix(in srgb,var(--accent) 14%,var(--surface));
+}
+
+[class~="bg-clip-text"] {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[class~="bg-ink"] {
+  background-color: var(--ink);
+}
+
+[class~="bg-line"] {
+  background-color: var(--line);
+}
+
+[class~="bg-line-strong"] {
+  background-color: var(--line-strong);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="bg-transparent"] {
+  background-color: transparent;
+}
+
+[class~="border-[1.5px]"] {
+  border-width: 1.5px;
+  border-style: solid;
+}
+
+[class~="border-line-strong"] {
+  border-color: var(--line-strong);
+  border-style: solid;
+}
+
+[class~="border-t-ink-2"] {
+  border-top-color: var(--ink-2);
+  border-style: solid;
+}
+
+[class~="box-decoration-clone"] {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.dark [class~="dark:bg-accent-tint"] {
+  background-color: var(--accent-tint);
+}
+
+[class~="disabled:opacity-50"]:disabled {
+  opacity: 0.5;
+}
+
+[class~="disabled:pointer-events-none"]:disabled {
+  pointer-events: none;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="font-normal"] {
+  font-weight: 400;
+}
+
+[class~="font-sans"] {
+  font-family: var(--font-sans);
+}
+
+[class~="gap-0.5"] {
+  gap: 0.125rem;
+}
+
+[class~="gap-1"] {
+  gap: 0.25rem;
+}
+
+[class~="gap-1.5"] {
+  gap: 0.375rem;
+}
+
+[class~="h-4"] {
+  height: 1rem;
+}
+
+[class~="h-7"] {
+  height: 1.75rem;
+}
+
+[class~="h-9"] {
+  height: 2.25rem;
+}
+
+[class~="hover:bg-hover"]:hover {
+  background-color: var(--hover);
+}
+
+[class~="hover:bg-hover-2"]:hover {
+  background-color: var(--hover-2);
+}
+
+[class~="hover:opacity-90"]:hover {
+  opacity: 0.9;
+}
+
+[class~="hover:text-ink-2"]:hover {
+  color: var(--ink-2);
+}
+
+[class~="inline-block"] {
+  display: inline-block;
+}
+
+[class~="inline-flex"] {
+  display: inline-flex;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="justify-center"] {
+  justify-content: center;
+}
+
+[class~="leading-none"] {
+  line-height: 1;
+}
+
+[class~="leading-relaxed"] {
+  line-height: 1.625;
+}
+
+[class~="left-0"] {
+  left: 0rem;
+}
+
+[class~="max-w-[460px]"] {
+  max-width: 460px;
+}
+
+[class~="max-w-[calc(100vw_-_48px)]"] {
+  max-width: calc(100vw - 48px);
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="mx-0.5"] {
+  margin-left: 0.125rem;
+  margin-right: 0.125rem;
+}
+
+[class~="mx-1"] {
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="p-1"] {
+  padding: 0.25rem;
+}
+
+[class~="pb-12"] {
+  padding-bottom: 3rem;
+}
+
+[class~="pl-3"] {
+  padding-left: 0.75rem;
+}
+
+[class~="placeholder:text-ink-3"]::placeholder {
+  color: var(--ink-3);
+}
+
+[class~="pr-2.5"] {
+  padding-right: 0.625rem;
+}
+
+[class~="px-2.5"] {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="rounded-[3px]"] {
+  border-radius: 3px;
+}
+
+[class~="rounded-full"] {
+  border-radius: 9999px;
+}
+
+[class~="select-none"] {
+  user-select: none;
+}
+
+[class~="shadow-hairline"] {
+  box-shadow: var(--shadow-hairline);
+}
+
+[class~="shadow-overlay"] {
+  box-shadow: var(--shadow-overlay);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="size-3"] {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+[class~="size-7"] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-[13px]"] {
+  font-size: 13px;
+}
+
+[class~="text-canvas"] {
+  color: var(--canvas);
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-surface"] {
+  color: var(--surface);
+}
+
+[class~="text-transparent"] {
+  color: transparent;
+}
+
+[class~="top-0"] {
+  top: 0rem;
+}
+
+[class~="w-fit"] {
+  width: fit-content;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="w-px"] {
+  width: 1px;
+}
+
+[class~="whitespace-nowrap"] {
+  white-space: nowrap;
+}
+
+[class~="z-10"] {
+  z-index: 10;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Selection Actions -->
+<!--@classes: h-7 text-[12px] text-canvas shadow-hairline leading-none transition-[opacity,transform] hover:opacity-90 ease-out transition-[transform,background-color,opacity] disabled:opacity-50 disabled:pointer-events-none font-medium-->
+<!-- 来源：components/primitives/SelectionActions.tsx（上游 MIT）
+     降级：① iconoir-react → 内联 SVG（14×14 stroke-width 1.8，send 16×16/2.4）；
+           ② atoms/Button.tsx（class-variance-authority）→ 手写的 quiet/xs class 常量；
+           ③ atoms/Shimmer.tsx → 内联 shimmer span（1.8s linear infinite）；
+           ④ atoms/StreamText.tsx → 内联流式揭示（charsPerTick 2 / tickMs 9 / blurTail 6，
+              leading edge 用 .stream-tail 虚化，caret 流式中 .is-streaming 常亮、结束后闪烁）。
+     验证workaround：已全部撤回（verify 审计已能正确处理 inline-flex 块级化与 color-mix 归一化），
+           本文件不再为规避审计引入 inline style。
+     保真：280ms 后出场；thinking 700ms 后转 streaming；浮条锚定在选中文本最后一行下方
+           （requestAnimationFrame + getClientRects().at(-1)），水平对齐整段选区中心；
+           位移 transition transform 320ms cubic-bezier(0.77,0,0.175,1) / opacity 180ms；
+           模式切换时按内容固有宽度做 320ms cubic-bezier(0.23,1,0.32,1) 宽度动画；
+           prompt 输入时锁定 typingWidth；动作组展开 max-width 224↔462 等常量逐字照搬。-->
+
+<div class="port-frame">
+  <p class="port-note">
+    <strong>选区操作条</strong> — 高亮一段文字后在其下方浮出的一排 AI 动作：Explain / Improve /
+    Shorten / Tone / Grammar。点击后浮条进入 <code>thinking</code>（转圈 + 微光标签），700ms 后
+    改为流式 <code>Rewrite</code>：字符快速揭示、前沿用 <code>.stream-tail</code> 虚化，
+    <code>.stream-caret</code> 流式中常亮、结束后闪烁；结果态给出 Keep / Discard / 重试。
+    也可在输入框里直接描述改法（回车提交）。
+  </p>
+
+  <div id="sa-host" style="width:460px;max-width:100%"></div>
+</div>
+
+<script>
+(function () {
+  /* 逐字照搬上游文案（SelectionActions.tsx） */
+  var LEAD = 'Pistachio holds the top slot all weekend. ';
+  var ORIGINAL = 'Churn it first thing Saturday so the batch has time to firm up before the afternoon rush.';
+  var REWRITE = 'Churn pistachio first thing Saturday so the batch has time to fully firm before the afternoon rush.';
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  var svg = function (inner, w, sw) {
+    return '<svg width="' + (w || 14) + '" height="' + (w || 14) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+      + 'stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  };
+  /* iconoir 等价图标（内联 SVG） */
+  var ICONS = {
+    explain: svg('<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/><path d="M9.7 9.3a2.3 2.3 0 1 1 3.3 2.1c-.7.4-1 .9-1 1.6"/><path d="M12 16h.01"/>', 14, 1.8),
+    improve: svg('<path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z"/><path d="M18.5 15.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7z"/>', 14, 1.8),
+    shorten: svg('<circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M7.7 7.7L20 20M7.7 16.3L20 4"/>', 14, 1.8),
+    tone: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>', 14, 1.8),
+    grammar: svg('<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7 9.5h10M7 14h6"/>', 14, 1.8),
+    send: svg('<path d="M12 19V5M5 12l7-7 7 7"/>', 16, 2.4),
+    chevron: svg('<path d="M9 6l6 6-6 6"/>', 14, 1.8),
+    check: svg('<path d="M20 6L9 17l-5-5"/>', 14, 1.8),
+    close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 14, 1.8),
+    retry: svg('<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M21 4v5h-5"/>', 14, 1.8)
+  };
+
+  /* Button(quiet, xs) —— cva 手写展开（原 Button.tsx） */
+  var QUIET_XS = 'inline-flex items-center justify-center font-medium select-none '
+    + 'transition-[transform,background-color,opacity] duration-150 ease-out '
+    + 'active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none '
+    + 'text-ink hover:bg-hover h-7 rounded-full px-2.5 text-[12px] font-normal leading-none gap-1';
+  /* 实心 keep 按钮（上游本地 one-off，非 Button 变体） */
+  var PRIMARY = 'inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 text-[12.5px] font-normal '
+    + 'text-canvas shadow-hairline transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.96]';
+
+  var host = document.getElementById('sa-host');
+  host.innerHTML =
+    '<div class="w-full max-w-[460px]">'
+    + '<div id="sa-passage" class="relative select-none pb-12">'
+    +   '<p class="text-[13px] leading-relaxed text-ink">'
+    +     '<span id="sa-lead"></span>'
+    +     '<span id="sa-selection" class="box-decoration-clone rounded-[3px] bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface))] text-ink dark:bg-accent-tint"></span>'
+    +   '</p>'
+    +   '<div id="sa-anchor" class="absolute top-0 left-0 z-10" style="transform:translate3d(0,0,0) translateX(-50%);transition:transform 320ms cubic-bezier(0.77,0,0.175,1), opacity 180ms ease-out;opacity:0;pointer-events:none;will-change:transform">'
+    +     '<div id="sa-bar" class="flex h-9 w-fit max-w-[calc(100vw_-_48px)] items-center justify-center gap-0.5 overflow-hidden rounded-full bg-surface p-1 font-sans font-normal text-ink shadow-overlay">'
+    +       '<div id="sa-content" class="flex w-fit shrink-0 items-center justify-center gap-0.5"></div>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+
+  document.getElementById('sa-lead').textContent = LEAD;
+  var passage = document.getElementById('sa-passage');
+  var selectionEl = document.getElementById('sa-selection');
+  var anchor = document.getElementById('sa-anchor');
+  var bar = document.getElementById('sa-bar');
+  var content = document.getElementById('sa-content');
+
+  /* ── 状态（对应上游 useState / useRef）── */
+  var shown = false, mode = 'idle', action = 'Improve', prompt = '';
+  var typingWidth = null, expanded = false;
+  var frame = null, lastWidth = 0, prevMode = 'idle', widthAnim = null, streamTimer = null, barAnimated = false;
+
+  var BUSY = { 'Improve': 'Improving', 'Shorten': 'Shortening', 'Change tone': 'Changing tone' };
+  function busyLabel() { return BUSY[action] || 'Editing'; }
+
+  /* ── 锚定到选区最后一行下方，水平对齐整段选区中心 ── */
+  function place() {
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(function () {
+      var bounds = selectionEl.getBoundingClientRect();
+      var lines = selectionEl.getClientRects();
+      var lastLine = lines[lines.length - 1];
+      if (!lastLine) return;
+      var hb = passage.getBoundingClientRect();
+      var x = Math.round(bounds.left - hb.left + bounds.width / 2);
+      var y = Math.round(lastLine.bottom - hb.top + 8);
+      anchor.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0) translateX(-50%)';
+      if (shown) {
+        anchor.style.opacity = '1';
+        anchor.style.pointerEvents = 'auto';
+        if (!barAnimated) { bar.style.animation = 'pop-in 220ms cubic-bezier(0.23,1,0.32,1) both'; barAnimated = true; }
+      }
+    });
+  }
+
+  /* ── 宽度动画：内容固有宽度变化时，从上一次宽度过渡到新宽度 ── */
+  function animateWidth() {
+    var nextWidth = Math.ceil(content.getBoundingClientRect().width) + 8;
+    var previousWidth = lastWidth || Math.ceil(bar.getBoundingClientRect().width);
+    if (prevMode !== mode && Math.abs(nextWidth - previousWidth) > 1) {
+      if (widthAnim) widthAnim.cancel();
+      widthAnim = bar.animate(
+        [{ width: previousWidth + 'px' }, { width: nextWidth + 'px' }],
+        { duration: 320, easing: 'cubic-bezier(0.23,1,0.32,1)' }
+      );
+      widthAnim.onfinish = function () { lastWidth = nextWidth; widthAnim = null; };
+    } else {
+      lastWidth = nextWidth;
+    }
+    prevMode = mode;
+  }
+
+  function renderPassage() {
+    if (mode === 'idle' || mode === 'thinking') selectionEl.textContent = ORIGINAL;
+    else if (mode === 'result') selectionEl.textContent = REWRITE;
+    /* streaming 时内容由 startStream 逐帧写入 */
+  }
+
+  function shimmerSpan(txt) {
+    return '<span class="inline-block bg-clip-text text-transparent" style="background-image:linear-gradient(90deg, var(--ink-3) 35%, var(--ink) 50%, var(--ink-3) 65%);background-size:200% 100%;animation:shimmer-text 1.8s linear infinite">' + esc(txt) + '</span>';
+  }
+
+  function actionBtn(id, icon, run) {
+    return '<button type="button" data-act="' + esc(run ? run : id) + '"' + (run ? '' : ' data-noop="1"') + ' class="' + QUIET_XS + ' shrink-0">' + icon + esc(id) + '</button>';
+  }
+
+  function idleHtml() {
+    var hasPrompt = prompt.trim().length > 0;
+    return '<div id="sa-inputgroup" class="flex min-w-0 items-center overflow-hidden transition-[max-width,opacity,transform] duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +   '<form id="sa-form" class="flex h-7 shrink-0 items-center transition-[width] duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +     '<input id="sa-prompt" value="' + prompt.replace(/"/g, '&quot;') + '" aria-label="Describe edits" placeholder="Describe edits" class="h-7 w-full bg-transparent pr-2.5 pl-3 text-[12.5px] text-ink placeholder:text-ink-3" />'
+      +   '</form>'
+      + '</div>'
+      + '<div id="sa-actions" class="flex min-w-0 items-center gap-0.5 overflow-hidden transition-[max-width,opacity,transform] duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +   (expanded ? '' : '<span class="mx-1 h-4 w-px shrink-0 bg-line-strong"></span>')
+      +   actionBtn('Explain', ICONS.explain, null)
+      +   actionBtn('Improve', ICONS.improve, 'Improve')
+      +   '<div id="sa-more" class="flex min-w-0 items-center gap-0.5 overflow-hidden transition-[max-width,opacity,margin] duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +     actionBtn('Shorten', ICONS.shorten, 'Shorten')
+      +     actionBtn('Tone', ICONS.tone, 'Change tone')
+      +     actionBtn('Grammar', ICONS.grammar, 'Fix grammar')
+      +   '</div>'
+      +   '<span class="mx-0.5 h-4 w-px shrink-0 bg-line"></span>'
+      +   '<button type="button" data-expand="1" aria-label="' + (expanded ? 'Show fewer actions' : 'Show more actions') + '" aria-expanded="' + expanded + '" class="flex size-7 shrink-0 items-center justify-center rounded-full text-ink transition-[background-color,transform] duration-200 hover:bg-hover active:scale-[0.96]">'
+      +     '<span id="sa-chevwrap" class="flex transition-transform duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">' + ICONS.chevron + '</span>'
+      +   '</button>'
+      + '</div>'
+      + '<div id="sa-sendgroup" class="flex min-w-0 items-center overflow-hidden transition-[max-width,opacity,transform] duration-400" style="transition-timing-function:cubic-bezier(0.23,1,0.32,1)">'
+      +   '<button type="button" data-act="__send" aria-label="Send edit instruction" class="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-surface transition-[opacity,transform] duration-200 active:scale-[0.94]">' + ICONS.send + '</button>'
+      + '</div>';
+  }
+
+  function resultHtml() {
+    return '<button type="button" data-act="__keep" class="' + PRIMARY + '">' + ICONS.check + 'Keep</button>'
+      + '<button type="button" data-act="__discard" class="' + QUIET_XS + ' shrink-0">' + ICONS.close + 'Discard</button>'
+      + '<span class="mx-0.5 h-4 w-px shrink-0 bg-line"></span>'
+      + '<button type="button" data-act="__retry" aria-label="Try again" class="flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3 transition-[background-color,color,transform] duration-150 hover:bg-hover-2 hover:text-ink-2 active:scale-[0.96]">' + ICONS.retry + '</button>';
+  }
+
+  function busyHtml() {
+    var inner = (mode === 'thinking') ? shimmerSpan(busyLabel() + '…') : '<span>' + esc(busyLabel() + '…') + '</span>';
+    return '<span class="inline-flex h-7 items-center gap-1.5 whitespace-nowrap px-2.5 text-[12.5px] font-normal text-ink-2">'
+      + '<span class="size-3 shrink-0 rounded-full border-[1.5px] border-line-strong border-t-ink-2" style="animation:spin 700ms linear infinite"></span>'
+      + inner + '</span>';
+  }
+
+  /* idle 布局的宽度/不透明度（对应上游那串 maxWidth 内联样式） */
+  function layoutIdle() {
+    var input = document.getElementById('sa-inputgroup');
+    if (!input) return;
+    var hasPrompt = prompt.trim().length > 0;
+    var locked = hasPrompt && typingWidth;
+    input.style.maxWidth = (expanded ? 0 : (locked ? typingWidth - 40 : 145)) + 'px';
+    input.style.opacity = expanded ? '0' : '1';
+    input.style.transform = 'translateX(' + (expanded ? -8 : 0) + 'px)';
+    var form = document.getElementById('sa-form');
+    if (form) form.style.width = (locked ? typingWidth - 40 : 145) + 'px';
+    var actions = document.getElementById('sa-actions');
+    actions.style.maxWidth = (hasPrompt ? 0 : (expanded ? 462 : 224)) + 'px';
+    actions.style.opacity = hasPrompt ? '0' : '1';
+    actions.style.transform = 'translateX(' + (hasPrompt ? -8 : 0) + 'px)';
+    var more = document.getElementById('sa-more');
+    more.style.maxWidth = (expanded ? 262 : 0) + 'px';
+    more.style.opacity = expanded ? '1' : '0';
+    more.style.marginLeft = (expanded ? 2 : 0) + 'px';
+    var send = document.getElementById('sa-sendgroup');
+    send.style.maxWidth = (hasPrompt ? 30 : 0) + 'px';
+    send.style.opacity = hasPrompt ? '1' : '0';
+    send.style.transform = 'scale(' + (hasPrompt ? 1 : 0.88) + ')';
+    if (mode === 'idle' && locked) {
+      bar.style.width = typingWidth + 'px';
+      content.style.width = (typingWidth - 8) + 'px';
+    } else {
+      bar.style.width = '';
+      content.style.width = '';
+    }
+  }
+
+  function renderBar() {
+    if (mode === 'idle') content.innerHTML = idleHtml();
+    else if (mode === 'result') content.innerHTML = resultHtml();
+    else content.innerHTML = busyHtml();
+    bindContent();
+    if (mode === 'idle') layoutIdle();
+    animateWidth();
+  }
+
+  function bindContent() {
+    var promptInput = document.getElementById('sa-prompt');
+    if (promptInput) {
+      promptInput.addEventListener('input', function () {
+        var next = this.value;
+        var had = prompt.trim().length > 0;
+        var has = next.trim().length > 0;
+        if (!had && has) typingWidth = Math.ceil(bar.getBoundingClientRect().width);
+        else if (!has) typingWidth = null;
+        prompt = next;
+        layoutIdle();
+      });
+    }
+    var form = document.getElementById('sa-form');
+    if (form) form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      run(prompt.trim() || 'Improve');
+    });
+
+    var btns = content.querySelectorAll('[data-act],[data-expand]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        var act = this.getAttribute('data-act');
+        if (this.hasAttribute('data-expand')) { expanded = !expanded; renderBar(); return; }
+        if (act === '__keep' || act === '__discard') { reset(); return; }
+        if (act === '__retry') { run(action); return; }
+        if (act === '__send') { run(prompt.trim() || 'Improve'); return; }
+        if (this.hasAttribute('data-noop')) return; /* Explain：无 action，no-op */
+        run(act);
+      });
+    }
+  }
+
+  /* ── StreamText 内联：charsPerTick 2 / tickMs 9 / blurTail 6 ── */
+  function startStream() {
+    var text = REWRITE;
+    var i = 0, charsPerTick = 2, tickMs = 9, blurTail = 6;
+    if (streamTimer) clearInterval(streamTimer);
+    streamTimer = setInterval(function () {
+      i = Math.min(i + charsPerTick, text.length);
+      var shownText = text.slice(0, i);
+      var streaming = i < text.length;
+      var split = streaming ? Math.max(0, shownText.length - blurTail) : shownText.length;
+      selectionEl.innerHTML = esc(shownText.slice(0, split))
+        + (split < shownText.length ? '<span class="stream-tail">' + esc(shownText.slice(split)) + '</span>' : '')
+        + '<span aria-hidden class="stream-caret' + (streaming ? ' is-streaming' : '') + '"></span>';
+      place();
+      if (i >= text.length) {
+        clearInterval(streamTimer); streamTimer = null;
+        mode = 'result';
+        renderPassage(); renderBar(); place();
+      }
+    }, tickMs);
+  }
+
+  function run(nextAction) {
+    if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
+    action = nextAction;
+    expanded = false;
+    mode = 'thinking';
+    renderPassage(); /* thinking 态要回到原文（上游三元：idle||thinking → passage.original） */
+    renderBar();
+    place();
+    setTimeout(function () {
+      if (mode !== 'thinking') return;
+      mode = 'streaming';
+      renderBar();
+      startStream();
+    }, 700);
+  }
+
+  function reset() {
+    if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
+    expanded = false; prompt = ''; typingWidth = null; action = 'Improve'; mode = 'idle';
+    renderPassage(); renderBar(); place();
+  }
+
+  /* ── 启动 ── */
+  renderPassage();
+  renderBar();
+  place();
+
+  setTimeout(function () {
+    shown = true;
+    place();
+  }, 280);
+
+  if (window.ResizeObserver) new ResizeObserver(place).observe(passage);
+  window.addEventListener('resize', place);
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

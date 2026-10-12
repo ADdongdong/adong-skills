@@ -1,0 +1,1308 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Block — Beautiful UI port</title>
+<!-- 上游设定使用 Inter + JetBrains Mono。离线时会回退到系统字体栈（度量略有差异）。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+ * Beautiful UI — foundation.standalone.css
+ * 由 scripts/make_foundation.py 生成，请勿手改。
+ * 上游：Beautiful UI by Shane Levine (Turbo) — MIT
+ * https://github.com/slev12397/beautiful-ui  ·  https://www.beautifului.dev
+ * ============================================================ */
+
+/* ── minimal reset（替代 @import "tailwindcss"）─────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+body {
+  margin: 0;
+}
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+  margin: 0;
+}
+ol, ul, menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+button, input, optgroup, select, textarea {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+button, [type="button"], [type="reset"], [type="submit"] {
+  appearance: button;
+}
+textarea {
+  resize: vertical;
+}
+img, svg, video, canvas, audio, iframe, embed, object {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+:disabled {
+  cursor: default;
+}
+
+/* ── design tokens ─────────────────────────────────────────── */
+:root {
+  /* surfaces / ink / borders / accent / semantic（上游原文）*/
+  --page: oklch(0.985 0.001 286.376);
+  --canvas: oklch(0.961 0.002 247.84);
+  --surface: oklch(1 0 0);
+  --inset: oklch(0.979 0.002 247.839);
+  --hover: oklch(0.97 0.002 247.839);
+  --hover-2: oklch(0.933 0.003 247.86);
+  --ink: oklch(0.247 0.006 258.361);
+  --ink-2: oklch(0.506 0.01 264.477);
+  --ink-3: oklch(0.695 0.009 264.505);
+  --line: oklch(0.946 0.003 264.542);
+  --line-strong: oklch(0.912 0.005 258.326);
+  --line-soft: oklch(0.966 0.002 264.542);
+  --grid-line: color-mix(in srgb, var(--line) 78%, transparent);
+  --field: oklch(0.961 0.001 286.375);
+  --stripe: oklch(0.405 0 0 / 0.075);
+  --stripe-bg: oklch(0.97 0 0);
+  --accent: oklch(0.626 0.205 254.947);
+  --accent-ink: oklch(0.556 0.187 255.617);
+  --accent-tint: oklch(0.96 0.019 252.878);
+  --green: oklch(0.603 0.155 150.883);
+  --green-tint: oklch(0.958 0.017 159.118);
+  --orange: oklch(0.689 0.179 49.902);
+  --orange-tint: oklch(0.964 0.021 67.581);
+  --red: oklch(0.621 0.192 23.042);
+  --red-tint: oklch(0.956 0.017 17.462);
+  --tooltip-bg: oklch(0.272 0.008 264.435);
+  --tooltip-fg: oklch(0.976 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.356 0.007 264.474);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), var(--shadow-xs);
+  --shadow-card: 0 0 0 1px var(--line), var(--shadow-sm);
+  --shadow-raised: 0 0 0 1px var(--line), var(--shadow-md);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--shadow-lg);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+
+  /* 从 @theme inline 搬入：不搬的话圆角与缓动曲线会全部丢失 */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-window: 14px;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 阴影刻度：来自 shadow-plugin@2.1.0/unprefixed（必须内联，不能留 @import）*/
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04), 0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05), 0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --page: oklch(0.209 0.004 264.477);
+  --canvas: oklch(0.231 0.004 264.487);
+  --surface: oklch(0.26 0.006 271.191);
+  --inset: oklch(0.243 0.004 264.492);
+  --hover: oklch(0.289 0.006 271.22);
+  --hover-2: oklch(0.318 0.007 274.747);
+  --ink: oklch(0.964 0.002 247.839);
+  --ink-2: oklch(0.731 0.008 260.731);
+  --ink-3: oklch(0.541 0.01 264.484);
+  --line: oklch(0.308 0.006 258.354);
+  --line-strong: oklch(0.356 0.007 264.474);
+  --line-soft: oklch(0.278 0.006 258.354);
+  --field: oklch(0.293 0.006 271.223);
+  --stripe: oklch(1 0 0 / 0.055);
+  --stripe-bg: oklch(0.226 0.004 264.485);
+  --accent: oklch(0.68 0.173 253.301);
+  --accent-ink: oklch(0.788 0.113 248.33);
+  --accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --green: oklch(0.705 0.154 153.814);
+  --green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --orange: oklch(0.746 0.156 55.642);
+  --orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --red: oklch(0.666 0.18 21.433);
+  --red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --tooltip-bg: oklch(0.182 0.004 264.459);
+  --tooltip-fg: oklch(0.964 0.002 247.839);
+  --tooltip-muted: oklch(0.731 0.008 260.731);
+  --tooltip-border: oklch(0.308 0.006 258.354);
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}
+
+/* shadow-plugin (flornkm) — smooth, layered shadow stacks. The unprefixed
+ * entry maps them onto Tailwind's --shadow-xs…2xl scale; our semantic tokens
+ * below build on those values so the whole app picks up the smooth shadows. */
+
+
+
+
+/* GENERIC FOUNDATION — tokens, @theme, base rules, the primitive-*
+ * spacing utilities, and shared keyframes below are needed by EVERY
+ * component. Blocks tagged COMPONENT-SPECIFIC further down belong to
+ * one primitive each. */
+/* ──────────────────────────────────────────────────────────
+ * Beautiful UI — design tokens
+ * Cool near-white canvas, white cards, hairline borders, layered
+ * single-digit-opacity shadows, a neutral ink ramp, and semantic
+ * color used sparingly as a condiment.
+ * ────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+/* ── base ─────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--stripe-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    var(--stripe) 7px,
+    var(--stripe) 8px
+  );
+  /* Pin the stripe pattern to the viewport so it stays put on scroll. */
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+
+/* ── interface hygiene (interfaces.dev cheat sheet) ────── */
+
+/* headings balance; descriptions avoid orphans (skip long-form — we have none) */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* underlines clear descenders */
+a {
+  text-underline-position: from-font;
+  text-decoration-skip-ink: auto;
+}
+
+/* theme switches swap every token at once — freeze transitions so the flip
+ * is one clean repaint instead of hundreds of mismatched color fades */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* touch: :hover sticks after a tap, so neutralize row/header hovers there */
+@media (hover: none) {
+  .records-row:hover > .records-cell {
+    background: transparent;
+  }
+
+  .records-row:hover > td.is-colsel {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+
+  .records-header-button:hover {
+    background: transparent;
+    color: var(--ink-2);
+  }
+}
+
+/* Keep the component nav scrollable but hide its scrollbar. */
+.component-nav-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.component-nav-scroll::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+@media (min-width: 64rem) {
+  .component-nav-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      oklch(0 0 0) 0,
+      oklch(0 0 0) calc(100% - 6rem),
+      transparent 100%
+    );
+  }
+}
+
+/* Mobile demo gestures should operate controls and visualizations rather than
+ * selecting surrounding labels. Text entry and code remain intentionally
+ * selectable. */
+@media (hover: none) and (pointer: coarse) {
+  .primitive-showcase {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .primitive-showcase :is(input, textarea, [contenteditable="true"], pre, code) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primitive-showcase :is(a, button, [role="button"]):focus-visible {
+    outline: none;
+  }
+
+  .primitive-showcase :is(img, svg, canvas) {
+    -webkit-user-drag: none;
+  }
+
+  .insight-chart-stage {
+    touch-action: pan-y;
+  }
+}
+
+/* Tailwind v4 resets buttons to cursor:default — anything
+ * clickable must invite the click */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(input),
+a {
+  cursor: pointer;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-link);
+}
+
+a:hover .animated-underline::after,
+a:focus-visible .animated-underline::after {
+  transform: scaleX(1);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamingText / ContextCards
+ * Favicon source avatars.
+ * Copy this block only alongside StreamingText / ContextCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.source-avatar {
+  box-shadow: 0 0 0 1px oklch(0.21 0.034 263.436 / 0.1);
+}
+
+.dark .source-avatar {
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* ── primitive spacing system ─────────────────────────────
+ * Shared optical offsets for small demo cards. Use these
+ * instead of hand-tuning 10/12/14px per component.
+ */
+
+.primitive-card-pad {
+  padding: 12px;
+}
+
+.primitive-card-bar {
+  padding: 10px 12px;
+}
+
+.primitive-card-footer {
+  padding: 10px;
+}
+
+.primitive-table-cell {
+  padding: 10px 12px;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+/* ── shared keyframes ─────────────────────────────────── */
+
+@keyframes shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+/* The sidebar is one persistent 224px tree clipped by a 52px shell.
+ * Every rail glyph remains centered at x=26 in both states. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — FilterTable
+ * Electric status-pill colors.
+ * Copy this block only alongside FilterTable; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  border: 1px solid transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — InsightCards
+ * Liveline chart tooltip + cursor.
+ * Copy this block only alongside InsightCards; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.insight-chart-stage {
+  overflow: hidden;
+}
+
+.insight-chart-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.insight-chart-tooltip-anchor {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.insight-chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--tooltip-fg);
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-overlay);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.insight-chart-tooltip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+/* Status pills share the same base-hue → color-mix derivation as .records-tag,
+ * so both components stay consistent across light and dark. */
+.filter-status-todo {
+  --tag-base: oklch(0.757 0.153 66.401);
+}
+.filter-status-progress {
+  --tag-base: oklch(0.671 0.118 219.351);
+}
+.filter-status-done {
+  --tag-base: oklch(0.652 0.131 162.865);
+}
+
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 92%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 20%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+/* Dark mode — a richer, saturated same-hue fill
+ * with bright same-hue text and no visible border (light mode keeps the soft
+ * tinted pastels above). Applies to both the records grid and status pills. */
+.dark .records-tag,
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in srgb, var(--tag-base) 86%, white);
+  background: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+  border-color: color-mix(in srgb, var(--tag-base) 34%, var(--surface));
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── StreamText primitive ─────────────────────────────────
+ * Fast character reveal: the newest few characters carry a
+ * soft, masked blur so the leading edge resolves smoothly as
+ * text flows in. The caret holds solid while streaming, then
+ * blinks once the string settles. */
+/* ══════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC — StreamText
+ * The streaming caret + tail.
+ * Copy this block only alongside StreamText; it is not part of the
+ * generic foundation above.
+ * ══════════════════════════════════════════════════════════ */
+.stream-tail {
+  filter: blur(1.6px);
+  -webkit-mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+  mask-image: linear-gradient(to right, oklch(0 0 0) 20%, oklch(0 0 0 / 0.2));
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1.5px;
+  translate: 0 -0.5px;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+}
+
+.stream-caret.is-streaming {
+  animation: none;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret {
+    animation: none;
+  }
+  .stream-tail {
+    filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pixel-grid loader — brighten plateau, staggered per cell */
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  18%, 42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ 上游 registry 切片遗漏的组件级 CSS（从 globals.css 原文捞回）══
+ * 见 _extract_upstream_gap_rules() 的说明。
+ * ══ */
+/* agent-screen — a static decorative cursor sitting on the capture (for show) */
+.agent-cursor {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* ── port shell：演示舞台 ─────────────────────────────────── */
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.port-stage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 24px;
+}
+.port-frame {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.port-theme-toggle {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-theme-toggle:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+/* ── port-only chrome：变体切换条 ─────────────────────────────
+ * 上游画廊里「Drive / Dots / Orbit / Surfer」的切换属于站点外壳，不属于组件。
+ * 移植件把它带上，方便一眼看全各变体；样式沿用令牌，不是上游代码。
+ * ─────────────────────────────────────────────────────────── */
+.port-variants {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--inset);
+}
+.port-variant-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink-2);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out-strong), background-color 150ms var(--ease-out-strong);
+}
+.port-variant-btn:hover {
+  color: var(--ink);
+}
+.port-variant-btn[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+/* 组件说明块（移植件顶部的一段中文用途说明） */
+.port-note {
+  max-width: 46ch;
+  margin-bottom: 20px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.port-note code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── 工具类（Tailwind 子集，由 twsubset.py 编译）───────────────
+ * 颜色/圆角/阴影/缓动全部引用同名 var(--token)，
+ * 因此配色与动效曲线与官网一致。
+ * 选择器一律写成 [class~=] 属性形式而非转义类名：
+ * 工具类含斜杠、冒号、方括号、百分号，转义极易出错。
+ */
+
+[class~="transition-colors"] {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[class~="duration-100"] {
+  transition-duration: 100ms;
+}
+
+[class~="-mr-1"] {
+  margin-right: calc(0.25rem * -1);
+}
+
+[class~="absolute"] {
+  position: absolute;
+}
+
+[class~="bg-green-tint"] {
+  background-color: var(--green-tint);
+}
+
+[class~="bg-line"] {
+  background-color: var(--line);
+}
+
+[class~="bg-red-tint"] {
+  background-color: var(--red-tint);
+}
+
+[class~="bg-surface"] {
+  background-color: var(--surface);
+}
+
+[class~="border-b"] {
+  border-bottom-width: 1px;
+  border-style: solid;
+}
+
+[class~="border-line"] {
+  border-color: var(--line);
+  border-style: solid;
+}
+
+[class~="break-words"] {
+  overflow-wrap: break-word;
+}
+
+[class~="fixed"] {
+  position: fixed;
+}
+
+[class~="flex"] {
+  display: flex;
+}
+
+[class~="font-medium"] {
+  font-weight: 500;
+}
+
+[class~="font-mono"] {
+  font-family: var(--font-mono);
+}
+
+[class~="gap-1"] {
+  gap: 0.25rem;
+}
+
+[class~="gap-2"] {
+  gap: 0.5rem;
+}
+
+[class~="gap-[7px]"] {
+  gap: 7px;
+}
+
+[class~="grid"] {
+  display: grid;
+}
+
+[class~="grid-cols-[20px_minmax(0,1fr)]"] {
+  grid-template-columns: 20px minmax(0,1fr);
+}
+
+[class~="h-11"] {
+  height: 2.75rem;
+}
+
+[class~="h-6"] {
+  height: 1.5rem;
+}
+
+[class~="hover:bg-hover"]:hover {
+  background-color: var(--hover);
+}
+
+[class~="hover:text-ink"]:hover {
+  color: var(--ink);
+}
+
+[class~="inline-flex"] {
+  display: inline-flex;
+}
+
+[class~="inset-y-0"] {
+  top: 0rem;
+  bottom: 0rem;
+}
+
+[class~="items-center"] {
+  align-items: center;
+}
+
+[class~="items-start"] {
+  align-items: flex-start;
+}
+
+[class~="leading-[1.65]"] {
+  line-height: 1.65;
+}
+
+[class~="leading-none"] {
+  line-height: 1;
+}
+
+[class~="left-0"] {
+  left: 0rem;
+}
+
+[class~="left-5"] {
+  left: 1.25rem;
+}
+
+[class~="max-w-105"] {
+  max-width: 26.25rem;
+}
+
+[class~="min-w-0"] {
+  min-width: 0rem;
+}
+
+[class~="ml-auto"] {
+  margin-left: auto;
+}
+
+[class~="overflow-hidden"] {
+  overflow: hidden;
+}
+
+[class~="pl-1"] {
+  padding-left: 0.25rem;
+}
+
+[class~="pointer-events-none"] {
+  pointer-events: none;
+}
+
+[class~="pr-3"] {
+  padding-right: 0.75rem;
+}
+
+[class~="px-1.5"] {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+[class~="px-4"] {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+[class~="py-3"] {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+[class~="relative"] {
+  position: relative;
+}
+
+[class~="rounded-[3px]"] {
+  border-radius: 3px;
+}
+
+[class~="rounded-[6px]"] {
+  border-radius: 6px;
+}
+
+[class~="rounded-card"] {
+  border-radius: var(--radius-card);
+}
+
+[class~="select-none"] {
+  user-select: none;
+}
+
+[class~="shadow-card"] {
+  box-shadow: var(--shadow-card);
+}
+
+[class~="shrink-0"] {
+  flex-shrink: 0;
+}
+
+[class~="tabular-nums"] {
+  font-variant-numeric: tabular-nums;
+}
+
+[class~="text-[11px]"] {
+  font-size: 11px;
+}
+
+[class~="text-[12.5px]"] {
+  font-size: 12.5px;
+}
+
+[class~="text-[12px]"] {
+  font-size: 12px;
+}
+
+[class~="text-center"] {
+  text-align: center;
+}
+
+[class~="text-green"] {
+  color: var(--green);
+}
+
+[class~="text-ink"] {
+  color: var(--ink);
+}
+
+[class~="text-ink-2"] {
+  color: var(--ink-2);
+}
+
+[class~="text-ink-3"] {
+  color: var(--ink-3);
+}
+
+[class~="text-red"] {
+  color: var(--red);
+}
+
+[class~="truncate"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[class~="w-[3px]"] {
+  width: 3px;
+}
+
+[class~="w-full"] {
+  width: 100%;
+}
+
+[class~="w-px"] {
+  width: 1px;
+}
+
+[class~="whitespace-pre-wrap"] {
+  white-space: pre-wrap;
+}
+
+</style>
+</head>
+<body>
+<div class="port-stage">
+<!-- title: Code Block -->
+<!--@classes:
+  w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card
+  flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]
+  inline-flex min-w-0 items-center gap-[7px]
+  truncate font-mono leading-none text-ink shrink-0 text-ink-3
+  ml-auto inline-flex items-center gap-2 font-mono text-[12px] leading-none tabular-nums
+  text-green text-red
+  -mr-1 ml-auto flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium transition-colors duration-100 hover:bg-hover
+  text-ink-3 hover:text-ink
+  py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2
+  relative pointer-events-none absolute inset-y-0 left-5 w-px bg-line
+  relative grid grid-cols-[20px_minmax(0,1fr)] items-start
+  bg-green-tint bg-red-tint absolute inset-y-0 left-0 w-[3px]
+  select-none text-center text-[11px] text-ink-3
+  pr-3 pl-1 break-words whitespace-pre-wrap rounded-[3px]
+-->
+<!-- 来源：components/primitives/CodeBlock.tsx（上游 MIT）
+     变体：Code（带行号列表）/ Diff（unified diff）
+     保真：两条视图共用同一套语法着色 —— 关键字/条件 → var(--accent-ink)，
+           字符串/数字 → var(--orange)，函数调用 → var(--ink) 且 font-weight:500；
+           TOKEN 正则与 highlight() 的 token 顺序逐字照搬。diff 的 gutter 单列
+           （删除行用旧行号，新增/上下文用新行号）、左侧 3px 色条（新增实心绿、
+           删除红色斜纹 hatch）、green/red 行底 tint、词级 add/del 高亮
+           （color-mix 18% + box-decoration-break:clone）全部照搬。
+     Copy：写剪贴板后 1500ms 内显示 "Copied"（绿）；离线/无权限时静默失败，
+           与上游 `navigator.clipboard.writeText(...).then(...)` 行为一致，
+           仅额外加了 catch 防止控制台出现未捕获的 rejection。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>代码块</strong> — 浅色编辑器面板，两种视图在卡片内切换：
+    <code>Code</code> 是带行号的代码列表，<code>Diff</code> 是统一 diff
+    （旧/新 gutter、绿红强调条与行底色、词级增删高亮）。两者共用同一套语法着色与换行策略。
+    点击右上角 <code>Copy</code> 复制全文，1.5 秒内回显 <code>Copied</code>。
+  </p>
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Code" aria-pressed="true">Code</button>
+    <button type="button" class="port-variant-btn" data-variant="Diff" aria-pressed="false">Diff</button>
+  </div>
+  <div id="codeblock-host"></div>
+</div>
+
+<script>
+/* ── 逐字照搬上游的语法着色规则 ────────────────────────────── */
+var CB_FILE = 'churn.ts';
+
+var CB_KEYWORDS = new Set(['import', 'from', 'export', 'default', 'async', 'function', 'const', 'let', 'var', 'await', 'return', 'if', 'else', 'for', 'while', 'new', 'throw', 'try', 'catch', 'null', 'true', 'false', 'undefined']);
+var CB_TOKEN = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|\b\d+(?:\.\d+)?\b|\b(?:import|from|export|default|async|function|const|let|var|await|return|if|else|for|while|new|throw|try|catch|null|true|false|undefined)\b|[A-Za-z_$][\w$]*(?=\s*\())/g;
+
+function cbEsc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* React 会自动转义文本；这里手动转义，其余逻辑 1:1 */
+function cbHighlight(text) {
+  var out = '';
+  var last = 0;
+  var m;
+  CB_TOKEN.lastIndex = 0;
+  while ((m = CB_TOKEN.exec(text)) !== null) {
+    var idx = m.index;
+    var t = m[0];
+    if (idx > last) out += '<span>' + cbEsc(text.slice(last, idx)) + '</span>';
+    var color;
+    var weight = '';
+    if (/^["'`]/.test(t) || /^\d/.test(t)) color = 'var(--orange)';            /* string / number */
+    else if (CB_KEYWORDS.has(t)) color = 'var(--accent-ink)';                   /* keyword / import / conditional */
+    else { color = 'var(--ink)'; weight = 'font-weight:500'; }                  /* function call */
+    out += '<span style="color:' + color + (weight ? ';' + weight : '') + '">' + cbEsc(t) + '</span>';
+    last = idx + t.length;
+  }
+  if (last < text.length) out += '<span>' + cbEsc(text.slice(last)) + '</span>';
+  return out;
+}
+
+var CB_CODE_LINES = [
+  'export async function churnBatch() {',
+  '  const flavor = await getFlavor("pistachio");',
+  '  const base = await dairy.fetch({ flavor });',
+  '  await freezer.store(base, { temp: "-16C" });',
+  '  if (!base.approved) return null;',
+  '  return base.gallons;',
+  '}'
+];
+
+var CB_DIFF = [
+  { old: 1, cur: 1, type: 'ctx', pieces: [{ text: 'export async function churnBatch() {' }] },
+  { old: 2, cur: 2, type: 'ctx', pieces: [{ text: '  const flavor = await getFlavor("pistachio");' }] },
+  { old: 3, cur: 3, type: 'ctx', pieces: [{ text: '  const base = await dairy.fetch({ flavor });' }] },
+  { old: 4, cur: null, type: 'del', pieces: [{ text: '  await freezer.store(base, { temp: ' }, { text: '"-14C"', change: 'del' }, { text: ' });' }] },
+  { old: null, cur: 4, type: 'add', pieces: [{ text: '  await freezer.store(base, { temp: ' }, { text: '"-16C"', change: 'add' }, { text: ' });' }] },
+  { old: null, cur: 5, type: 'add', pieces: [{ text: '  if (!base.approved) return null;' }] },
+  { old: 5, cur: 6, type: 'ctx', pieces: [{ text: '  return base.gallons;' }] },
+  { old: 6, cur: 7, type: 'ctx', pieces: [{ text: '}' }] }
+];
+
+var CB_HATCH = 'repeating-linear-gradient(45deg, var(--red) 0, var(--red) 1.5px, transparent 1.5px, transparent 3px)';
+
+(function () {
+  var host = document.getElementById('codeblock-host');
+  var variant = 'Code';
+  var copied = false;
+
+  function fileIcon() {
+    return '<svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-ink-3"><path d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>';
+  }
+
+  function piecesHtml(pieces) {
+    return pieces.map(function (p) {
+      if (p.change) {
+        var add = p.change === 'add';
+        var bg = 'color-mix(in srgb, var(--' + (add ? 'green' : 'red') + ') 18%, transparent)';
+        return '<span class="rounded-[3px]" style="background:' + bg + ';padding:0 2px;margin:0 -1px;-webkit-box-decoration-break:clone;box-decoration-break:clone">' + cbHighlight(p.text) + '</span>';
+      }
+      return '<span>' + cbHighlight(p.text) + '</span>';
+    }).join('');
+  }
+
+  function diffBody() {
+    var added = CB_DIFF.filter(function (r) { return r.type === 'add'; }).length;
+    var removed = CB_DIFF.filter(function (r) { return r.type === 'del'; }).length;
+    var rows = CB_DIFF.map(function (r) {
+      var add = r.type === 'add';
+      var del = r.type === 'del';
+      var num = del ? r.old : r.cur;            /* 单列 gutter：删除行用旧号，其余用新号 */
+      var bar = (add || del)
+        ? '<span class="absolute inset-y-0 left-0 w-[3px]" style="background:' + (add ? 'var(--green)' : CB_HATCH) + '"></span>'
+        : '';
+      var numCls = add ? 'text-green' : del ? 'text-red' : 'text-ink-3';
+      return '<div class="relative grid grid-cols-[20px_minmax(0,1fr)] items-start ' + (add ? 'bg-green-tint' : del ? 'bg-red-tint' : '') + '">'
+        + bar
+        + '<span class="select-none text-center text-[11px] ' + numCls + '">' + (num == null ? '' : num) + '</span>'
+        + '<code class="pr-3 pl-1 break-words whitespace-pre-wrap">' + piecesHtml(r.pieces) + '</code>'
+        + '</div>';
+    }).join('');
+    return { html: rows, added: added, removed: removed };
+  }
+
+  function codeBody() {
+    return CB_CODE_LINES.map(function (line, i) {
+      return '<div class="grid grid-cols-[20px_minmax(0,1fr)] items-start">'
+        + '<span class="select-none text-center text-[11px] text-ink-3">' + (i + 1) + '</span>'
+        + '<code class="pr-3 pl-1 break-words whitespace-pre-wrap">' + cbHighlight(line) + '</code>'
+        + '</div>';
+    }).join('');
+  }
+
+  function render() {
+    var isDiff = variant === 'Diff';
+    var head;
+    if (isDiff) {
+      var d = diffBody();
+      head = '<span class="ml-auto inline-flex items-center gap-2 font-mono text-[12px] leading-none tabular-nums">'
+        + '<span class="text-green">+' + d.added + '</span>'
+        + '<span class="text-red">-' + d.removed + '</span>'
+        + '</span>';
+      host.innerHTML =
+        '<div class="w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card">'
+        + '<div class="flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]">'
+        +   '<span class="inline-flex min-w-0 items-center gap-[7px]">' + fileIcon()
+        +     '<span class="truncate font-mono leading-none text-ink">' + CB_FILE + '</span></span>'
+        +   head
+        + '</div>'
+        + '<div class="py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2">'
+        +   '<div class="relative">'
+        +     '<span class="pointer-events-none absolute inset-y-0 left-5 w-px bg-line"></span>'
+        +     d.html
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+    } else {
+      var checkSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>';
+      var copySvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>';
+      head = '<button type="button" id="cb-copy" aria-label="Copy code" class="-mr-1 ml-auto flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium transition-colors duration-100 hover:bg-hover ' + (copied ? 'text-green' : 'text-ink-3 hover:text-ink') + '">'
+        + (copied ? checkSvg : copySvg)
+        + (copied ? 'Copied' : 'Copy')
+        + '</button>';
+      host.innerHTML =
+        '<div class="w-full max-w-105 overflow-hidden rounded-card bg-surface shadow-card">'
+        + '<div class="flex h-11 items-center gap-2 border-b border-line px-4 text-[12.5px]">'
+        +   '<span class="inline-flex min-w-0 items-center gap-[7px]">' + fileIcon()
+        +     '<span class="truncate font-mono leading-none text-ink">' + CB_FILE + '</span></span>'
+        +   head
+        + '</div>'
+        + '<div class="py-3 font-mono text-[12.5px] leading-[1.65] text-ink-2">'
+        +   '<div class="relative">'
+        +     '<span class="pointer-events-none absolute inset-y-0 left-5 w-px bg-line"></span>'
+        +     codeBody()
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+      document.getElementById('cb-copy').addEventListener('click', doCopy);
+    }
+  }
+
+  function doCopy() {
+    var raw = CB_CODE_LINES.join('\n');
+    var done = function () {
+      copied = true;
+      render();
+      setTimeout(function () { copied = false; render(); }, 1500);
+    };
+    /* 上游直接 navigator.clipboard.writeText(raw).then(setCopied)。
+       file:// / 非安全上下文下该 API 可能被拒，补一个 execCommand 兜底，
+       仍是「成功才回显 Copied」，不改变语义。 */
+    var fallback = function () {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = raw;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) done();
+      } catch (e) { /* 剪贴板完全不可用：静默，与上游一致 */ }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(raw).then(done).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  var btns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      for (var j = 0; j < btns.length; j++) btns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      variant = this.getAttribute('data-variant');
+      render();
+    });
+  }
+  render();
+})();
+</script>
+</div>
+<button type="button" class="port-theme-toggle" id="port-theme-toggle" aria-label="切换明暗主题">
+  <span id="port-theme-label">dark</span>
+</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var label = document.getElementById('port-theme-label');
+  var btn = document.getElementById('port-theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var dark = root.classList.toggle('dark');
+    if (label) label.textContent = dark ? 'light' : 'dark';
+  });
+})();
+</script>
+
+</body>
+</html>

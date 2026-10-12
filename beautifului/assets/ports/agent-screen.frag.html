@@ -1,0 +1,251 @@
+<!-- title: Agent Screen -->
+<!--@classes: cursor-pointer hover:shadow-raised -->
+<!-- 来源：components/primitives/AgentScreen.tsx（上游 MIT）
+     保真：三态（open / teach a task / record）与 Working·Loading 两个变体；
+           折叠卡 2964/1856 的 aspect + fade-up 380ms 入场；hover 才浮出蓝色 Open 胶囊；
+           Open 后 portal 到 <body> 的全屏 viewer（fade-in 180ms 背景 + pop-in 240ms 面板）；
+           Esc 折叠 / body 滚动锁；自绘 macOS 指针跟随鼠标（[cursor:none] 画布）；
+           录制计时 mm:ss + 红色 REC 徽标（records-pulse 1.1s）。
+     依赖降级：
+       ① 上游占位图 public/agent-desktop.webp **未随仓库同步**。为遵守「不引用不存在的本地
+          文件、也不用远端 URL」，这里改用上游**自带的非图片回退** FauxWindow（纯 CSS 自绘的
+          仿浏览器窗口骨架）充当屏幕占位——它本就是上游 streamSrc 缺失时的分支，非自创视觉。
+       ② 上游 `.agent-cursor` 类定义在 app/globals.css（不在 foundation.standalone.css 里），
+          故用等价的工具类+inline（absolute pointer-events-none + drop-shadow filter）复现，
+          视觉一致。
+     付费依赖：无。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>Agent Screen（实时观看）</strong> — 看 Agent 干活的三态卡片：静止时是一帧屏幕捕获
+    （hover 浮出蓝色 Open），Open 打开全屏 viewer；点 <em>Teach a task</em> 开始录制（红色 REC
+    徽标 + 计时，折叠后录制仍在跑），点 <em>End</em> 结束。<br>
+    占位画面用上游自绘的 FauxWindow 代替未同步的 agent-desktop.webp。
+  </p>
+
+  <div class="port-variants" role="group" aria-label="变体">
+    <button type="button" class="port-variant-btn" data-variant="Working" aria-pressed="true">Working</button>
+    <button type="button" class="port-variant-btn" data-variant="Loading" aria-pressed="false">Loading</button>
+  </div>
+
+  <div id="as-host" class="w-[340px] max-w-full"></div>
+</div>
+
+<script>
+(function () {
+  var AGENT = "Agent";
+
+  /* ── icons ── */
+  function ico(path, size, sw) {
+    size = size || 15; sw = sw || 2;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + '</svg>';
+  }
+  var COLLAPSE_ICON = '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>';
+  var OPEN_ICON = '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
+  var TEACH_ICON = '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none"/>';
+
+  function fmt(total) {
+    var m = Math.floor(total / 60), s = total % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  /* macOS-style pointer */
+  function cursorSvg(cls, style) {
+    return '<svg class="' + (cls || "") + '" style="' + (style || "") + '" width="30" height="30" viewBox="0 0 24 24" fill="#111318" stroke="#fff" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg>';
+  }
+  /* collapsed card: a static decorative cursor sitting on the capture */
+  function driftCursor() {
+    return cursorSvg("absolute pointer-events-none", "left:42%;top:53%;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))");
+  }
+
+  /* the agent's screen — the upstream non-image fallback (faux browser window) */
+  function fauxWindow() {
+    var rows = ["w-2/5", "w-1/2", "w-1/3", "w-2/5"].map(function (w) {
+      return '<div class="flex items-center gap-2.5">'
+        + '<span class="size-6 shrink-0 rounded-full bg-accent-tint"></span>'
+        + '<span class="flex min-w-0 flex-1 flex-col gap-1.5">'
+        +   '<span class="h-1.5 rounded-full bg-line-strong ' + w + '"></span>'
+        +   '<span class="h-1.5 w-3/5 rounded-full bg-line"></span>'
+        + '</span></div>';
+    }).join('');
+    return '<div class="flex h-full w-full flex-col bg-surface">'
+      + '<div class="flex shrink-0 items-center gap-1.5 border-b border-line bg-inset px-2.5 py-1.5">'
+      +   '<span class="flex items-center gap-1"><span class="size-2 rounded-full bg-red"></span><span class="size-2 rounded-full bg-orange"></span><span class="size-2 rounded-full bg-green"></span></span>'
+      +   '<span class="ml-1 flex min-w-0 items-center gap-1.5 rounded-t-[6px] bg-surface px-2 py-1 shadow-[0_-1px_0_var(--line)]"><span class="size-2 shrink-0 rounded-[3px] bg-accent-tint"></span><span class="h-1.5 w-14 rounded-full bg-line-strong"></span></span>'
+      + '</div>'
+      + '<div class="flex shrink-0 items-center gap-2 border-b border-line px-2.5 py-1.5 text-ink-3">'
+      +   ico('<path d="M15 18l-6-6 6-6"/>', 12) + ico('<path d="M9 6l6 6-6 6"/>', 12)
+      +   '<span class="min-w-0 flex-1 truncate rounded-full bg-field px-2.5 py-[3px] font-mono text-[9px] text-ink-3">hunter.io/try/search/ugly.cash</span>'
+      + '</div>'
+      + '<div class="flex flex-1 flex-col gap-2.5 overflow-hidden p-3">'
+      +   '<div class="flex items-center gap-2">'
+      +     '<span class="grid size-4 place-items-center rounded-[4px] bg-accent-tint text-[8px] font-bold text-accent">h</span>'
+      +     '<span class="h-1.5 w-12 rounded-full bg-line-strong"></span>'
+      +     '<span class="ml-auto h-4 w-12 rounded-full bg-inset shadow-btn"></span>'
+      +   '</div>'
+      +   '<div class="flex items-center gap-2 rounded-[8px] bg-inset p-2"><span class="h-3 flex-1 rounded-full bg-surface shadow-hairline"></span><span class="h-3 w-9 rounded-full bg-accent"></span></div>'
+      +   rows
+      + '</div></div>';
+  }
+  function screen(showCursor) {
+    return '<div class="absolute inset-0 overflow-hidden bg-inset">' + fauxWindow() + (showCursor ? driftCursor() : '') + '</div>';
+  }
+
+  /* connecting state — spinner on black */
+  function loadingScreen() {
+    var size = 26, stroke = 2, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+    return '<div class="absolute inset-0 bg-black">'
+      + '<span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">'
+      +   '<svg width="' + size + '" height="' + size + '" class="block" style="animation:spin 1.1s linear infinite" aria-hidden="true">'
+      +     '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="' + stroke + '"/>'
+      +     '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="#fff" stroke-width="' + stroke + '" stroke-linecap="round" stroke-dasharray="' + (c * 0.28) + ' ' + (c * 0.72) + '"/>'
+      +   '</svg></span>'
+      + '<span class="absolute inset-x-0 text-center text-[12.5px] font-medium text-white/70" style="top:calc(50% + 28px)">Connecting to agent\u2019s screen</span></div>';
+  }
+
+  /* ── buttons (inlined from atoms/Button cva) ── */
+  var BTN_BASE = "inline-flex items-center justify-center font-medium select-none transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none ";
+  var BTN_SM = "h-[27px] px-3 text-[13px] leading-none rounded-full gap-1.5";
+  var BTN_SECONDARY = BTN_BASE + "bg-surface text-ink shadow-btn hover:bg-inset " + BTN_SM;
+  var BTN_ACCENT = BTN_BASE + "bg-accent text-white hover:bg-accent-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] " + BTN_SM;
+
+  /* ── state ── */
+  var loading = false, open = false, recording = false, secs = 0, cursorPos = null, secsTimer = null;
+  var host = document.getElementById('as-host');
+  var viewer = null;
+
+  function controlsHTML() {
+    var teach = recording
+      ? '<button type="button" data-end class="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-red pl-2.5 pr-3 text-[13px] font-medium leading-none text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[transform,filter] duration-150 ease-out hover:brightness-95 active:scale-[0.96]">'
+        + '<span class="size-2.5 rounded-[2px] bg-white"></span>End</button>'
+      : '<button type="button" data-teach class="' + BTN_SECONDARY + ' gap-1 pl-1.5">' + ico(TEACH_ICON, 15) + 'Teach a task</button>';
+    return '<div class="flex shrink-0 items-center gap-1.5">' + teach
+      + '<button type="button" aria-label="Collapse" data-collapse class="primitive-icon-button text-ink-3 transition-colors duration-100 hover:bg-hover hover:text-ink">' + ico(COLLAPSE_ICON, 15) + '</button>'
+      + '</div>';
+  }
+
+  function cardHTML() {
+    var cardCls = 'group/screen relative aspect-[2964/1856] overflow-hidden rounded-window bg-inset shadow-card transition-shadow duration-150 ' + (loading ? "" : "cursor-pointer hover:shadow-raised");
+    var inner;
+    if (loading) {
+      inner = loadingScreen();
+    } else {
+      inner = screen(true)
+        + '<div class="absolute inset-0 flex items-center justify-center bg-[rgba(17,19,24,0)] transition-colors duration-150 group-hover/screen:bg-[rgba(17,19,24,0.18)]">'
+        +   '<span class="translate-y-1 opacity-0 transition duration-150 group-hover/screen:translate-y-0 group-hover/screen:opacity-100">'
+        +     '<button type="button" data-open class="' + BTN_ACCENT + '">' + ico(OPEN_ICON, 14) + 'Open</button>'
+        +   '</span></div>';
+    }
+    return '<div class="w-full max-w-[340px]">'
+      + '<div data-card class="' + cardCls + '" style="animation:fade-up 380ms cubic-bezier(0.23,1,0.32,1) both">' + inner + '</div>'
+      + '<div class="mt-2.5 truncate px-0.5 text-[13px] font-medium text-ink">' + AGENT + '\u2019s screen</div>'
+      + '</div>';
+  }
+
+  function renderCard() {
+    host.innerHTML = cardHTML();
+    var card = host.querySelector('[data-card]');
+    if (!loading) {
+      card.addEventListener('click', openViewer);
+      var ob = host.querySelector('[data-open]');
+      if (ob) ob.addEventListener('click', function (e) { e.stopPropagation(); openViewer(); });
+    }
+  }
+
+  /* ── expanded viewer (portaled to <body>) ── */
+  function titlebarHTML() {
+    var badge = recording
+      ? '<span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-tint py-0.5 pl-1.5 pr-2 text-[11.5px] font-medium tabular-nums text-red">'
+        + '<span class="size-2 rounded-full bg-red" style="animation:records-pulse 1.1s ease-in-out infinite"></span>'
+        + '<span data-secs>' + fmt(secs) + '</span></span>'
+      : '';
+    return '<div class="flex min-w-0 items-center gap-2"><span class="truncate text-[13px] font-semibold text-ink">' + AGENT + '</span>' + badge + '</div>' + controlsHTML();
+  }
+
+  function viewerHTML() {
+    var media = loading
+      ? '<div class="aspect-[2964/1856]" style="width:min(960px,90vw)">' + loadingScreen() + '</div>'
+      : '<div class="aspect-[2964/1856]" style="width:min(960px,90vw)">' + screen(false) + '</div>';
+    return '<div class="absolute inset-0 bg-black/60 dark:bg-black/75" data-backdrop style="animation:fade-in 180ms ease-out both"></div>'
+      + '<div class="relative flex max-h-full flex-col overflow-hidden rounded-[16px] bg-surface p-2 pt-0 shadow-overlay" style="animation:pop-in 240ms cubic-bezier(0.23,1,0.32,1) both">'
+      +   '<div data-titlebar class="flex h-11 shrink-0 items-center justify-between gap-3 px-1.5">' + titlebarHTML() + '</div>'
+      +   '<div data-screenarea class="relative min-h-0 overflow-hidden rounded-[8px] bg-inset [cursor:none]">' + media + '<span data-livecursor></span></div>'
+      + '</div>';
+  }
+
+  function syncTitlebar() {
+    if (!viewer) return;
+    viewer.querySelector('[data-titlebar]').innerHTML = titlebarHTML();
+    bindTitlebar();
+  }
+  function bindTitlebar() {
+    var teach = viewer.querySelector('[data-teach]');
+    if (teach) teach.addEventListener('click', startRecording);
+    var end = viewer.querySelector('[data-end]');
+    if (end) end.addEventListener('click', endRecording);
+    var col = viewer.querySelector('[data-collapse]');
+    if (col) col.addEventListener('click', closeViewer);
+  }
+  function openViewer() {
+    if (loading || open) return;
+    open = true;
+    viewer = document.createElement('div');
+    viewer.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6';
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.setAttribute('aria-label', AGENT + "'s screen");
+    viewer.innerHTML = viewerHTML();
+    document.body.appendChild(viewer);
+    document.body.style.overflow = 'hidden';
+    bindTitlebar();
+    viewer.querySelector('[data-backdrop]').addEventListener('click', closeViewer);
+    var area = viewer.querySelector('[data-screenarea]');
+    area.addEventListener('mousemove', function (e) {
+      if (loading) return;
+      var r = area.getBoundingClientRect();
+      cursorPos = { x: e.clientX - r.left, y: e.clientY - r.top };
+      var live = viewer.querySelector('[data-livecursor]');
+      live.innerHTML = cursorSvg("pointer-events-none absolute z-10", "left:" + cursorPos.x + "px;top:" + cursorPos.y + "px;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))");
+    });
+    area.addEventListener('mouseleave', function () {
+      cursorPos = null;
+      var live = viewer.querySelector('[data-livecursor]');
+      if (live) live.innerHTML = "";
+    });
+  }
+  function closeViewer() {
+    if (viewer) { viewer.remove(); viewer = null; }
+    open = false; cursorPos = null;
+    document.body.style.overflow = "";
+  }
+
+  function startRecording() { secs = 0; recording = true; syncTitlebar(); startTick(); renderCard(); }
+  function endRecording() { recording = false; secs = 0; stopTick(); syncTitlebar(); renderCard(); }
+  function startTick() {
+    stopTick();
+    secsTimer = setInterval(function () {
+      secs++;
+      var el = viewer && viewer.querySelector('[data-secs]');
+      if (el) el.textContent = fmt(secs);
+    }, 1000);
+  }
+  function stopTick() { if (secsTimer) { clearInterval(secsTimer); secsTimer = null; } }
+
+  /* Esc collapses the viewer while open */
+  document.addEventListener('keydown', function (e) { if (open && e.key === 'Escape') closeViewer(); });
+
+  /* variant switcher */
+  var vbtns = document.querySelectorAll('.port-variant-btn');
+  for (var i = 0; i < vbtns.length; i++) {
+    vbtns[i].addEventListener('click', function () {
+      for (var j = 0; j < vbtns.length; j++) vbtns[j].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      loading = this.getAttribute('data-variant') === 'Loading';
+      closeViewer();
+      renderCard();
+    });
+  }
+
+  renderCard();
+})();
+</script>

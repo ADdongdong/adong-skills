@@ -1,0 +1,316 @@
+<!-- title: Tool Chips -->
+<!--@classes:
+  min-h-[220px] w-full max-w-80 pb-1
+  -mx-1.5 flex w-fit items-center gap-1.5 rounded-control px-1.5 py-1 text-[12.5px] text-ink-2 transition-colors duration-100 hover:bg-hover-2
+  transition-transform duration-200 tabular-nums
+  grid transition-[grid-template-rows,opacity] duration-300
+  -mx-1 overflow-hidden px-1.5 pb-1
+  mt-1.5 flex flex-col gap-1
+  group/row -mx-[3px] flex h-7 w-[calc(100%_+_6px)] min-w-0 items-center gap-2 rounded-control px-[3px] text-left transition-colors duration-100 hover:bg-hover-2
+  relative flex size-4 shrink-0 items-center justify-center text-ink-3
+  transition-opacity duration-100 group-hover/row:opacity-0
+  absolute transition-[opacity,transform] duration-150 group-hover/row:opacity-100
+  shrink-0 text-[12.5px] font-medium text-ink
+  inline-flex h-5.5 min-w-0 flex-1 cursor-pointer items-center truncate rounded-chip bg-field px-1.5 text-[11.5px] text-ink-2 shadow-hairline transition-colors duration-100 hover:bg-hover-2
+  min-h-0 overflow-hidden
+  mt-0.5 mb-1 ml-2 flex flex-col gap-0.5 border-l border-line py-0.5 pl-3.5
+  truncate text-[11.5px] leading-[1.6]
+  mt-2.5 flex max-w-full flex-wrap gap-1.5 border-t border-line pt-2.5
+  relative
+  inline-flex h-7 max-w-full items-center gap-2 rounded-chip bg-surface px-2 font-mono text-[11.5px] text-ink shadow-btn transition-colors duration-100 hover:bg-hover
+  min-w-0 truncate shrink-0 text-green tabular-nums shrink-0 text-red tabular-nums
+  inline-flex h-7 items-center rounded-chip px-1.5 font-mono text-[11.5px] text-ink-3 underline decoration-transparent underline-offset-2 transition-colors duration-100 hover:text-ink-2 hover:decoration-current
+  fixed z-50 w-72 overflow-hidden rounded-[10px] bg-surface shadow-overlay
+  flex items-center justify-between border-b border-line px-2.5 py-1.5 font-mono text-[11px]
+  min-w-0 truncate text-ink-2 shrink-0 tabular-nums text-green text-red
+  py-1 font-mono text-[11px] leading-[1.8]
+  flex gap-2 px-2.5 whitespace-pre w-3 shrink-0 select-none
+  opacity-0 opacity-100 font-mono text-green text-ink-2 bg-green-tint bg-red-tint text-red
+-->
+<!-- 来源：components/primitives/ToolChips.tsx（上游 MIT）
+     保真：STEP_MS=700 逐行揭示；fade-up / pop-in / fade-in 关键帧与延迟逐字照搬；
+           文件 diff 芯片的 hover 预览在上游是 createPortal(…, document.body) —— 即
+           「渲染进 body 的浮层」，本移植用同样的做法（fixed 定位节点挂在 body，避免
+           被父级 transform/动画重定义坐标），并按视口高度自动决定向上/向下翻转。
+           const previewHeight = 38 + lines*19、x 夹在 [12, innerWidth-300]、上下 6px 间距、
+           transform-origin 随翻转方向变化 —— 全部照搬。
+     降级/说明：
+       1) 上游 w-[calc(100%+6px)]：Tailwind 会在任意值里给 + - * / 补空格，twsubset 不补，
+          故写成 w-[calc(100%_+_6px)]（_ 会被编译成空格），得到与上游相同的 calc(100% + 6px)。
+       2) 上游用 body portal；原生 <div popover> 需要 JS 调 showPopover()，行为不等价
+          （会劫持 light-dismiss / 顶层层叠），这里沿用 portal 语义。 -->
+<div class="port-frame">
+  <p class="port-note">
+    <strong>工具调用芯片</strong> — 把一次 Agent 运行压成若干紧凑行：先逐行揭示工具调用
+    （思考 / 写入 / 运行 / 读取），再在底部汇总文件级 diff 芯片。
+    悬停任意一行会浮现 chevron 提示可展开；点击行展开该工具实际做了什么。
+    悬停底部文件芯片弹出该文件的逐行 diff 预览（<code>+</code>/<code>−</code> 着色）。
+  </p>
+  <div id="toolchips-host"></div>
+</div>
+
+<script>
+/* ── 上游常量逐字照搬 ────────────────────────────────────────── */
+var TC_STEP_MS = 700;
+
+var TC_ICONS = {
+  think: '<path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />',
+  write: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></g>',
+  run: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5M12 19h8" /></g>',
+  read: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></g>'
+};
+
+/* ROWS：上游 ROWS 数组（演示数据保留，能体现布局） */
+var TC_STEPS = [
+  { icon: 'think', label: 'Thinking', chip: 'Planning the churn schedule…', mono: false, detailMono: false,
+    detail: [
+      { text: 'Weekend demand carries pistachio, so it churns first.' },
+      { text: 'Batch capacity leaves two evening freezer windows.' }
+    ] },
+  { icon: 'write', label: 'Write 204 lines', chip: 'ChurnSchedule.tsx', mono: true, detailMono: true,
+    detail: [
+      { text: '+ const windows = slots.filter((s) => s.temp <= -12)', tone: 'add' },
+      { text: '+ return schedule(windows, { hero: "pistachio" })', tone: 'add' }
+    ] },
+  { icon: 'run', label: 'Rebuild and verify', chip: 'npm run freeze', mono: true, detailMono: true,
+    detail: [
+      { text: '✓ built in 1.2s' },
+      { text: '✓ 34 checks passed' }
+    ] },
+  { icon: 'read', label: 'Read image', chip: 'flavor-chart.png', mono: true, detailMono: false,
+    detail: [
+      { text: '1280 × 720 · line chart, three summers.' },
+      { text: 'Mint chip trends up 12% through July.' }
+    ] }
+];
+
+var TC_DIFFS = [
+  { file: 'flavors.css', add: 13, del: 0 },
+  { file: 'ChurnSchedule.tsx', add: 74, del: 41 },
+  { file: 'menu.ts', add: 8, del: 2 }
+];
+
+/* hovering a file chip opens its diff — green added, red removed */
+var TC_DIFF_LINES = {
+  'flavors.css': [
+    { text: '.scoop-card {', tone: 'ctx' },
+    { text: '  gap: 14px;', tone: 'del' },
+    { text: '  gap: 12px;', tone: 'add' },
+    { text: '  container-type: inline-size;', tone: 'add' },
+    { text: '}', tone: 'ctx' }
+  ],
+  'ChurnSchedule.tsx': [
+    { text: 'const slots = coldSlots(week);', tone: 'ctx' },
+    { text: 'const windows = slots;', tone: 'del' },
+    { text: 'const windows = slots.filter(', tone: 'add' },
+    { text: '  (s) => s.temp <= -12,', tone: 'add' },
+    { text: ');', tone: 'add' }
+  ],
+  'menu.ts': [
+    { text: 'export const hero = "mint-chip";', tone: 'del' },
+    { text: 'export const hero = "pistachio";', tone: 'add' }
+  ]
+};
+
+var TC_COPY = { header: '4 tool calls, 2 messages', more: '+2 more' };
+
+(function () {
+  var host = document.getElementById('toolchips-host');
+
+  var step = 0;
+  var total = TC_STEPS.length + 1;      /* rows, then diff chips */
+  var open = true;
+  var openRows = {};
+
+  host.innerHTML =
+    '<div class="min-h-[220px] w-full max-w-80 pb-1">'
+    + '<button type="button" id="tc-header" aria-expanded="true" class="-mx-1.5 flex w-fit items-center gap-1.5 rounded-control px-1.5 py-1 text-[12.5px] text-ink-2 transition-colors duration-100 hover:bg-hover-2">'
+    +   '<svg id="tc-hchev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200" style="transform:rotate(0deg)"><path d="M6 9l6 6 6-6" /></svg>'
+    +   '<span class="tabular-nums">' + TC_COPY.header + '</span>'
+    + '</button>'
+    /* collapsed run header 控制的行区域：grid-rows 1fr/0fr + opacity */
+    + '<div id="tc-expand" class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:1fr;opacity:1">'
+    +   '<div class="-mx-1 overflow-hidden px-1.5 pb-1">'
+    +     '<div id="tc-rows" class="mt-1.5 flex flex-col gap-1"></div>'
+    +     '<div id="tc-chips"></div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+
+  var rowsEl = document.getElementById('tc-rows');
+  var chipsEl = document.getElementById('tc-chips');
+  var expandEl = document.getElementById('tc-expand');
+  var chevEl = document.getElementById('tc-hchev');
+
+  /* body portal —— 上游 createPortal(..., document.body)。
+     fixed 定位浮层挂在 body 下，不受外层 transform/动画影响。 */
+  var portal = document.createElement('div');
+  portal.id = 'tc-portal';
+  document.body.appendChild(portal);
+
+  function rowHtml(row, idx) {
+    var fill = row.icon === 'think' ? 'currentColor' : 'none';
+    var iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" class="transition-opacity duration-100 group-hover/row:opacity-0">' + TC_ICONS[row.icon] + '</svg>';
+    var chevSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="absolute transition-[opacity,transform] duration-150 group-hover/row:opacity-100 opacity-0" style="transform:rotate(-90deg)"><path d="M6 9l6 6 6-6" /></svg>';
+    var lines = row.detail.map(function (l) {
+      return '<span class="truncate text-[11.5px] leading-[1.6] '
+        + (row.detailMono ? 'font-mono ' : '')
+        + (l.tone === 'add' ? 'text-green' : 'text-ink-2') + '">'
+        + l.text + '</span>';
+    }).join('');
+    return '<div data-row="' + idx + '" style="animation:fade-up 300ms cubic-bezier(0.23,1,0.32,1) both">'
+      + '<button type="button" aria-expanded="false" class="group/row -mx-[3px] flex h-7 w-[calc(100%_+_6px)] min-w-0 items-center gap-2 rounded-control px-[3px] text-left transition-colors duration-100 hover:bg-hover-2">'
+      +   '<span class="relative flex size-4 shrink-0 items-center justify-center text-ink-3">'
+      +     iconSvg + chevSvg
+      +   '</span>'
+      +   '<span class="shrink-0 text-[12.5px] font-medium text-ink">' + row.label + '</span>'
+      +   '<span class="inline-flex h-5.5 min-w-0 flex-1 cursor-pointer items-center truncate rounded-chip bg-field px-1.5 text-[11.5px] text-ink-2 shadow-hairline transition-colors duration-100 hover:bg-hover-2 '
+      +     (row.mono ? 'font-mono' : '') + '">' + row.chip + '</span>'
+      + '</button>'
+      + '<div class="grid transition-[grid-template-rows,opacity] duration-300" style="grid-template-rows:0fr;opacity:0;transition-timing-function:cubic-bezier(0.23, 1, 0.32, 1)">'
+      +   '<div class="min-h-0 overflow-hidden">'
+      +     '<div class="mt-0.5 mb-1 ml-2 flex flex-col gap-0.5 border-l border-line py-0.5 pl-3.5">' + lines + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function addRow(idx) {
+    var wrap = document.createElement('div');
+    wrap.innerHTML = rowHtml(TC_STEPS[idx], idx);
+    var node = wrap.firstChild;
+    rowsEl.appendChild(node);
+    var btn = node.querySelector('button');
+    btn.addEventListener('click', function () { toggleRow(idx, node); });
+  }
+
+  function toggleRow(idx, node) {
+    var on = !openRows[idx];
+    openRows[idx] = on;
+    var btn = node.querySelector('button');
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var detail = node.lastElementChild;
+    detail.style.gridTemplateRows = on ? '1fr' : '0fr';
+    detail.style.opacity = on ? '1' : '0';
+    var iconSvg = node.querySelector('button > span > svg:first-child');
+    var chevSvg = node.querySelector('button > span > svg:last-child');
+    iconSvg.classList.toggle('opacity-0', on);
+    chevSvg.classList.toggle('opacity-0', !on);
+    chevSvg.classList.toggle('opacity-100', on);
+    chevSvg.style.transform = on ? 'rotate(0deg)' : 'rotate(-90deg)';
+  }
+
+  function chipsHtml() {
+    var out = '<div class="mt-2.5 flex max-w-full flex-wrap gap-1.5 border-t border-line pt-2.5">';
+    TC_DIFFS.forEach(function (d, i) {
+      out += '<span class="relative" data-diffchip data-file="' + d.file + '">'
+        + '<button type="button" aria-expanded="false" aria-label="Show diff for ' + d.file + '" class="inline-flex h-7 max-w-full items-center gap-2 rounded-chip bg-surface px-2 font-mono text-[11.5px] text-ink shadow-btn transition-colors duration-100 hover:bg-hover" style="animation:pop-in 250ms cubic-bezier(0.23,1,0.32,1) ' + (i * 80) + 'ms both">'
+        +   '<span class="min-w-0 truncate">' + d.file + '</span>'
+        +   '<span class="shrink-0 text-green tabular-nums">+' + d.add + '</span>'
+        +   (d.del > 0 ? '<span class="shrink-0 text-red tabular-nums">−' + d.del + '</span>' : '')
+        + '</button>'
+        + '</span>';
+    });
+    out += '<button type="button" class="inline-flex h-7 items-center rounded-chip px-1.5 font-mono text-[11.5px] text-ink-3 underline decoration-transparent underline-offset-2 transition-colors duration-100 hover:text-ink-2 hover:decoration-current" style="animation:fade-in 300ms ease-out ' + (TC_DIFFS.length * 80) + 'ms both">' + TC_COPY.more + '</button>';
+    out += '</div>';
+    return out;
+  }
+
+  function findDiff(file) {
+    for (var i = 0; i < TC_DIFFS.length; i++) if (TC_DIFFS[i].file === file) return TC_DIFFS[i];
+    return { add: 0, del: 0 };
+  }
+
+  var currentPreview = null;
+
+  function renderPreview(file, x, pos, fitsBelow) {
+    var d = findDiff(file);
+    var lines = TC_DIFF_LINES[file] || [];
+    var stat = '<span class="text-green">+' + d.add + '</span>'
+      + (d.del > 0 ? '<span class="text-red"> −' + d.del + '</span>' : '');
+    var body = lines.map(function (line) {
+      var tone = line.tone === 'add' ? 'bg-green-tint text-green'
+        : line.tone === 'del' ? 'bg-red-tint text-red' : 'text-ink-2';
+      var sign = line.tone === 'add' ? '+' : line.tone === 'del' ? '−' : ' ';
+      return '<div class="flex gap-2 px-2.5 whitespace-pre ' + tone + '">'
+        + '<span class="w-3 shrink-0 select-none">' + sign + '</span>'
+        + '<span class="min-w-0 truncate">' + line.text + '</span>'
+        + '</div>';
+    }).join('');
+    portal.innerHTML =
+      '<div class="fixed z-50 w-72 overflow-hidden rounded-[10px] bg-surface shadow-overlay" style="'
+      + 'left:' + x + 'px;'
+      + (fitsBelow ? 'top:' + pos + 'px;' : 'bottom:' + pos + 'px;')
+      + 'animation:pop-in 160ms cubic-bezier(0.23,1,0.32,1) both;'
+      + 'transform-origin:' + (fitsBelow ? 'top left' : 'bottom left') + '">'
+      +   '<div class="flex items-center justify-between border-b border-line px-2.5 py-1.5 font-mono text-[11px]">'
+      +     '<span class="min-w-0 truncate text-ink-2">' + file + '</span>'
+      +     '<span class="shrink-0 tabular-nums">' + stat + '</span>'
+      +   '</div>'
+      +   '<div class="py-1 font-mono text-[11px] leading-[1.8]">' + body + '</div>'
+      + '</div>';
+  }
+
+  function openPreview(file, currentTarget) {
+    var chip = currentTarget.closest('[data-diffchip]');
+    if (!chip) return;
+    var rect = chip.getBoundingClientRect();
+    var lines = TC_DIFF_LINES[file] || [];
+    var previewHeight = 38 + lines.length * 19;
+    var fitsBelow = rect.bottom + 6 + previewHeight <= window.innerHeight - 12;
+    var x = Math.max(12, Math.min(rect.left, window.innerWidth - 300));
+    var pos = fitsBelow ? rect.bottom + 6 : window.innerHeight - rect.top + 6;
+    currentPreview = file;
+    var btn = chip.querySelector('button');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    renderPreview(file, x, pos, fitsBelow);
+  }
+
+  function closePreview(file) {
+    if (currentPreview === file) {
+      currentPreview = null;
+      portal.innerHTML = '';
+    }
+    var chip = chipsEl.querySelector('[data-diffchip][data-file="' + file + '"]');
+    if (chip) {
+      var btn = chip.querySelector('button');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function showChips() {
+    chipsEl.innerHTML = chipsHtml();
+    var wrappers = chipsEl.querySelectorAll('[data-diffchip]');
+    for (var i = 0; i < wrappers.length; i++) {
+      (function (wrap) {
+        var file = wrap.getAttribute('data-file');
+        var btn = wrap.querySelector('button');
+        wrap.addEventListener('mouseenter', function () { openPreview(file, wrap); });
+        wrap.addEventListener('mouseleave', function () { closePreview(file); });
+        btn.addEventListener('focus', function () { openPreview(file, wrap); });
+        btn.addEventListener('blur', function () { closePreview(file); });
+      })(wrappers[i]);
+    }
+  }
+
+  function tick() {
+    if (step >= total) return;
+    setTimeout(function () {
+      step += 1;
+      if (step <= TC_STEPS.length) addRow(step - 1);
+      if (step >= total) showChips();
+      tick();
+    }, TC_STEP_MS);
+  }
+
+  document.getElementById('tc-header').addEventListener('click', function () {
+    open = !open;
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    expandEl.style.gridTemplateRows = open ? '1fr' : '0fr';
+    expandEl.style.opacity = open ? '1' : '0';
+    chevEl.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
+  });
+
+  tick();
+})();
+</script>
