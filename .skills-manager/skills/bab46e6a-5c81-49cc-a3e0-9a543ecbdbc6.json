@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bab46e6a-5c81-49cc-a3e0-9a543ecbdbc6",
+  "path": "frontend-icon-kit",
+  "path_key": "frontend-icon-kit",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

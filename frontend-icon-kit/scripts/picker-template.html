@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabler 图标选择器 · frontend-icon-kit</title>
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --line: #e3e9f0;
+    --line-strong: #cbd5e1;
+    --ink: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --primary: #2563eb;
+    --primary-soft: #eff4ff;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(15,23,42,.05), 0 8px 24px -12px rgba(15,23,42,.18);
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    display: grid; grid-template-columns: 232px 1fr; grid-template-rows: auto 1fr;
+    grid-template-areas: "brand topbar" "side main";
+  }
+
+  /* ---------- 顶栏 ---------- */
+  .brand {
+    grid-area: brand; background: var(--panel); border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 60px;
+  }
+  .brand mark { background: var(--primary); color: #fff; font-weight: 700; border-radius: 7px;
+    width: 28px; height: 28px; display: grid; place-items: center; font-size: 14px; }
+  .brand b { font-size: 14.5px; letter-spacing: .2px; }
+  .brand span { display: block; font-size: 11px; color: var(--ink-3); font-weight: 400; }
+
+  .topbar {
+    grid-area: topbar; background: var(--panel); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px; padding: 0 20px; height: 60px;
+  }
+  .search { position: relative; flex: 1; max-width: 460px; }
+  .search iconify-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-3); pointer-events: none; }
+  .search input {
+    width: 100%; height: 38px; padding: 0 12px 0 36px; border: 1px solid var(--line-strong);
+    border-radius: 8px; background: #fff; color: var(--ink);
+    font: inherit; font-size: 13.5px; outline: none; transition: .15s;
+  }
+  .search input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .search input::placeholder { color: var(--ink-3); }
+
+  .ctl { display: flex; align-items: center; gap: 7px; }
+  .ctl > label { font-size: 12px; color: var(--ink-3); }
+  select {
+    height: 38px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 8px;
+    background: #fff; color: var(--ink); font: inherit; font-size: 13px; outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--primary); }
+  .swatches { display: flex; gap: 5px; }
+  .sw { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff;
+        box-shadow: 0 0 0 1px var(--line-strong); cursor: pointer; padding: 0; transition: .15s; }
+  .sw:hover { transform: scale(1.12); }
+  .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--primary); }
+
+  /* ---------- 侧栏 ---------- */
+  .side { grid-area: side; background: var(--panel); border-right: 1px solid var(--line);
+    overflow-y: auto; padding: 14px 10px 40px; }
+  .side h4 { margin: 14px 8px 6px; font-size: 11px; letter-spacing: .8px;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 8px 10px; border: 0; border-radius: 8px; background: transparent;
+    color: var(--ink-2); font: inherit; font-size: 13px; cursor: pointer; transition: .12s;
+  }
+  .nav-btn:hover { background: #f1f5f9; color: var(--ink); }
+  .nav-btn[aria-current="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .nav-btn .n { margin-left: auto; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .nav-btn[aria-current="true"] .n { color: var(--primary); }
+
+  /* ---------- 主区 ---------- */
+  .main { grid-area: main; overflow-y: auto; padding: 20px 22px 60px; }
+  .main-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 14px; }
+  .main-head h2 { margin: 0; font-size: 15px; }
+  .main-head .hint { font-size: 12.5px; color: var(--ink-3); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+  .cell {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 8px 11px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    transition: .15s; text-align: center;
+  }
+  .cell:hover { border-color: var(--primary); box-shadow: var(--shadow); transform: translateY(-2px); }
+  .cell:active { transform: translateY(0); }
+  .cell iconify-icon { color: var(--icon-color, var(--ink-2)); }
+  .cell .nm { font: 11px/1.35 var(--mono); color: var(--ink-3); word-break: break-all;
+    max-height: 2.7em; overflow: hidden; }
+  .cell .tag { position: absolute; top: 6px; right: 6px; font-size: 9.5px; color: #fff;
+    background: var(--primary); border-radius: 4px; padding: 1px 4px; opacity: 0; transition: .15s; }
+  .cell:hover .tag { opacity: 1; }
+  .cell .on { position: absolute; top: 6px; left: 6px; color: var(--primary); opacity: 0; transition: .15s; }
+  .cell:hover .on { opacity: 1; }
+
+  .empty { text-align: center; color: var(--ink-3); padding: 70px 20px; }
+  .empty iconify-icon { color: var(--line-strong); }
+  .empty p { margin: 12px 0 0; font-size: 13px; }
+
+  /* ---------- 提示 ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 34px; transform: translate(-50%, 20px);
+    background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 9px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: .22s;
+    box-shadow: 0 12px 32px -8px rgba(15,23,42,.5); max-width: 78vw;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .legend { display: flex; gap: 16px; margin-top: 26px; padding-top: 14px;
+    border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); flex-wrap: wrap; }
+  .legend b { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <mark>Ti</mark>
+  <div><b>图标选择器</b><span>Tabler · 6286 个</span></div>
+</div>
+
+<div class="topbar">
+  <div class="search">
+    <iconify-icon icon="tabler:search" width="16" height="16"></iconify-icon>
+    <input id="q" type="search" placeholder="搜中文场景词或图标名，如：函证 / 额度 / bank / chart" autocomplete="off">
+  </div>
+  <div class="ctl">
+    <label>尺寸</label>
+    <select id="size">
+      <option value="16">16</option><option value="20">20</option>
+      <option value="24" selected>24</option><option value="32">32</option><option value="48">48</option>
+    </select>
+  </div>
+  <div class="ctl">
+    <label>颜色</label>
+    <div class="swatches" id="colors"></div>
+  </div>
+  <div class="ctl">
+    <label>复制格式</label>
+    <select id="fmt">
+      <option value="cdn" selected>CDN 组件</option>
+      <option value="inline">内联 SVG</option>
+    </select>
+  </div>
+</div>
+
+<aside class="side" id="nav"></aside>
+
+<main class="main">
+  <div class="main-head">
+    <h2 id="title">全部图标</h2>
+    <span class="hint" id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    <iconify-icon icon="tabler:inbox" width="48" height="48"></iconify-icon>
+    <p>没有匹配的图标，换个词试试</p>
+  </div>
+  <div class="legend">
+    <span><b>单击</b> 复制当前格式</span>
+    <span><b>Shift + 单击</b> 复制另一种格式</span>
+    <span><b>提示</b> 图标色跟随 CSS <code>color</code>，无需单独设色</span>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const DATA = /*__ICON_DATA__*/;
+
+const COLORS = [
+  { name: '默认', value: '', swatch: '#475569' },
+  { name: '主色', value: '#2563eb', swatch: '#2563eb' },
+  { name: '成功', value: '#16a34a', swatch: '#16a34a' },
+  { name: '警告', value: '#d97706', swatch: '#d97706' },
+  { name: '危险', value: '#dc2626', swatch: '#dc2626' },
+  { name: '次要', value: '#94a3b8', swatch: '#94a3b8' }
+];
+
+const state = { group: '__all__', q: '', size: 24, color: '', fmt: 'cdn' };
+
+// 展平数据，给每个图标贴上中文标签与来源分组
+const ALL = [];
+DATA.groups.forEach(g => {
+  (g.items || []).forEach(it => {
+    (it.icons || []).forEach(name => {
+      ALL.push({ name: 'tabler:' + name, short: name, zh: (it.zh || []).join('/'), group: g.id, groupTitle: g.title });
+    });
+  });
+});
+const TOTAL_ICONS = /*__TOTAL_ICONS__*/;
+
+function iconCount(group) { return ALL.filter(i => i.group === group).length; }
+
+/* ---------------- 侧栏 ---------------- */
+function renderNav() {
+  const nav = document.getElementById('nav');
+  const rows = [
+    { id: '__all__', title: '全部业务图标', n: ALL.length },
+    { id: '__raw__', title: '全量检索（6286）', n: TOTAL_ICONS }
+  ].concat(DATA.groups.map(g => ({ id: g.id, title: g.title, n: iconCount(g.id) })));
+
+  nav.innerHTML = '<h4>图标分组</h4>' + rows.map(r =>
+    `<button class="nav-btn" data-g="${r.id}" aria-current="${state.group === r.id}">
+       <iconify-icon icon="tabler:${r.id === '__all__' ? 'apps' : r.id === '__raw__' ? 'filter' : 'point'}" width="16" height="16"></iconify-icon>
+       <span>${r.title}</span><span class="n">${r.n}</span>
+     </button>`).join('') + '<h4>说明</h4><div style="padding:0 10px;font-size:12px;color:var(--ink-3);line-height:1.7">' +
+     '「全部业务图标」是投行/金融/后台高频场景的精选。<br>「全量检索」覆盖 Tabler 全部 6286 个图标，用英文关键词搜。</div>';
+
+  nav.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => {
+    state.group = b.dataset.g; renderNav(); renderGrid();
+  });
+}
+
+/* ---------------- 颜色 ---------------- */
+function renderColors() {
+  const box = document.getElementById('colors');
+  box.innerHTML = COLORS.map((c, i) =>
+    `<button class="sw" data-c="${c.value}" title="${c.name}" aria-pressed="${state.color === c.value}"
+       style="background:${c.swatch}"></button>`).join('');
+  box.querySelectorAll('.sw').forEach(b => b.onclick = () => {
+    state.color = b.dataset.c; renderColors(); renderGrid();
+  });
+}
+
+/* ---------------- 图标网格 ---------------- */
+function currentList() {
+  const q = state.q.trim().toLowerCase();
+  let list;
+  if (state.group === '__raw__') {
+    list = window.__RAW_ICONS__.map(n => ({ name: 'tabler:' + n, short: n, zh: '', group: '__raw__' }));
+  } else if (state.group === '__all__') {
+    list = ALL;
+  } else {
+    list = ALL.filter(i => i.group === state.group);
+  }
+  if (q) {
+    list = list.filter(i => i.short.toLowerCase().includes(q) || i.zh.toLowerCase().includes(q));
+  }
+  return list;
+}
+
+function renderGrid() {
+  const list = currentList();
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  document.getElementById('count').textContent = list.length + ' 个';
+  const g = DATA.groups.find(x => x.id === state.group);
+  document.getElementById('title').textContent =
+    state.group === '__all__' ? '全部业务图标' :
+    state.group === '__raw__' ? '全量检索（Tabler 6286）' : (g ? g.title : '');
+
+  if (!list.length) { grid.innerHTML = ''; empty.hidden = false; return; }
+  empty.hidden = true;
+
+  const colorStyle = state.color ? `color:${state.color}` : '';
+  grid.innerHTML = list.map((i, idx) =>
+    `<div class="cell" data-n="${i.name}" data-idx="${idx}" title="${i.name}${i.zh ? ' · ' + i.zh : ''}">
+       <iconify-icon icon="${i.name}" width="${state.size}" height="${state.size}" style="${colorStyle}"></iconify-icon>
+       <span class="nm">${i.short}</span>
+       ${i.zh && state.group !== '__raw__' ? '<span class="tag">场景</span>' : ''}
+     </div>`).join('');
+
+  grid.querySelectorAll('.cell').forEach(el => {
+    el.onclick = ev => copyIcon(el.dataset.n, ev.shiftKey ? (state.fmt === 'cdn' ? 'inline' : 'cdn') : state.fmt);
+  });
+}
+
+/* ---------------- 复制 ---------------- */
+function buildCdn(name) {
+  const c = state.color ? ` style="color:${state.color}"` : '';
+  return `<iconify-icon icon="${name}" width="${state.size}" height="${state.size}" aria-hidden="true"${c}></iconify-icon>`;
+}
+
+async function buildInline(name) {
+  const url = `https://api.iconify.design/${name.replace(':', '/')}.svg?height=${state.size}`;
+  const svg = await fetch(url).then(r => r.text());
+  return state.color ? svg.replace('<svg', `<svg style="color:${state.color}"`) : svg;
+}
+
+async function copyIcon(name, fmt) {
+  let text;
+  try {
+    text = fmt === 'inline' ? await buildInline(name) : buildCdn(name);
+  } catch (e) {
+    toast('取 SVG 失败，检查网络后重试');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`已复制${fmt === 'inline' ? '内联 SVG' : 'CDN 组件'}：${name}`);
+  } catch (e) {
+    // file:// 下剪贴板可能被拒，退回到选中提示
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast(`已复制${fmt === 'inline' ? '内联 SVG' : 'CDN 组件'}：${name}`);
+  }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------------- 初始化 ---------------- */
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; renderGrid(); });
+document.getElementById('size').addEventListener('change', e => { state.size = +e.target.value; renderGrid(); });
+document.getElementById('fmt').addEventListener('change', e => { state.fmt = e.target.value; });
+
+renderNav(); renderColors(); renderGrid();
+</script>
+</body>
+</html>

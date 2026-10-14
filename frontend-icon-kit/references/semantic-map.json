@@ -1,0 +1,195 @@
+{
+  "version": "1.0",
+  "collection": "tabler",
+  "collectionVersion": "3.49.0",
+  "note": "中文业务场景词 → Tabler 图标名。所有图标名均经 icon_check.py 校验真实存在（Tabler 3.49 共 6286 个）。新增条目务必先校验再写入。",
+  "groups": [
+    {
+      "id": "ib-business",
+      "title": "投行 / 债券业务",
+      "items": [
+        { "zh": ["立项", "项目立项", "发起立项"], "en": ["clipboard", "project"], "icons": ["clipboard-list", "briefcase", "file-plus", "notes"] },
+        { "zh": ["批文", "核准", "批复", "备案"], "en": ["certificate", "license"], "icons": ["certificate", "license", "file-certificate", "rubber-stamp"] },
+        { "zh": ["额度", "批文额度", "额度管理"], "en": ["target", "scale"], "icons": ["target", "scale", "percentage", "chart-bar"] },
+        { "zh": ["期次", "分期", "分期发行"], "en": ["stack", "calendar"], "icons": ["stack-2", "calendar-week", "stack", "layers-selected"] },
+        { "zh": ["储架", "储架发行", "ABS储架"], "en": ["stack", "package"], "icons": ["stack-3", "stack", "packages", "database"] },
+        { "zh": ["受托管理", "受托", "受托人"], "en": ["shield", "contract"], "icons": ["user-shield", "shield-check", "contract", "briefcase"] },
+        { "zh": ["付息", "利息", "计息"], "en": ["coin", "receipt"], "icons": ["coin-yuan", "cash-coin", "receipt-yuan", "percentage"] },
+        { "zh": ["兑付", "偿付", "本息兑付"], "en": ["cash", "receipt"], "icons": ["cash-banknote", "coin", "receipt", "credit-card-pay"] },
+        { "zh": ["债券", "发行", "发行管理"], "en": ["bond", "money"], "icons": ["file-dollar", "moneybag", "chart-candle", "building-bank"] },
+        { "zh": ["承销", "分销", "承销团"], "en": ["share", "group"], "icons": ["users-group", "share-2", "arrows-exchange", "truck-delivery"] },
+        { "zh": ["询价", "簿记建档", "定价"], "en": ["calculator", "pencil"], "icons": ["calculator", "file-pencil", "clipboard-text", "math"] },
+        { "zh": ["挂牌", "上市", "挂牌管理"], "en": ["flag", "badge"], "icons": ["flag", "building-factory", "badge", "presentation"] },
+        { "zh": ["尽调", "尽职调查"], "en": ["search", "zoom"], "icons": ["list-search", "zoom-scan", "clipboard-search", "file-search"] },
+        { "zh": ["银行", "开户行", "银行账户"], "en": ["bank"], "icons": ["building-bank", "cash-banknote", "credit-card"] },
+        { "zh": ["主体", "发行人", "企业"], "en": ["building", "factory"], "icons": ["building-factory", "building", "briefcase"] },
+        { "zh": ["中介机构", "会所", "律所"], "en": ["building", "users"], "icons": ["building-bank", "users-group", "briefcase-2", "building"] }
+      ]
+    },
+    {
+      "id": "confirmation",
+      "title": "函证 / 核查",
+      "items": [
+        { "zh": ["函证", "发函", "寄发函证"], "en": ["mail", "send"], "icons": ["mail-forward", "send", "mail-plus", "mail"] },
+        { "zh": ["回函", "收到回函"], "en": ["mail", "inbox"], "icons": ["mail-opened", "inbox", "mail-check", "mail-down"] },
+        { "zh": ["待回函", "等待回函"], "en": ["hourglass", "clock"], "icons": ["hourglass", "clock-hour-4", "mail-pause", "progress"] },
+        { "zh": ["函证异常", "退函"], "en": ["mail", "alert"], "icons": ["mail-x", "mail-bolt", "alert-triangle", "mail-off"] },
+        { "zh": ["银行流水", "流水核查"], "en": ["spreadsheet", "list"], "icons": ["file-spreadsheet", "table", "list-details", "database-import"] },
+        { "zh": ["对账", "对账核查"], "en": ["reconcile", "table"], "icons": ["scale", "arrows-exchange", "table-import", "file-check"] },
+        { "zh": ["科目余额", "余额表"], "en": ["table", "sum"], "icons": ["table", "sum", "calculator", "file-analytics"] },
+        { "zh": ["附注", "说明", "备注"], "en": ["notes", "text"], "icons": ["notes", "file-text", "clipboard-text", "info-circle"] },
+        { "zh": ["盖章", "用印", "印章"], "en": ["stamp", "certificate"], "icons": ["rubber-stamp", "certificate", "file-certificate", "signature"] },
+        { "zh": ["签字", "签署"], "en": ["signature", "pencil"], "icons": ["signature", "file-pencil", "edit", "file-check"] },
+        { "zh": ["取证", "底稿", "工作底稿"], "en": ["folder", "files"], "icons": ["folder-open", "paperclip", "files", "photo"] }
+      ]
+    },
+    {
+      "id": "files",
+      "title": "文件与单据",
+      "items": [
+        { "zh": ["文件", "文档"], "en": ["file"], "icons": ["file", "files", "file-text", "paperclip"] },
+        { "zh": ["文件夹", "目录"], "en": ["folder"], "icons": ["folder", "folder-open", "folders"] },
+        { "zh": ["上传", "导入文件"], "en": ["upload"], "icons": ["upload", "cloud-upload", "file-upload"] },
+        { "zh": ["下载", "导出文件"], "en": ["download"], "icons": ["download", "cloud-download", "file-download"] },
+        { "zh": ["表格文件", "Excel", "电子表格"], "en": ["spreadsheet"], "icons": ["file-spreadsheet", "table", "table-column"] },
+        { "zh": ["PDF", "正文文件"], "en": ["file", "text"], "icons": ["file-text", "file", "file-text-shield"] },
+        { "zh": ["合同", "协议"], "en": ["contract"], "icons": ["contract", "file-certificate", "file-text-shield"] },
+        { "zh": ["发票", "票据"], "en": ["invoice", "receipt"], "icons": ["invoice", "file-invoice", "receipt", "receipt-tax"] },
+        { "zh": ["税务", "完税"], "en": ["tax", "receipt"], "icons": ["receipt-tax", "file-dollar", "receipt"] },
+        { "zh": ["打印"], "en": ["printer"], "icons": ["printer", "file-text"] },
+        { "zh": ["归档", "存档"], "en": ["archive"], "icons": ["archive", "package", "stack", "folder"] },
+        { "zh": ["附件"], "en": ["paperclip", "link"], "icons": ["paperclip", "files", "link"] },
+        { "zh": ["扫描件", "影像"], "en": ["scan", "photo"], "icons": ["photo-scan", "scan", "photo", "file-analytics"] }
+      ]
+    },
+    {
+      "id": "workflow",
+      "title": "审批与流程",
+      "items": [
+        { "zh": ["审批", "审核"], "en": ["check", "clipboard"], "icons": ["checkup-list", "clipboard-check", "progress-check", "user-check"] },
+        { "zh": ["通过", "同意", "已通过"], "en": ["check"], "icons": ["circle-check", "check", "file-check", "shield-check"] },
+        { "zh": ["驳回", "拒绝", "不同意"], "en": ["x", "forbid"], "icons": ["circle-x", "forbid", "x", "file-x"] },
+        { "zh": ["待审批", "待处理"], "en": ["hourglass", "progress"], "icons": ["hourglass", "progress", "clock-hour-4", "calendar-due"] },
+        { "zh": ["流程", "流转"], "en": ["workflow", "sitemap"], "icons": ["sitemap", "git-branch", "hierarchy", "arrows-exchange"] },
+        { "zh": ["节点", "环节"], "en": ["node", "timeline"], "icons": ["timeline-event", "git-branch", "hierarchy-2", "sitemap"] },
+        { "zh": ["时间线", "进度"], "en": ["timeline", "progress"], "icons": ["timeline", "timeline-event", "activity", "progress"] },
+        { "zh": ["待办", "待办事项"], "en": ["checkbox", "list"], "icons": ["checkbox", "checklist", "clipboard-list", "list-check"] },
+        { "zh": ["已办", "已完成"], "en": ["check", "list"], "icons": ["circle-check-filled", "list-check-filled", "progress-check", "checklist"] },
+        { "zh": ["提交", "上报"], "en": ["send", "submit"], "icons": ["send", "upload", "circle-plus", "arrow-up-right"] },
+        { "zh": ["转办", "移交"], "en": ["forward", "share"], "icons": ["mail-forward", "share-2", "arrows-exchange", "send-2"] }
+      ]
+    },
+    {
+      "id": "reports",
+      "title": "数据与报表",
+      "items": [
+        { "zh": ["报表", "报告"], "en": ["report"], "icons": ["report", "file-analytics", "file-report", "chart-infographic"] },
+        { "zh": ["图表", "图形"], "en": ["chart"], "icons": ["chart-bar", "chart-line", "chart-pie", "chart-donut"] },
+        { "zh": ["趋势", "走势"], "en": ["trending"], "icons": ["trending-up", "trending-down", "chart-line", "activity"] },
+        { "zh": ["K线", "蜡烛图"], "en": ["candle"], "icons": ["chart-candle", "chart-arcs", "chart-area", "chart-line"] },
+        { "zh": ["看板", "仪表盘", "工作台"], "en": ["dashboard"], "icons": ["layout-dashboard", "dashboard", "layout-grid", "presentation-analytics"] },
+        { "zh": ["表格", "列表"], "en": ["table", "list"], "icons": ["table", "table-column", "list-details", "layout-rows"] },
+        { "zh": ["数据分析", "分析"], "en": ["analytics"], "icons": ["chart-dots", "file-analytics", "chart-cohort", "graph"] },
+        { "zh": ["统计", "汇总"], "en": ["sum", "chart"], "icons": ["sum", "chart-bar", "percentage", "math-avg"] },
+        { "zh": ["导出", "导出数据"], "en": ["export"], "icons": ["file-export", "table-export", "database-export", "package-export"] },
+        { "zh": ["导入", "导入数据"], "en": ["import"], "icons": ["table-import", "database-import", "package-import", "upload"] },
+        { "zh": ["指标", "评分", "百分比"], "en": ["percentage"], "icons": ["percentage", "circle-percentage", "chart-radar", "target"] }
+      ]
+    },
+    {
+      "id": "nav",
+      "title": "导航与布局",
+      "items": [
+        { "zh": ["首页", "主页"], "en": ["home"], "icons": ["home", "home-2", "layout-dashboard"] },
+        { "zh": ["菜单", "导航"], "en": ["menu"], "icons": ["menu", "menu-2", "layout-navbar", "list"] },
+        { "zh": ["侧边栏", "侧栏"], "en": ["sidebar"], "icons": ["layout-sidebar", "layout-columns", "layout-bottombar"] },
+        { "zh": ["返回", "后退"], "en": ["back", "chevron"], "icons": ["chevron-left", "arrow-left-circle", "chevrons-left"] },
+        { "zh": ["展开", "收起", "下拉"], "en": ["chevron"], "icons": ["chevron-down", "chevron-up", "chevrons-down", "chevron-right"] },
+        { "zh": ["更多", "更多操作"], "en": ["dots"], "icons": ["dots", "dots-diagonal", "menu-2"] },
+        { "zh": ["外部链接", "跳转"], "en": ["external-link"], "icons": ["external-link", "world-www", "link"] },
+        { "zh": ["搜索", "查询"], "en": ["search"], "icons": ["search", "zoom", "list-search"] },
+        { "zh": ["筛选", "过滤"], "en": ["filter"], "icons": ["filter", "filters", "filter-2"] },
+        { "zh": ["排序"], "en": ["sort"], "icons": ["arrows-sort", "sort-ascending", "sort-descending"] },
+        { "zh": ["刷新", "重载"], "en": ["refresh"], "icons": ["refresh", "refresh-dot", "reload"] },
+        { "zh": ["设置", "配置"], "en": ["settings"], "icons": ["settings", "adjustments", "settings-2"] }
+      ]
+    },
+    {
+      "id": "users",
+      "title": "用户与权限",
+      "items": [
+        { "zh": ["用户", "人员"], "en": ["user"], "icons": ["user", "users", "users-group"] },
+        { "zh": ["新增用户", "邀请"], "en": ["user-plus"], "icons": ["user-plus", "user-check", "user-search"] },
+        { "zh": ["角色", "岗位"], "en": ["role", "shield"], "icons": ["user-shield", "id-badge", "shield"] },
+        { "zh": ["权限", "授权"], "en": ["permission", "key"], "icons": ["lock", "key", "shield-lock", "user-key"] },
+        { "zh": ["登录", "认证"], "en": ["login", "key"], "icons": ["lock-open", "key", "face-id", "user-scan"] },
+        { "zh": ["实名", "身份认证"], "en": ["id"], "icons": ["id-badge", "user-scan", "face-id", "signature"] },
+        { "zh": ["组织架构", "部门"], "en": ["hierarchy", "sitemap"], "icons": ["hierarchy", "sitemap", "users-group", "hierarchy-2"] },
+        { "zh": ["联系人", "通讯录"], "en": ["contact", "address"], "icons": ["address-book", "user", "phone-call"] }
+      ]
+    },
+    {
+      "id": "status",
+      "title": "状态与反馈",
+      "items": [
+        { "zh": ["成功", "完成"], "en": ["check"], "icons": ["circle-check", "circle-check-filled", "check", "progress-check"] },
+        { "zh": ["失败", "错误"], "en": ["x", "error"], "icons": ["circle-x", "alert-circle", "file-x", "x"] },
+        { "zh": ["警告", "注意"], "en": ["alert"], "icons": ["alert-triangle", "alert-circle", "alert-hexagon", "alert-square"] },
+        { "zh": ["提示", "信息", "说明"], "en": ["info"], "icons": ["info-circle", "info-square", "notes", "message"] },
+        { "zh": ["风险", "风险提示"], "en": ["risk", "alert"], "icons": ["alert-triangle", "shield-x", "alert-octagon", "file-alert"] },
+        { "zh": ["进行中", "处理中", "加载"], "en": ["progress", "loading"], "icons": ["progress", "hourglass", "refresh", "clock-play"] },
+        { "zh": ["锁定", "冻结"], "en": ["lock"], "icons": ["lock", "lock-check", "forbid", "lock-off"] },
+        { "zh": ["禁用", "停用", "失效"], "en": ["forbid", "disable"], "icons": ["forbid", "forbid-2", "eye-off", "lock-off"] },
+        { "zh": ["重要", "标记"], "en": ["important", "flag"], "icons": ["label-important", "flag", "star", "bookmark"] },
+        { "zh": ["空状态", "暂无数据"], "en": ["empty", "inbox"], "icons": ["inbox", "package", "database-off", "folder-off"] },
+        { "zh": ["通知", "消息"], "en": ["bell", "message"], "icons": ["bell", "message", "mail", "speakerphone"] }
+      ]
+    },
+    {
+      "id": "actions",
+      "title": "通用操作",
+      "items": [
+        { "zh": ["新增", "新建", "添加"], "en": ["plus"], "icons": ["plus", "circle-plus", "square-plus", "file-plus"] },
+        { "zh": ["编辑", "修改"], "en": ["edit", "pencil"], "icons": ["edit", "pencil", "file-pencil", "edit-circle"] },
+        { "zh": ["删除", "移除"], "en": ["trash"], "icons": ["trash", "trash-x", "circle-x"] },
+        { "zh": ["查看", "详情", "预览"], "en": ["eye", "search"], "icons": ["eye", "file-search", "zoom-in", "list-details"] },
+        { "zh": ["取消", "关闭"], "en": ["x", "close"], "icons": ["x", "circle-x", "xbox-x"] },
+        { "zh": ["确认", "确定"], "en": ["check"], "icons": ["check", "circle-check", "checklist"] },
+        { "zh": ["复制", "拷贝"], "en": ["copy"], "icons": ["copy", "clipboard-copy", "copy-check"] },
+        { "zh": ["分享", "转发"], "en": ["share"], "icons": ["share", "share-2", "external-link"] },
+        { "zh": ["移动", "拖拽"], "en": ["drag", "move"], "icons": ["drag-drop", "arrows-move", "hand-move", "arrow-move-up"] },
+        { "zh": ["关联", "绑定"], "en": ["link"], "icons": ["link", "unlink", "external-link", "file-symlink"] },
+        { "zh": ["扫码", "二维码"], "en": ["qrcode", "scan"], "icons": ["qrcode", "scan", "zoom-scan"] },
+        { "zh": ["在线预览", "全屏"], "en": ["zoom", "maximize"], "icons": ["zoom-in", "arrows-maximize", "eye"] }
+      ]
+    },
+    {
+      "id": "time",
+      "title": "时间与日历",
+      "items": [
+        { "zh": ["日期", "日历"], "en": ["calendar"], "icons": ["calendar", "calendar-week", "calendar-time"] },
+        { "zh": ["到期", "截止", "期限"], "en": ["due", "deadline"], "icons": ["calendar-due", "calendar-x", "hourglass", "clock-hour-4"] },
+        { "zh": ["时间", "时刻"], "en": ["clock"], "icons": ["clock", "clock-hour-4", "clock-play"] },
+        { "zh": ["历史", "操作记录", "日志"], "en": ["history", "log"], "icons": ["history", "list-details", "clock-edit", "archive"] },
+        { "zh": ["周期", "定期", "循环"], "en": ["repeat", "cycle"], "icons": ["refresh", "calendar-week", "rotate", "arrows-exchange"] },
+        { "zh": ["逾期", "超期"], "en": ["overdue"], "icons": ["clock-x", "calendar-x", "alert-triangle", "hourglass-low"] },
+        { "zh": ["紧急", "加急"], "en": ["urgent"], "icons": ["alert-triangle-filled", "clock-up", "flame"] }
+      ]
+    },
+    {
+      "id": "finance",
+      "title": "金融与货币",
+      "items": [
+        { "zh": ["资金", "款项"], "en": ["money"], "icons": ["moneybag", "coins", "cash", "pig-money"] },
+        { "zh": ["金额", "人民币"], "en": ["yuan", "money"], "icons": ["coin-yuan", "currency-yuan", "sum", "calculator"] },
+        { "zh": ["收入", "流入"], "en": ["income"], "icons": ["trending-up", "cash-plus", "receipt-yuan", "coin"] },
+        { "zh": ["支出", "流出"], "en": ["expense"], "icons": ["trending-down", "cash-minus", "receipt", "credit-card"] },
+        { "zh": ["余额"], "en": ["balance", "wallet"], "icons": ["wallet", "calculator", "coin", "sum"] },
+        { "zh": ["支付", "付款"], "en": ["pay"], "icons": ["credit-card-pay", "cash", "coin", "wallet"] },
+        { "zh": ["退款", "退回"], "en": ["refund"], "icons": ["receipt-refund", "credit-card-refund", "cash-move-back"] },
+        { "zh": ["汇率", "外币"], "en": ["currency", "exchange"], "icons": ["currency-yuan", "coins", "arrows-exchange", "world"] },
+        { "zh": ["结算", "清算"], "en": ["settle"], "icons": ["calculator", "scale", "arrows-exchange", "credit-card"] }
+      ]
+    }
+  ]
+}

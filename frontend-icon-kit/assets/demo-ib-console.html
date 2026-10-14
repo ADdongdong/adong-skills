@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>图标配置示例 · 投行后台控制台</title>
+<!-- CDN 模式：原型阶段用，一行引入全部图标 -->
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+<style>
+  :root {
+    /* ---------- 语义色 token ---------- */
+    --c-bg:      #f5f7fa;
+    --c-panel:   #ffffff;
+    --c-line:    #e6ebf1;
+    --c-line-2:  #d8e0e9;
+    --c-ink:     #0f172a;
+    --c-ink-2:   #475569;
+    --c-ink-3:   #94a3b8;
+    --c-primary: #2563eb;
+    --c-primary-soft: #eef4ff;
+    --c-success: #16a34a;
+    --c-success-soft: #ecfdf3;
+    --c-warning: #d97706;
+    --c-warning-soft: #fff7ed;
+    --c-danger:  #dc2626;
+    --c-danger-soft: #fef2f2;
+
+    /* ---------- 图标 token ---------- */
+    --icon-default: var(--c-ink-2);
+    --icon-muted:   var(--c-ink-3);
+    --icon-primary: var(--c-primary);
+    --icon-success: var(--c-success);
+    --icon-warning: var(--c-warning);
+    --icon-danger:  var(--c-danger);
+
+    --r: 10px;
+    --mono: "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--c-bg); color: var(--c-ink);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  /* ================= 布局 ================= */
+  .shell { display: grid; grid-template-columns: 226px 1fr; min-height: 100vh; }
+
+  /* ---------- 侧边导航 ---------- */
+  .side { background: var(--c-panel); border-right: 1px solid var(--c-line);
+          display: flex; flex-direction: column; }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 16px 18px;
+          border-bottom: 1px solid var(--c-line); }
+  .logo .mark { width: 30px; height: 30px; border-radius: 8px; background: var(--c-primary);
+                color: #fff; display: grid; place-items: center; }
+  .logo b { font-size: 14px; display: block; line-height: 1.25; }
+  .logo span { font-size: 11px; color: var(--icon-muted); }
+
+  .nav { padding: 12px 10px; flex: 1; }
+  .nav h5 { margin: 10px 8px 6px; font-size: 10.5px; letter-spacing: .9px;
+            text-transform: uppercase; color: var(--icon-muted); font-weight: 600; }
+  .nav a {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 2px;
+    border-radius: 8px; color: var(--icon-default); text-decoration: none;
+    font-size: 13.5px; transition: .13s;
+  }
+  .nav a:hover { background: #f2f6fb; color: var(--c-ink); }
+  .nav a.on { background: var(--c-primary-soft); color: var(--icon-primary); font-weight: 600; }
+  .nav a .badge { margin-left: auto; font-size: 11px; background: var(--c-danger);
+                  color: #fff; border-radius: 9px; padding: 0 6px; line-height: 16px; font-weight: 600; }
+
+  /* ---------- 主区 ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 58px; background: var(--c-panel); border-bottom: 1px solid var(--c-line);
+            display: flex; align-items: center; gap: 14px; padding: 0 22px; }
+  .crumb { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--icon-muted); }
+  .crumb b { color: var(--c-ink); font-weight: 600; }
+  .topbar .grow { flex: 1; }
+  .icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid transparent;
+              border-radius: 8px; background: transparent; color: var(--icon-default); cursor: pointer;
+              position: relative; transition: .13s; }
+  .icon-btn:hover { background: #f2f6fb; color: var(--icon-primary); border-color: var(--c-line); }
+  .icon-btn .dot { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px;
+                   border-radius: 50%; background: var(--c-danger); border: 1.5px solid #fff; }
+  .who { display: flex; align-items: center; gap: 8px; padding-left: 12px;
+         border-left: 1px solid var(--c-line); font-size: 13px; color: var(--icon-default); }
+
+  .content { padding: 20px 22px 44px; overflow-y: auto; }
+
+  /* ---------- 工具栏 ---------- */
+  .panel { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: var(--r); }
+  .toolbar { display: flex; align-items: center; gap: 9px; padding: 13px 16px;
+             border-bottom: 1px solid var(--c-line); flex-wrap: wrap; }
+  .toolbar h3 { margin: 0; font-size: 14.5px; font-weight: 600; }
+  .toolbar .grow { flex: 1; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+    border: 1px solid var(--c-line-2); border-radius: 8px; background: #fff;
+    color: var(--icon-default); font: inherit; font-size: 13px; cursor: pointer; transition: .13s;
+  }
+  .btn:hover { border-color: var(--c-primary); color: var(--icon-primary); background: var(--c-primary-soft); }
+  .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+  .btn.primary:hover { background: #1d4ed8; color: #fff; }
+
+  /* ---------- 表格 ---------- */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--icon-muted);
+       padding: 10px 16px; background: #fafcfe; border-bottom: 1px solid var(--c-line); white-space: nowrap; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--c-line); font-size: 13.5px; vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: #fafcfe; }
+  td .sub { display: block; font-size: 12px; color: var(--icon-muted); }
+  .code { font-family: var(--mono); font-size: 12.5px; color: var(--icon-muted); }
+  .rowact { display: flex; gap: 2px; }
+  .rowact button { width: 30px; height: 30px; display: grid; place-items: center; border: 0;
+                   border-radius: 7px; background: transparent; color: var(--icon-muted); cursor: pointer; transition: .13s; }
+  .rowact button:hover { background: var(--c-primary-soft); color: var(--icon-primary); }
+  .rowact button.danger:hover { background: var(--c-danger-soft); color: var(--icon-danger); }
+
+  /* ---------- 状态标签 ---------- */
+  .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px;
+          border-radius: 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .pill.ok   { background: var(--c-success-soft); color: var(--icon-success); }
+  .pill.wait { background: var(--c-warning-soft); color: var(--icon-warning); }
+  .pill.bad  { background: var(--c-danger-soft);  color: var(--icon-danger); }
+  .pill.doing{ background: var(--c-primary-soft); color: var(--icon-primary); }
+
+  /* ---------- 进度 ---------- */
+  .bar { width: 92px; height: 6px; border-radius: 3px; background: #eef2f7; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; background: var(--c-primary); }
+  .bar i.ok { background: var(--c-success); }
+  .bar i.bad { background: var(--c-danger); }
+
+  /* ---------- 空状态 ---------- */
+  .empty { padding: 46px 20px; text-align: center; }
+  .empty .ring { width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 50%;
+                 background: #f3f6fa; display: grid; place-items: center; color: var(--c-line-2); }
+  .empty h4 { margin: 0 0 5px; font-size: 15px; }
+  .empty p { margin: 0 0 16px; font-size: 13px; color: var(--icon-muted); }
+
+  /* ================= 规范展示区 ================= */
+  .spec { margin-top: 26px; }
+  .spec > h2 { font-size: 15px; margin: 0 0 4px; }
+  .spec > .lead { font-size: 13px; color: var(--icon-muted); margin: 0 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: var(--r); padding: 16px 18px; }
+  .card h4 { margin: 0 0 3px; font-size: 13.5px; }
+  .card .why { font-size: 12px; color: var(--icon-muted); margin: 0 0 14px; }
+  .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .sizeitem { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .sizeitem .sz { font: 11px var(--mono); color: var(--icon-muted); }
+  .coloritem { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .coloritem .nm { font-size: 11.5px; color: var(--icon-muted); }
+  .pairlist { display: flex; flex-direction: column; gap: 11px; }
+  .pair { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--icon-default); }
+  .pair .k { width: 62px; font-size: 12px; color: var(--icon-muted); flex: none; }
+  .note { margin-top: 12px; padding: 10px 13px; background: #f8fafc; border-left: 2px solid var(--c-primary);
+          border-radius: 0 7px 7px 0; font-size: 12.5px; color: var(--icon-default); line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ==================== 侧边导航 ==================== -->
+  <aside class="side">
+    <div class="logo">
+      <span class="mark"><iconify-icon icon="tabler:briefcase" width="17" height="17"></iconify-icon></span>
+      <div><b>债券业务系统</b><span>受托管理平台</span></div>
+    </div>
+
+    <nav class="nav">
+      <h5>工作台</h5>
+      <a href="#" class="on"><iconify-icon icon="tabler:layout-dashboard" width="18" height="18" aria-hidden="true"></iconify-icon>总览</a>
+      <a href="#"><iconify-icon icon="tabler:bell" width="18" height="18" aria-hidden="true"></iconify-icon>待办事项<span class="badge">6</span></a>
+
+      <h5>业务办理</h5>
+      <a href="#"><iconify-icon icon="tabler:clipboard-list" width="18" height="18" aria-hidden="true"></iconify-icon>项目管理</a>
+      <a href="#"><iconify-icon icon="tabler:file-plus" width="18" height="18" aria-hidden="true"></iconify-icon>立项管理</a>
+      <a href="#"><iconify-icon icon="tabler:list-search" width="18" height="18" aria-hidden="true"></iconify-icon>尽职调查</a>
+      <a href="#"><iconify-icon icon="tabler:mail-forward" width="18" height="18" aria-hidden="true"></iconify-icon>函证管理</a>
+      <a href="#"><iconify-icon icon="tabler:file-spreadsheet" width="18" height="18" aria-hidden="true"></iconify-icon>银行流水核查</a>
+      <a href="#"><iconify-icon icon="tabler:user-shield" width="18" height="18" aria-hidden="true"></iconify-icon>受托管理</a>
+      <a href="#"><iconify-icon icon="tabler:coin-yuan" width="18" height="18" aria-hidden="true"></iconify-icon>付息兑付</a>
+
+      <h5>分析与配置</h5>
+      <a href="#"><iconify-icon icon="tabler:report-analytics" width="18" height="18" aria-hidden="true"></iconify-icon>报表中心</a>
+      <a href="#"><iconify-icon icon="tabler:settings" width="18" height="18" aria-hidden="true"></iconify-icon>系统设置</a>
+    </nav>
+  </aside>
+
+  <!-- ==================== 主区 ==================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <iconify-icon icon="tabler:home" width="15" height="15" aria-hidden="true"></iconify-icon>
+        <span>债券业务</span>
+        <iconify-icon icon="tabler:chevron-right" width="14" height="14" aria-hidden="true"></iconify-icon>
+        <b>项目管理</b>
+      </div>
+      <div class="grow"></div>
+      <button class="icon-btn" aria-label="搜索"><iconify-icon icon="tabler:search" width="18" height="18"></iconify-icon></button>
+      <button class="icon-btn" aria-label="通知，6 条未读">
+        <iconify-icon icon="tabler:bell" width="18" height="18"></iconify-icon><span class="dot"></span>
+      </button>
+      <div class="who">
+        <iconify-icon icon="tabler:user" width="17" height="17" aria-hidden="true"></iconify-icon>
+        <span>张产品</span>
+        <iconify-icon icon="tabler:chevron-down" width="14" height="14" aria-hidden="true"></iconify-icon>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ---------- 工具栏 + 表格 ---------- -->
+      <section class="panel">
+        <div class="toolbar">
+          <h3>项目列表</h3>
+          <span class="code">共 128 条</span>
+          <div class="grow"></div>
+
+          <button class="btn primary">
+            <iconify-icon icon="tabler:circle-plus" width="16" height="16" aria-hidden="true"></iconify-icon>新增项目
+          </button>
+          <button class="btn">
+            <iconify-icon icon="tabler:table-import" width="16" height="16" aria-hidden="true"></iconify-icon>导入
+          </button>
+          <button class="btn">
+            <iconify-icon icon="tabler:table-export" width="16" height="16" aria-hidden="true"></iconify-icon>导出
+          </button>
+          <button class="btn">
+            <iconify-icon icon="tabler:filter" width="16" height="16" aria-hidden="true"></iconify-icon>筛选
+          </button>
+          <button class="icon-btn" aria-label="刷新"><iconify-icon icon="tabler:refresh" width="17" height="17"></iconify-icon></button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>项目名称</th><th>发行人</th><th>品种</th><th>状态</th><th>进度</th><th style="width:132px">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026 年第一期公司债券</td>
+              <td>华东城建集团<span class="sub">91310000MA1...</span></td>
+              <td>公司债</td>
+              <td><span class="pill ok"><iconify-icon icon="tabler:circle-check" width="14" height="14" aria-hidden="true"></iconify-icon>已通过</span></td>
+              <td><div class="bar"><i class="ok" style="width:100%"></i></div></td>
+              <td>
+                <div class="rowact">
+                  <button aria-label="查看"><iconify-icon icon="tabler:eye" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="编辑"><iconify-icon icon="tabler:pencil" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="打印"><iconify-icon icon="tabler:printer" width="16" height="16"></iconify-icon></button>
+                  <button class="danger" aria-label="删除"><iconify-icon icon="tabler:trash" width="16" height="16"></iconify-icon></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>小微企业 ABS 储架发行</td>
+              <td>南方融资租赁<span class="sub">91440300MA5...</span></td>
+              <td>ABS</td>
+              <td><span class="pill wait"><iconify-icon icon="tabler:hourglass" width="14" height="14" aria-hidden="true"></iconify-icon>待审批</span></td>
+              <td><div class="bar"><i style="width:62%"></i></div></td>
+              <td>
+                <div class="rowact">
+                  <button aria-label="查看"><iconify-icon icon="tabler:eye" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="编辑"><iconify-icon icon="tabler:pencil" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="打印"><iconify-icon icon="tabler:printer" width="16" height="16"></iconify-icon></button>
+                  <button class="danger" aria-label="删除"><iconify-icon icon="tabler:trash" width="16" height="16"></iconify-icon></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>2026 年绿色企业债券</td>
+              <td>西部水务投资<span class="sub">91510100MA6...</span></td>
+              <td>企业债</td>
+              <td><span class="pill doing"><iconify-icon icon="tabler:progress" width="14" height="14" aria-hidden="true"></iconify-icon>尽调中</span></td>
+              <td><div class="bar"><i style="width:38%"></i></div></td>
+              <td>
+                <div class="rowact">
+                  <button aria-label="查看"><iconify-icon icon="tabler:eye" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="编辑"><iconify-icon icon="tabler:pencil" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="打印"><iconify-icon icon="tabler:printer" width="16" height="16"></iconify-icon></button>
+                  <button class="danger" aria-label="删除"><iconify-icon icon="tabler:trash" width="16" height="16"></iconify-icon></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>2025 年第四期中期票据</td>
+              <td>北方能源控股<span class="sub">91120000MA0...</span></td>
+              <td>中票</td>
+              <td><span class="pill bad"><iconify-icon icon="tabler:circle-x" width="14" height="14" aria-hidden="true"></iconify-icon>已驳回</span></td>
+              <td><div class="bar"><i class="bad" style="width:100%"></i></div></td>
+              <td>
+                <div class="rowact">
+                  <button aria-label="查看"><iconify-icon icon="tabler:eye" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="编辑"><iconify-icon icon="tabler:pencil" width="16" height="16"></iconify-icon></button>
+                  <button aria-label="打印"><iconify-icon icon="tabler:printer" width="16" height="16"></iconify-icon></button>
+                  <button class="danger" aria-label="删除"><iconify-icon icon="tabler:trash" width="16" height="16"></iconify-icon></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ---------- 空状态示例 ---------- -->
+      <section class="panel" style="margin-top:16px">
+        <div class="empty">
+          <div class="ring"><iconify-icon icon="tabler:inbox" width="38" height="38"></iconify-icon></div>
+          <h4>暂无待回函记录</h4>
+          <p>当前筛选条件下没有需要跟进的函证，调整条件或新建函证。</p>
+          <button class="btn primary">
+            <iconify-icon icon="tabler:mail-forward" width="16" height="16" aria-hidden="true"></iconify-icon>发起函证
+          </button>
+        </div>
+      </section>
+
+      <!-- ==================== 图标规范速览 ==================== -->
+      <section class="spec">
+        <h2>图标规范速览</h2>
+        <p class="lead">同一套 Tabler 图标，靠尺寸和语义色区分层级——不靠换图标集。</p>
+
+        <div class="cards">
+          <!-- 尺寸梯度 -->
+          <div class="card">
+            <h4>尺寸梯度</h4>
+            <p class="why">小尺寸要配更细的描边，否则显糊</p>
+            <div class="row">
+              <div class="sizeitem">
+                <iconify-icon icon="tabler:file-text" width="14" height="14" style="color:var(--icon-default);--sv:1.5"></iconify-icon>
+                <span class="sz">14</span>
+              </div>
+              <div class="sizeitem">
+                <iconify-icon icon="tabler:file-text" width="16" height="16" style="color:var(--icon-default)"></iconify-icon>
+                <span class="sz">16</span>
+              </div>
+              <div class="sizeitem">
+                <iconify-icon icon="tabler:file-text" width="20" height="20" style="color:var(--icon-default)"></iconify-icon>
+                <span class="sz">20</span>
+              </div>
+              <div class="sizeitem">
+                <iconify-icon icon="tabler:file-text" width="24" height="24" style="color:var(--icon-default)"></iconify-icon>
+                <span class="sz">24</span>
+              </div>
+              <div class="sizeitem">
+                <iconify-icon icon="tabler:file-text" width="32" height="32" style="color:var(--icon-default)"></iconify-icon>
+                <span class="sz">32</span>
+              </div>
+            </div>
+            <div class="note">14–16px 用于正文与表格行；20px 用于导航；24px 用于卡片标题；48px+ 用于空状态。</div>
+          </div>
+
+          <!-- 语义色 -->
+          <div class="card">
+            <h4>语义色</h4>
+            <p class="why">颜色必须带含义，不做纯装饰</p>
+            <div class="row">
+              <div class="coloritem">
+                <iconify-icon icon="tabler:check" width="22" height="22" style="color:var(--icon-success)"></iconify-icon>
+                <span class="nm">成功</span>
+              </div>
+              <div class="coloritem">
+                <iconify-icon icon="tabler:alert-triangle" width="22" height="22" style="color:var(--icon-warning)"></iconify-icon>
+                <span class="nm">警告</span>
+              </div>
+              <div class="coloritem">
+                <iconify-icon icon="tabler:alert-circle" width="22" height="22" style="color:var(--icon-danger)"></iconify-icon>
+                <span class="nm">危险</span>
+              </div>
+              <div class="coloritem">
+                <iconify-icon icon="tabler:info-circle" width="22" height="22" style="color:var(--icon-primary)"></iconify-icon>
+                <span class="nm">提示</span>
+              </div>
+              <div class="coloritem">
+                <iconify-icon icon="tabler:lock" width="22" height="22" style="color:var(--icon-muted)"></iconify-icon>
+                <span class="nm">禁用</span>
+              </div>
+            </div>
+            <div class="note">图标色全程用 <code>currentColor</code> 继承父元素 <code>color</code>，换肤时只改变量。</div>
+          </div>
+
+          <!-- 业务语义对照 -->
+          <div class="card">
+            <h4>业务语义对照</h4>
+            <p class="why">同一含义全系统只用同一个图标</p>
+            <div class="pairlist">
+              <div class="pair"><span class="k">函证</span>
+                <iconify-icon icon="tabler:mail-forward" width="17" height="17" style="color:var(--icon-default)"></iconify-icon>
+                <code class="code">mail-forward</code></div>
+              <div class="pair"><span class="k">受托管理</span>
+                <iconify-icon icon="tabler:user-shield" width="17" height="17" style="color:var(--icon-default)"></iconify-icon>
+                <code class="code">user-shield</code></div>
+              <div class="pair"><span class="k">付息兑付</span>
+                <iconify-icon icon="tabler:coin-yuan" width="17" height="17" style="color:var(--icon-default)"></iconify-icon>
+                <code class="code">coin-yuan</code></div>
+              <div class="pair"><span class="k">额度</span>
+                <iconify-icon icon="tabler:target" width="17" height="17" style="color:var(--icon-default)"></iconify-icon>
+                <code class="code">target</code></div>
+              <div class="pair"><span class="k">尽调</span>
+                <iconify-icon icon="tabler:list-search" width="17" height="17" style="color:var(--icon-default)"></iconify-icon>
+                <code class="code">list-search</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// 小尺寸降描边：14px 的图标把 stroke-width 从 2 降到 1.5
+document.querySelectorAll('iconify-icon[width="14"]').forEach(function (el) {
+  el.style.setProperty('--svg-stroke-width', '1.5');
+});
+</script>
+</body>
+</html>
