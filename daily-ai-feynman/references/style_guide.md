@@ -34,6 +34,64 @@ intro / 过渡句也不要用 `>` 引用块，统一为普通段落，全篇无�
 
 **禁止**用底色块 / 引用块区分（蓝底/灰底/左侧竖条一律会被净化或挤窄）。每篇保持「小白问、哈哈栋答」一致即可。
 
+## 正文章节标题版式（2026-10-20 定稿，硬规则）
+
+> 背景：早期文章用 `【一、xxx】` 纯文本当章节标题，微信里看起来"太素"、层级不清晰。
+> 现统一为**期刊式三段结构**，由脚本 `scripts/apply_heading_style.py` 自动套用，**禁止手写 `【一、…】` 作为最终标题**。
+
+### 一、章节标题（一级）
+
+```html
+<section style="margin:48px 0 22px"><section style="font-size:12px;color:#1c5fd9;font-weight:700;letter-spacing:3px">PART 01</section><section style="font-size:21px;font-weight:800;color:#111418;margin-top:8px;line-height:1.45;letter-spacing:0.3px">先摆事实：帆软停掉的到底是什么</section><section style="border-top:3px solid #1c5fd9;width:88px;margin-top:16px"></section></section>
+```
+
+视觉结构 = **蓝色小号 PART 编号**（12px / 字距 3px）+ **黑色大标题**（21px / 800）+ **88px 蓝色短线**。
+效果：章节之间一眼可扫，不依赖任何底色。
+
+### 二、小节标题（一级半，用于"第一问 / 第二问 / 第三问"这类并列要点）
+
+```html
+<section style="margin:26px 0 8px;font-size:17px;font-weight:800;color:#111418;line-height:1.5"><span style="color:#1c5fd9">■</span>　第一问：这张流程图，你能画完吗？</section>
+```
+
+⚠️ **必须和正文分段**。markdown 里 `**小标题**` 后只换一个行会被合并成同一段，标题会和正文黏在一起——脚本已处理这个坑。
+
+### 三、说话人名字
+
+```html
+🧑 <span style="color:#1c5fd9;font-weight:700">小白</span>：……
+🧑‍🏫 <span style="color:#1c5fd9;font-weight:700">哈哈栋</span>：……
+```
+
+用主色蓝而不是主题默认的砖红 `#c86442`——蓝承担"结构与人物"，砖红留给正文加粗做强调，两色分工不打架。
+
+### 四、资料来源注（文末）
+
+```html
+<span style="font-size:13px;color:#9aa4b2;line-height:1.7">资料来源：……</span>
+```
+
+### 硬约束（违反即翻车）
+
+| 约束 | 原因 |
+|---|---|
+| **不能用 `background` 做色块/徽标** | `publish_draft.cjs` 默认剥离全部 `background*`，蓝底白字会变成白底白字 |
+| **标题必须写成单行 HTML** | 多行 HTML 会被 markdown 解析器插入 `<p>`，导致结构错位 |
+| **只用 color / font-size / font-weight / border / letter-spacing** | 同上，只有这些内联样式能安全穿透渲染与净化 |
+| **章节标题前不要再写 `---`** | 标题自带上间距与蓝线，重复分隔线会让版面变碎（脚本会自动删） |
+
+### 一键套用
+
+```bash
+python3 scripts/apply_heading_style.py post.md          # 原地改写
+python3 scripts/apply_heading_style.py post.md --dry-run # 先看会改多少处
+```
+
+脚本做五件事：`【一、…】`→期刊式标题、说话人转主色、"第一问"式小标题提块、删冗余 `---`、资料来源转浅灰小字。
+**幂等**：已转换过的标题不会被二次处理；**只改样式不改文字**。
+
+---
+
 ## 公众号封面规范（主题文字 + 配图，21:9 + 1:1 封面对）
 
 封面 = **主题文字 + 配图**，规格参照 guizang-social-card-skill 的公众号封面对标准，

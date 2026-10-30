@@ -36,7 +36,7 @@ visibility: "private"
   - `architecture-diagram`：工程级架构图 HTML+SVG（知识框架/架构图，浅色大字规范见 style_guide）
   - 本 skill 自带 `render_mermaid.cjs` + `assets/mermaid/mermaid.min.js`：Mermaid 声明式图表（分支/流程/关系图首选）
 - Node 包 `playwright` + Chromium（封面/架构图 HTML→PNG 截图，装在托管 node workspace）
-- 本 skill `scripts/` 已自带：`svg_kit.py`（特殊定制兜底）/ `render_svg.cjs` / `render_cover.cjs` / `render_mermaid.cjs` / `publish_draft.cjs`
+- 本 skill `scripts/` 已自带：`svg_kit.py`（特殊定制兜底）/ `render_svg.cjs` / `render_cover.cjs` / `render_mermaid.cjs` / `publish_draft.cjs` / `apply_heading_style.py`（章节标题版式一键套用）
 - 封面模板：`assets/cover_template.html`（Swiss International × 清新蓝，21:9+1:1）
 - 微信配置：首次使用把 `md-to-wechat__skillhub/.env` 复制一份到本 skill 目录
   （含 `ACCOUNT` / `THEME_ID` / `WECHAT_APP_ID` / `WECHAT_APP_SECRET` / `API_URL`）
@@ -60,6 +60,13 @@ visibility: "private"
    - 正文：小白问 / 哈哈栋答 交替，用普通段落 + 前缀标签区分（见 `references/style_guide.md`，不用引用块竖条）
    - 结尾小结（3 条要点）
 5. 配图占位：在正文关键处插入 `![图N](images/xxx.png)`（文件名按三轨制生成后回填）；封面图路径稍后填。
+
+6. **套版式（硬步骤，发布前必跑）**：
+   ```bash
+   python3 scripts/apply_heading_style.py post.md
+   ```
+   把 `【一、…】` 转成期刊式标题（PART 编号 + 中文标题 + 蓝线）、说话人名字转主色、`第一问/第二问` 提成独立小节标题、删掉章节前多余的 `---`、资料来源转浅灰小字。**只改样式不改文字**，幂等可重复跑。
+   版式模板与硬约束见 [style_guide.md](references/style_guide.md)「正文章节标题版式」。
 
 ### ③ 配图（三轨制，先按图类型选轨再生成）
 6. **按图类型选轨**（完整决策表见 `references/style_guide.md`「正文插图规范」）：
@@ -139,6 +146,7 @@ visibility: "private"
 - **零背景（硬规则）**：公众号正文不要任何背景色，禁用主题黄底/色块。
   `publish_draft.cjs` 默认自动剥离 HTML 中全部 `background*` / `bgcolor`；
   确需保留才加 `--keep-bg`。
+- **章节标题版式（硬规则）**：最终稿一律使用 `apply_heading_style.py` 生成的「PART 编号 + 中文标题 + 88px 蓝色短线」三段结构，**禁止保留 `【一、…】` 纯文本标题**；版式模板只允许 `color / font-size / font-weight / border / letter-spacing`，**不能用背景色块做徽标**（会被净化成白底白字）。详见 style_guide「正文章节标题版式」。
 - **不重复标题（硬规则）**：正文顶部不出现大字标题，脚本渲染前自动删掉首个 H1；
   确需保留才加 `--keep-h1`。
 - **封面配图**：优先级 = **baoyu AI 无字背景图（中文标题稳）→ Unsplash 真实照片（零积分默认）→ 兜底**（正文插图 / guizang 纹理）。
@@ -155,5 +163,5 @@ visibility: "private"
 |------|------|
 | 微信 40164 IP 不在白名单 | 把脚本打印的 IP 加入公众号后台 → 基础信息 → API IP 白名单 |
 | SVG 中文乱码 | `render_svg.cjs` 已绑定系统字体；确认 `C:/Windows/Fonts/msyh.ttc` 存在 |
-| 封面不符预期 | 调整 cover.html 里的文案/排版/素材路径，重新运行 render_cover.cjs；标题过长时降字号或拆行 |
+| 封面不符预期 | ①**先查缓存**：`publish_draft.cjs` 按**封面路径字符串**在 `.cache.json` 的 `covers` 里缓存微信 media_id——换了图但文件名没变，会一直复用旧图（日志显示「[封面] 缓存命中」）。清空 `covers` 或换文件名，重推时日志应出现「[封面] 正在上传」。②再调 cover.html 文案/素材路径后重跑 `render_cover.cjs`；标题过长时降字号或拆行 |
 | 推送报 missing_env | 检查本 skill 目录的 `.env` 是否从 md-to-wechat 复制齐全 |
