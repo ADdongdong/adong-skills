@@ -27,9 +27,20 @@
 ③ **定制化需求章默认不写**，只有确有特殊定义/明确属于定制功能时才追加。
 （示例 EXAMPLE 已改成"单端"默认形态，多端形态在注释里给出。）
 
+版本 v2.0（2026-11-09）—— **公司信息可配置，不再绑定任何厂商**：
+① 封面公司名、公司 logo 改为从 `company.json` 读取（`load_company()`），入参优先；
+② 模板里的原厂商痕迹（封面 logo、页眉外链图片域、文档属性署名）在 Builder 里**统一清掉**，
+   不传公司名也只会写占位值 `×××有限公司`，**不会把别家公司的名字/logo 带出去**；
+③ 新增 `cover(..., logo=, logo对齐=, logo最大宽度cm=, logo最大高度cm=)`：logo 落在封面左上角
+   （模板第一段），按 8.5cm × 2.5cm 双向封顶等比缩放；
+④ `python build_req_spec.py --company` 打印当前生效的公司配置，便于先确认再生成。
+
 用法：
     from build_req_spec import build
     build(SPEC, r'D:\\out\\XX需求规格说明书V1.0.docx')
+
+    公司信息：编辑技能根目录的 `company.json`（或用环境变量 REQ_SPEC_COMPANY 指向别的 json），
+    也可在 `封面` 字典里显式传 `公司=` / `logo=` 覆盖。
 
 SPEC 结构见文件末尾 EXAMPLE。核心特点：
 - 以 assets/需求规格说明书_模板.docx 为底，完整继承原文档样式与多级标题自动编号
@@ -41,12 +52,13 @@ SPEC 结构见文件末尾 EXAMPLE。核心特点：
   只套 Table Grid 样式压不住，见 _force_borders）
 - **逐条列用真实项目符号**（numbering 定义，不手打"●"）；业务说明保持叙述段落（见 bullets / bullet）
 """
-import copy, os, re, shutil, sys, tempfile
+import copy, datetime, json, os, re, shutil, sys, tempfile
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from docx.text.paragraph import Paragraph
 
 try:                                   # Windows 控制台默认 GBK：日志里有中文/符号会直接抛异常
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -55,6 +67,24 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, '..', 'assets', '需求规格说明书_模板.docx')
+
+# ---- 公司信息（v2.0：可配置，不绑定任何厂商）----
+# 取值优先级：cover()/build() 入参 > 环境变量 REQ_SPEC_COMPANY 指向的 json
+#            > 技能根目录 company.json > 占位值 COMPANY_PLACEHOLDER
+COMPANY_FILE = os.path.normpath(os.path.join(HERE, '..', 'company.json'))
+COMPANY_ENV = 'REQ_SPEC_COMPANY'
+COMPANY_PLACEHOLDER = '×××有限公司'
+COMPANY_DEFAULTS = {
+    '公司全称': '',          # 封面署名的公司名；空则用占位值
+    '英文名': '',            # 需要时可写进封面/页脚，脚本不强用
+    'logo': '',              # 图片路径；相对路径按 company.json 所在目录解析
+    'logo对齐': 'left',      # left（沿用原版式）/ center
+    'logo最大宽度cm': 8.5,   # 与最大高度一起做双向封顶，等比缩放
+    'logo最大高度cm': 2.5,
+    '页眉文字': '',          # 留空则沿用模板页眉（一般就是「业务需求说明书」）
+}
+LOGO_MAX_W_CM = 8.5
+LOGO_MAX_H_CM = 2.5
 
 W = qn('w:p'); T = qn('w:tbl')
 # 模板中的 styleId 映射
@@ -130,6 +160,51 @@ def _fit_cm(path):
         h = MAX_IMG_H_CM
         w = h / ratio
     return round(w, 2), round(h, 2)
+
+
+def _fit_logo_cm(path, max_w=LOGO_MAX_W_CM, max_h=LOGO_MAX_H_CM):
+    """封面 logo 等比缩放：先按最大宽度算高，超过最大高度就改按高度反算宽度。
+
+    宽扁的横幅 logo（公司名 + 英文名那种）按宽度封顶，方形的按高度封顶 ——
+    只按宽度封顶会让方形 logo 变成 8.5cm 见方，把封面标题挤下去。
+    """
+    px = _image_px(path)
+    if not px:
+        return float(max_w), None
+    ratio = px[1] / px[0]
+    w, h = float(max_w), float(max_w) * ratio
+    if h > float(max_h):
+        h = float(max_h)
+        w = h / ratio
+    return round(w, 2), round(h, 2)
+
+
+def load_company(path=None):
+    """读公司信息配置，返回补齐默认值的字典（**缺字段不报错**）。
+
+    查找顺序：入参 `path` → 环境变量 `REQ_SPEC_COMPANY` → 技能根目录 `company.json`。
+    `logo` 写相对路径时按 **company.json 所在目录** 解析，方便把 logo 和配置放在一起。
+    用户可能只填了一部分字段（比如只给公司全称），其余字段留空由 `cover()` 兜底。
+    """
+    cand = path or os.environ.get(COMPANY_ENV) or COMPANY_FILE
+    data = dict(COMPANY_DEFAULTS)
+    if not cand or not os.path.isfile(str(cand)):
+        return data
+    try:
+        with open(cand, encoding='utf-8') as f:
+            raw = json.load(f)
+    except Exception as e:                      # 用户手改坏了 json：给提示，按占位值继续
+        print('⚠ 公司配置读取失败，按占位值生成：', cand, e)
+        return data
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            if k in COMPANY_DEFAULTS and v not in (None, ''):
+                data[k] = v
+    logo = str(data.get('logo') or '').strip()
+    if logo and not os.path.isabs(logo):
+        data['logo'] = os.path.normpath(
+            os.path.join(os.path.dirname(os.path.abspath(str(cand))), logo))
+    return data
 
 
 # tblPr 子元素的 schema 顺序。**顺序错，Word 打开会报"文档已损坏"** ——
@@ -302,16 +377,77 @@ def _fix_table(t, widths):
 
 
 class Builder:
-    def __init__(self, template=TEMPLATE):
+    def __init__(self, template=TEMPLATE, company=None):
         self._tmp = os.path.join(tempfile.gettempdir(), '_req_spec_tmp_%d.docx' % os.getpid())
         shutil.copy2(template, self._tmp)
         self.doc = Document(self._tmp)
+        self.company = dict(COMPANY_DEFAULTS)
+        if company:
+            self.company.update({k: v for k, v in company.items() if v not in (None, '')})
+        self._scrub_template()           # 清掉模板可能带过来的厂商 logo / 外链图片 / 署名
         self._clear_skeleton()
         self._clear_toc_cache()          # 目录：清掉模板带来的旧条目
         self._auto_update_fields()       # 目录：打开文档即自动重排（不必手动 F9）
         self._bullet_numid_value = None  # 项目符号的 numId 缓存（见 _bullet_numid）
 
     # ---------- 基础 ----------
+    def _scrub_template(self):
+        """**清掉模板里的厂商痕迹**（模板是从别处拿来的，不能把别家的 logo/名字带出去）。
+
+        ① 封面第一段的旧 logo（inline drawing / VML）—— 不删的话每份文档都顶着别家 logo；
+        ② 页眉里的 `INCLUDEPICTURE` 外链图片域 —— 指向某人本机的路径，显示不出来还占位；
+        ③ 文档属性的作者 / 最后修改人；
+        ④ 页眉文字：`company.json` 里配了「页眉文字」就替换，否则沿用模板文字（一般是「业务需求说明书」）。
+        """
+        body = self.doc.element.body
+        paras = [el for el in body if el.tag == W]
+        if paras:                                  # ① 封面旧 logo
+            for r in list(paras[0].findall(qn('w:r'))):
+                if r.find(qn('w:drawing')) is not None or r.find(qn('w:pict')) is not None:
+                    paras[0].remove(r)
+        for sec in self.doc.sections:              # ② 页眉页脚的外链图片域
+            for hf in (sec.header, sec.first_page_header, sec.even_page_header,
+                       sec.footer, sec.first_page_footer, sec.even_page_footer):
+                for p in hf.paragraphs:
+                    self._drop_picture_fields(p)
+        cp = self.doc.core_properties           # ③ 文档属性署名
+        for attr in ('author', 'last_modified_by'):
+            try:
+                if getattr(cp, attr, ''):
+                    setattr(cp, attr, '')
+            except Exception:
+                pass
+        txt = str(self.company.get('页眉文字') or '').strip()   # ④ 页眉文字
+        if txt:
+            for sec in self.doc.sections:
+                for p in sec.header.paragraphs:
+                    ts = list(p._p.iter(qn('w:t')))
+                    if ts:
+                        ts[0].text = txt
+                        for t in ts[1:]:
+                            t.text = ''
+
+    @staticmethod
+    def _drop_picture_fields(p):
+        """删掉段落里包含 INCLUDEPICTURE 的整个域（begin → end 之间的 run）。"""
+        runs = list(p.runs)
+        if not any('INCLUDEPICTURE' in (r._r.find(qn('w:instrText')).text or '')
+                   for r in runs if r._r.find(qn('w:instrText')) is not None):
+            return
+        depth, killing = 0, False
+        for r in runs:
+            fc = r._r.find(qn('w:fldChar'))
+            kind = fc.get(qn('w:fldCharType')) if fc is not None else None
+            if kind == 'begin':
+                depth += 1
+                killing = True
+            if killing:
+                r._r.getparent().remove(r._r)
+            if kind == 'end' and killing:
+                depth -= 1
+                if depth <= 0:
+                    killing = False
+
     def _clear_skeleton(self):
         """删除模板中「菜单目录」表之后的所有骨架内容（保留封面/修改历史/编写说明/目录域/菜单目录）。"""
         body = self.doc.element.body
@@ -564,8 +700,15 @@ class Builder:
         """首行缩进 2 字符的正文段落（主文档的叙述性正文即此格式，现由「业务说明」使用）。"""
         return self._add(text, 'Normal', first_line=FIRST_LINE_TWIPS)
 
-    def cover(self, 系统名=None, 版本=None, 公司=None, 日期=None):
-        """就地改写封面与修改历史（可选）。"""
+    def cover(self, 系统名=None, 版本=None, 公司=None, 日期=None,
+              logo=None, logo对齐=None, logo最大宽度cm=None, logo最大高度cm=None):
+        """就地改写封面（系统名 / 版本 / **公司名** / 日期 / **logo**）。
+
+        公司名与 logo 的取值优先级：**本方法入参 > company.json > 占位值**。
+        **系统名 / 版本 / 公司 / 日期 四项都会被重写**（缺省写占位值）：不传也不能把模板里
+        原文档的系统名、版本号、厂商名留在封面上。
+        logo 默认落在封面左上角（模板第一段），传 `logo对齐='center'` 可居中。
+        """
         body = self.doc.element.body
         paras = [el for el in body if el.tag == W]
         def set_at(idx, val):
@@ -577,8 +720,49 @@ class Builder:
             ts = list(el.iter(qn('w:t')))
             if ts:
                 ts[0].text = val
+        cov = self.company or COMPANY_DEFAULTS
+        today = datetime.date.today()
+        系统名 = 系统名 or '×××管理系统'
+        版本 = 版本 or '需求说明书vX.Y.Z'
+        日期 = 日期 or '%d年%d月' % (today.year, today.month)
+        公司 = 公司 or cov.get('公司全称') or COMPANY_PLACEHOLDER
         # 模板封面：7=系统名 8=版本 17=公司 18=日期（下标基于模板固定版式）
         set_at(7, 系统名); set_at(8, 版本); set_at(17, 公司); set_at(18, 日期)
+        # logo 放在最后插：插入图片不会新增段落，但保持"先写文字后放图"的顺序更好排查
+        self.cover_logo(logo if logo is not None else cov.get('logo'),
+                        对齐=logo对齐 or cov.get('logo对齐') or 'left',
+                        最大宽度cm=logo最大宽度cm or cov.get('logo最大宽度cm'),
+                        最大高度cm=logo最大高度cm or cov.get('logo最大高度cm'),
+                        paras=paras)
+
+    def cover_logo(self, 图片, 对齐='left', 最大宽度cm=None, 最大高度cm=None, paras=None):
+        """封面第一段插入公司 logo（**模板的 logo 槽位**）；没给图就保持空白。
+
+        尺寸：宽 ≤ 8.5cm、高 ≤ 2.5cm 双向封顶等比缩放 —— 横幅 logo 按宽度封顶，
+        方形 logo 按高度封顶，避免把标题挤到第二页。图片不存在时只警告、不中断。
+        """
+        if not 图片:
+            return None
+        if not os.path.isfile(str(图片)):
+            print('⚠ logo 文件不存在，封面不插 logo：', 图片)
+            return None
+        body = self.doc.element.body
+        paras = paras if paras is not None else [el for el in body if el.tag == W]
+        if not paras:
+            return None
+        p_el = paras[0]
+        for r in list(p_el.findall(qn('w:r'))):        # 双保险：清掉残留旧 logo
+            if r.find(qn('w:drawing')) is not None or r.find(qn('w:pict')) is not None:
+                p_el.remove(r)
+        p = Paragraph(p_el, self.doc)
+        p.alignment = (WD_ALIGN_PARAGRAPH.CENTER if str(对齐).lower() == 'center'
+                       else WD_ALIGN_PARAGRAPH.LEFT)
+        w_cm, h_cm = _fit_logo_cm(图片,
+                                  float(最大宽度cm or LOGO_MAX_W_CM),
+                                  float(最大高度cm or LOGO_MAX_H_CM))
+        run = p.add_run()
+        run.add_picture(str(图片), width=Cm(w_cm), height=(Cm(h_cm) if h_cm else None))
+        return p
 
     def history(self, rows):
         """文档修改历史表：[[版本号,修改日期,编写人,评审人,批准人,修改内容], ...]
@@ -871,11 +1055,18 @@ class Builder:
         return path
 
 
-def build(spec, path):
-    b = Builder(spec.get('模板', TEMPLATE))
-    cov = spec.get('封面')
-    if cov:
-        b.cover(**cov)
+def build(spec, path, company=None):
+    """按 SPEC 生成 docx。
+
+    `company` 可传 dict 覆盖公司配置（一般不用传 —— 走 `company.json` 或环境变量即可）。
+    **封面一定要跑**：不写 `封面` 也要把占位公司名写上去，否则模板里的原厂商名会留在封面上。
+    """
+    cov_company = load_company(spec.get('公司配置'))
+    if company:
+        cov_company.update({k: v for k, v in company.items() if v not in (None, '')})
+    b = Builder(spec.get('模板', TEMPLATE), company=cov_company)
+    cov = dict(spec.get('封面') or {})
+    b.cover(**cov)
     if spec.get('文档修改历史'):
         b.history(spec['文档修改历史'])
     if spec.get('菜单目录'):
@@ -905,7 +1096,11 @@ DETAIL = lambda rows: [DETAIL_HEADER] + rows
 
 EXAMPLE = dict(
     # 封面系统名**按本次开发的功能定** —— 不要照抄别的文档的系统名
-    封面=dict(系统名='×××管理系统', 版本='需求说明书v1.0', 公司='西安西点信息技术有限公司', 日期='2026年10月'),
+    # 公司名 / logo 不写就取 company.json；写了则以这里为准（logo 传图片路径即可）
+    封面=dict(系统名='×××管理系统', 版本='需求说明书v1.0',
+              公司='×××有限公司', 日期='2026年11月',
+              # logo=r'D:/brand/logo.png', logo对齐='left',
+              ),
     文档修改历史=[['V1.0', '2026-10-08', '×××', '', '', '初稿']],
     # 目录层级='1-4',   # 可选：让功能点也进目录（默认沿用主文档的 1-3）
     菜单目录=[MENU_HEADER, ['首页', '', ''], ['×××管理', '×××列表', '']],
@@ -989,5 +1184,10 @@ EXAMPLE = dict(
 )
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] in ('--company', '--show-company'):
+        # 先确认公司配置再生成：python build_req_spec.py --company
+        print(json.dumps(load_company(), ensure_ascii=False, indent=2))
+        print('\n配置文件：', COMPANY_FILE)
+        sys.exit(0)
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'out', '示例输出.docx')
     print('saved ->', build(EXAMPLE, out))

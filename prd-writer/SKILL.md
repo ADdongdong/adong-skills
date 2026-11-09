@@ -1,20 +1,21 @@
 ---
-name: xidian-req-spec
-display_name: 投行系统需求规格说明书写作
-display_name_en: Investment Banking Requirements Spec Writer
-description: 编写、补写或整理西点信息（顶点软件）投行类管理系统的《需求规格说明书》/需求文档。当用户提到“需求规格说明书”“需求文档”“需求说明书”“PRD”“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖单端与多端两种形态：H1 系统名按本次开发的功能来定，端别层（WEB端/移动端/助手端/客户端）按需、功能只落一个端时不设。含生成脚本 build_req_spec.py（封面/修改历史/菜单目录/七节式需求点/三列明细表）与四条交付物硬要求：目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
-description_zh: 投行类管理系统《需求规格说明书》写作规范与 Word 生成器。目录结构按需裁剪：H1 系统名按本次开发的功能定，端别层（WEB端/移动端/助手端/客户端）只在同一系统跨多端且各端需求不同时才设，功能只落一个端时整层省掉，定制化需求章默认不写。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
-description_en: "Requirements-specification writing standard plus Word generator for investment-banking management systems. The outline is trimmed on demand: the H1 system name follows the functionality actually being developed, the device/channel layer (web, mobile, assistant, desktop client) appears only when one system spans several channels with differing requirements, and the customization chapter is omitted by default. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
+name: prd-writer
+display_name: 需求规格说明书（PRD）写作 · 公司信息可配置
+display_name_en: Requirements Spec Writer (configurable company profile)
+description: 编写、补写或整理投行类/金融科技类管理系统的《需求规格说明书》/需求文档。公司信息（公司全称、logo、页眉）通过 company.json 配置或生成前向用户确认，不绑定任何厂商。当用户提到“需求规格说明书”“需求文档”“需求说明书”“PRD”“按 v4.0 的格式写需求”“补需求章节”“菜单目录+需求点”，或给出需求要点要求产出 Word 需求文档时使用。覆盖单端与多端两种形态：H1 系统名按本次开发的功能来定，端别层（WEB端/移动端/助手端/客户端）按需、功能只落一个端时不设。含生成脚本 build_req_spec.py（封面含公司 logo /修改历史/菜单目录/七节式需求点/三列明细表）与四条交付物硬要求：目录自动更新（打开即重排）、表格全框线、逐条列真项目符号、图按正文区双向封顶（过高自动拆上下两张）。功能点固定 7 节：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出。
+description_zh: 投行类/金融科技类管理系统《需求规格说明书》写作规范与 Word 生成器，公司信息可配置。开始写之前先确认公司全称与公司 logo（写入 company.json，写一次长期复用），封面自动落公司名与左上角 logo，文档内不留任何第三方厂商的名称或标识。目录结构按需裁剪：H1 系统名按本次开发的功能定，端别层（WEB端/移动端/助手端/客户端）只在同一系统跨多端且各端需求不同时才设，功能只落一个端时整层省掉，定制化需求章默认不写。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面+logo、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
+description_en: "Requirements-specification writing standard plus a Word generator for investment-banking / fintech management systems, with a configurable company profile — no vendor is hard-coded. Before writing, confirm the company's full legal name and logo and store them in company.json; the cover then carries that name and logo, and no third-party vendor name or mark leaks into the document. The outline is trimmed on demand: the H1 system name follows the functionality actually being developed, the device/channel layer (web, mobile, assistant, desktop client) appears only when one system spans several channels with differing requirements, and the customization chapter is omitted by default. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover with logo, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
 category: writing
-version: "1.4.0"
-author: 西点信息 · WorkBuddy
+version: "2.0.0"
+author: WorkBuddy
 agent_created: true
 ---
 
-# 需求规格说明书写作规范（西点信息 · 投行类系统）
+# 需求规格说明书写作规范（投行类系统 · 公司信息可配置）
 
 本技能沉淀自一份投行类管理系统的需求规格说明书（实测 v4.0.5，3187 段 / 221 表）。
 后续所有需求文档按此格式产出，保证与既有文档风格一致、可直接并入主文档。
+**公司信息不写死在本技能里** —— 公司全称、logo、页眉文字存在 `company.json`，每次生成前按下节「第 0 步」确认。
 
 > **目录结构按需裁剪（v1.4）** —— 三处不要写死：
 > ① **H1 系统名按本次开发的功能来定**（写 `<系统名>标准产品需求`），不要沿用模板来源文档的系统名；
@@ -36,6 +37,65 @@ agent_created: true
 > ⑤ **有界面的功能点必须配截图（v1.7）** —— 页面用整屏、弹窗/抽屉/下拉用局部，图**紧贴该功能小点的文字**，
 > PNG 且投影后界面字号 ≥7pt；没有图的界面功能点视为未完成。详见「界面截图」一节。
 > 详见「生成方式」一节与 `references/03-样式与编号规范.md` 第五、六节。
+
+> **v2.0 起公司信息可配置，技能不绑定任何厂商** —— 公司全称、logo、页眉文字统一放在技能根目录 `company.json`
+> （`python scripts/build_req_spec.py --company` 可查看当前生效值）；模板带过来的旧 logo、页眉外链图片域、
+> 文档属性署名，脚本在 `Builder` 初始化时**一律清掉**，不传公司名只会写占位值 `×××有限公司`，
+> **绝不会把别家公司的名字或 logo 带进交付物**。生成前先走「第 0 步」。
+
+## 第 0 步：确认公司与 logo（每次生成前必做）
+
+写正文之前先把公司信息落实 —— 封面空着、或者顶着占位值交付，返工成本最高。
+
+### 1. 先读配置，再决定要不要问
+
+```bash
+python scripts/build_req_spec.py --company      # 打印当前生效的公司配置（logo 已解析成绝对路径）
+```
+
+`company.json`（技能根目录）字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `公司全称` | 是 | 封面署名的法定全称，如「×××科技有限公司」 |
+| `logo` | 否 | 图片路径；相对路径按 `company.json` 所在目录解析 |
+| `logo对齐` | 否 | `left`（默认，沿用原版式）/ `center` |
+| `logo最大宽度cm` / `logo最大高度cm` | 否 | 默认 8.5 / 2.5，双向封顶等比缩放 |
+| `页眉文字` | 否 | 留空沿用模板页眉（「业务需求说明书」） |
+| `英文名` | 否 | 备用，脚本不强用 |
+
+**判断口径**：`公司全称` 有值就直接用，**不要再问一遍**；为空则**必须问用户** —— 不许自己编一个公司名，
+也不许拿模板里可能残留的旧公司名顶上。
+
+### 2. 要问用户的信息（一次问全，别挤牙膏）
+
+> 生成《××需求规格说明书》前先确认两项：
+> 1. **公司全称**（写到封面，如「×××科技有限公司」）？
+> 2. **有没有公司 logo 图片**？有就把图片放到任意路径、把路径告诉我（PNG 优先、透明底、长边 ≥600px）；
+>    没有就留空，封面只写公司名。
+
+用户把图片直接发进对话时，先落盘（如 `assets/company_logo.png`）再把路径写进配置；
+**图片不在本机可读路径上时不要猜路径**，问清楚再说。
+
+### 3. 写回配置（下次不再问）
+
+```json
+{
+  "公司全称": "×××科技有限公司",
+  "logo": "assets/company_logo.png",
+  "logo对齐": "left",
+  "页眉文字": ""
+}
+```
+
+写进 `company.json` 即长期复用，换项目只改这一个文件；多客户并行时可临时用环境变量
+`REQ_SPEC_COMPANY=<另一个 json 的路径>` 切换。
+
+### 4. 三条硬约束
+
+- **文档里不得出现任何第三方公司名 / logo** —— 模板残留、示例里的厂商标名、别家项目的封面都不许带出；
+- **logo 只放封面左上角**（≤8.5cm × 2.5cm），不要往每页页眉重复贴；
+- 用户没给 logo 就**不要留空图框**，直接不出图（`logo` 为空时脚本跳过）。
 
 ## 何时使用
 
@@ -116,7 +176,7 @@ agent_created: true
 ## 文档骨架（自上而下）
 
 ```
-封面：系统名 / 需求说明书vX.Y.Z / 西安西点信息技术有限公司 / 年月
+封面：[公司 logo（可选，左上角，≤8.5×2.5cm）] → 空行 → 系统名 → 需求说明书vX.Y.Z → 空行 → 公司全称 / 年月
 文档修改历史  表：版本号 | 修改日期 | 编写人 | 评审人 | 批准人 | 修改内容
 编写说明      3 条固定说明（原样保留）
 目录（TOC 域，**打开文档即按当前正文自动重排**，不必手动 F9）
@@ -162,12 +222,27 @@ H1 <系统名称>标准产品需求
 
 ```bash
 # 用户环境：C:/ProgramData/Anaconda3/envs/pytorch/python.exe
-python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"
+python scripts/build_req_spec.py --company                                  # ① 先确认公司配置
+python scripts/build_req_spec.py "D:/out/××需求规格说明书V1.0.docx"          # ② 再生成
+```
+
+封面里的公司名与 logo 走 `company.json`（见「第 0 步」）。要在一份 SPEC 里单独指定（比如同一份脚本给两家客户出稿）：
+
+```python
+封面=dict(系统名='×××管理系统', 版本='需求说明书v1.0',
+          公司='×××科技有限公司',          # 不写则取 company.json
+          日期='2026年11月',
+          logo=r'D:/brand/logo.png',        # 不写则取 company.json；都没给就不出图
+          logo对齐='left',                  # center 可居中
+          logo最大宽度cm=8.5, logo最大高度cm=2.5)
 ```
 
 脚本 `scripts/build_req_spec.py`：
-- 以 `assets/需求规格说明书_模板.docx` 为底（已剥离正文，完整保留原文档的 styles.xml、numbering.xml、页眉页脚、多级标题自动编号）；**标题序号 1. / 1.1. / 1.1.1. / 1.1.1.1. 全自动，不要手写序号**；
+- 以 `assets/需求规格说明书_模板.docx` 为底（已剥离正文、已清掉原厂商的 logo 与署名，完整保留原文档的 styles.xml、numbering.xml、页眉页脚、多级标题自动编号）；**标题序号 1. / 1.1. / 1.1.1. / 1.1.1.1. 全自动，不要手写序号**；
 - 传入 SPEC 字典即可生成，示例见文件末尾 `EXAMPLE`；
+- **公司信息（v2.0）**：`load_company()` 按「入参 → 环境变量 `REQ_SPEC_COMPANY` → `company.json`」取值，`cover()` 的入参优先；
+  `Builder` 初始化时还会**清掉模板带来的旧 logo、页眉 `INCLUDEPICTURE` 外链域、文档属性作者**，
+  公司名留空只写占位值 `×××有限公司` —— 所以**不会出现别家公司的名字或 logo**；
 - 关键 API：`h1..h6` / `p` / `table` / `kv` / `bullets` / `fig` / `req(...)`（一次生成**七节式**）；
   `req(..., level=)` 传的是**功能点**的层级，按目录形态选：**单端（不设端别层）`3`** → 功能点 H3 + 七节 H4；
   **多端（有端别层）`4`**（默认）→ 功能点 H4 + 七节 H5；多页模块再 +1 传 `5`；定制化需求章传 `3`。
@@ -323,6 +398,9 @@ docs/images/
 
 ## 自检清单（交付前逐条过）
 
+- [ ] **封面公司名来自用户 / `company.json`** —— 不是模板残留的旧公司名，也不是自己编的；`python scripts/build_req_spec.py --company` 打印的值与封面一致
+- [ ] **logo 是用用户提供的那张** —— 落位在封面左上角、≤8.5×2.5cm、没有变形拉伸；用户没给 logo 就没图（不留空图框），且**不是模板里别家公司的 logo**
+- [ ] **全文没有第三方公司名 / logo 残留** —— 搜一遍旧公司名、`INCLUDEPICTURE`、模板来源文档的系统名，命中数都应为 0（模板已清，脚本每次生成还会再清一次）
 - [ ] **H1 系统名是本次开发的系统** —— 不是照抄模板来源文档的系统名；涉及几个系统就几个 H1
 - [ ] **端别层按需**：功能只落一个端 → 不设端别层（H2 直接是一级功能模块）；设了端别层 → 只列本期有需求的端，没有需求的端不留空标题
 - [ ] 每个功能点都能在【菜单目录】里找到对应菜单，反之亦然（菜单与需求点不重复、不遗漏）
@@ -358,6 +436,7 @@ docs/images/
 | `references/02-需求点模板.md` | **七节式**模板 + 每节的固定要素与边界口径（业务说明 vs 功能说明、使用角色 vs 权限说明…）+ 原文逐字范例 + **与旧四段式的对照表** |
 | `references/03-样式与编号规范.md` | 样式、字体、页面、多级自动编号、表格版式与**全边框**、项目符号、**插图尺寸与图注**、目录自动更新、元素顺序 |
 | `references/04-表格与词汇库.md` | 明细表规范、状态表、**输入/输出表的来源与去向用词表**、`类型` 列词表、权限句式、常用表述、项目符号用法 |
-| `assets/需求规格说明书_模板.docx` | 空模板（含全部样式与自动编号），可直接另存使用。**注意其中两个"坑"：菜单目录表无边框、菜单目录表里带着另一份文档的 52 行菜单、目录域里缓存着另一份文档的条目** —— 脚本已全部处理 |
-| `scripts/build_req_spec.py` | 字典驱动生成 docx（v1.1：目录自动更新 / 表格全边框 / 项目符号 / 清模板遗留行；v1.2：插图；v1.3：需求点由四段式改为七节式 + 输入、输出节；**v1.4：目录结构按需裁剪 —— 系统名自定、端别层按需、定制化需求章默认不写**） |
+| `company.json` | **公司信息配置**：公司全称 / logo / logo 对齐与尺寸上限 / 页眉文字。写一次长期复用；留空则生成前要问用户。也可用环境变量 `REQ_SPEC_COMPANY` 指向别的 json 临时切换 |
+| `assets/需求规格说明书_模板.docx` | 空模板（含全部样式与自动编号），可直接另存使用。**原厂商 logo、页眉外链图片、文档属性署名已清除**；仍有三个"坑"：菜单目录表无边框、菜单目录表里带着另一份文档的 52 行菜单、目录域里缓存着另一份文档的条目 —— 脚本已全部处理 |
+| `scripts/build_req_spec.py` | 字典驱动生成 docx（v1.1：目录自动更新 / 表格全边框 / 项目符号 / 清模板遗留行；v1.2：插图；v1.3：需求点由四段式改为七节式 + 输入、输出节；v1.4：目录结构按需裁剪；**v2.0：公司信息可配置 —— `company.json` + 封面 logo + 清模板厂商痕迹 + `--company` 查看配置**） |
 | `scripts/split_image_for_docx.py` | 把**过高的图**（差于 1:2.2）拆成上下两张，好在 A4 正文区里保住字号 |

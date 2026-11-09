@@ -14,6 +14,23 @@
  */
 'use strict';
 
+// ── 强制 IPv4 优先（必须在任何 fetch 之前）─────────────────────────────
+// 背景：本机 IPv6 出网会卡住，Node 内置 fetch 解析到 IPv6 时表现为
+// `fetch failed` / UND_ERR_CONNECT_TIMEOUT，而同一请求用 curl 正常。
+// 注意：运行时调 dns.setDefaultResultOrder() 对 undici 无效，必须在进程启动时
+// 带 `--dns-result-order=ipv4first`，所以这里检测不到就带参数重启自己。
+if (!(process.env.NODE_OPTIONS || '').includes('--dns-result-order')) {
+  const { spawnSync } = require('child_process');
+  const r = spawnSync(process.execPath, [__filename, ...process.argv.slice(2)], {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --dns-result-order=ipv4first`.trim(),
+    },
+  });
+  process.exit(r.status === null ? 1 : r.status);
+}
+
 const fs = require('fs');
 const path = require('path');
 
