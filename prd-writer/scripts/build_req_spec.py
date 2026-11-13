@@ -37,7 +37,10 @@
 
 用法：
     from build_req_spec import build
-    build(SPEC, r'D:\\out\\XX需求规格说明书V1.0.docx')
+    import os, tempfile
+    build(SPEC, os.path.join(tempfile.gettempdir(), 'XX需求规格说明书V1.0.docx'))
+
+    或命令行：python build_req_spec.py [输出路径]   # 不传路径则写到系统临时目录
 
     公司信息：编辑技能根目录的 `company.json`（或用环境变量 REQ_SPEC_COMPANY 指向别的 json），
     也可在 `封面` 字典里显式传 `公司=` / `logo=` 覆盖。
@@ -53,12 +56,6 @@ SPEC 结构见文件末尾 EXAMPLE。核心特点：
 - **逐条列用真实项目符号**（numbering 定义，不手打"●"）；业务说明保持叙述段落（见 bullets / bullet）
 """
 import copy, datetime, json, os, re, shutil, sys, tempfile
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Cm, Pt, RGBColor
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-from docx.text.paragraph import Paragraph
 
 try:                                   # Windows 控制台默认 GBK：日志里有中文/符号会直接抛异常
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -67,6 +64,48 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, '..', 'assets', '需求规格说明书_模板.docx')
+REQUIREMENTS = os.path.join(HERE, 'requirements.txt')
+
+
+def _fail(message, hint=None):
+    """统一的"一句话怎么修"退出：不抛堆栈，直接把可执行的修复方式打出来。
+
+    stderr 也切成 UTF-8（Windows 控制台默认 GBK，中文提示会变问号）；
+    前缀用 ERROR / FIX，任何终端都能一眼认出这是可修复的提示、不是程序崩溃。
+    """
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+    print('\n[prd-writer] ERROR: ' + message, file=sys.stderr)
+    if hint:
+        print('[prd-writer] FIX:   ' + hint, file=sys.stderr)
+    sys.exit(1)
+
+
+try:
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Cm, Pt, RGBColor
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    from docx.text.paragraph import Paragraph
+except ImportError as exc:             # 环境没装 python-docx：给安装命令，不甩 ImportError 堆栈
+    _fail(
+        '缺少 python-docx（%s），无法生成 docx。' % exc,
+        '请执行：pip install -r %s' % REQUIREMENTS,
+    )
+
+
+def _check_template():
+    """模板是唯一必需的文件依赖，缺了直接给路径与解决方式。"""
+    path = os.path.normpath(TEMPLATE)
+    if not os.path.isfile(path):
+        _fail(
+            '找不到模板文件：%s' % path,
+            '请确认技能目录完整（必须包含 assets/需求规格说明书_模板.docx），不要只拷贝 scripts/ 下的 .py。',
+        )
+    return path
 
 # ---- 公司信息（v2.0：可配置，不绑定任何厂商）----
 # 取值优先级：cover()/build() 入参 > 环境变量 REQ_SPEC_COMPANY 指向的 json
@@ -1064,7 +1103,19 @@ def build(spec, path, company=None):
     cov_company = load_company(spec.get('公司配置'))
     if company:
         cov_company.update({k: v for k, v in company.items() if v not in (None, '')})
-    b = Builder(spec.get('模板', TEMPLATE), company=cov_company)
+
+    # 模板与输出目录先自检：缺模板给路径提示，目录不存在就建，避免 FileNotFoundError 堆栈
+    template = spec.get('模板') or _check_template()
+    if not os.path.isfile(template):
+        _fail(
+            '找不到模板文件：%s' % os.path.normpath(template),
+            '请确认 assets/需求规格说明书_模板.docx 存在，或在 SPEC 的「模板」里传可用路径。',
+        )
+    out_dir = os.path.dirname(os.path.abspath(path))
+    if out_dir and not os.path.isdir(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
+    b = Builder(template, company=cov_company)
     cov = dict(spec.get('封面') or {})
     b.cover(**cov)
     if spec.get('文档修改历史'):
@@ -1189,5 +1240,8 @@ if __name__ == '__main__':
         print(json.dumps(load_company(), ensure_ascii=False, indent=2))
         print('\n配置文件：', COMPANY_FILE)
         sys.exit(0)
-    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'out', '示例输出.docx')
+    # 不传路径时写到系统临时目录：跨平台、不污染技能目录，直接跑就能看到产物
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        tempfile.gettempdir(), '需求规格说明书V1.0.docx'
+    )
     print('saved ->', build(EXAMPLE, out))

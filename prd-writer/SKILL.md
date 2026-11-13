@@ -6,7 +6,7 @@ description: 编写、补写或整理投行类/金融科技类管理系统的《
 description_zh: 投行类/金融科技类管理系统《需求规格说明书》写作规范与 Word 生成器，公司信息可配置。开始写之前先确认公司全称与公司 logo（写入 company.json，写一次长期复用），封面自动落公司名与左上角 logo，文档内不留任何第三方厂商的名称或标识。目录结构按需裁剪：H1 系统名按本次开发的功能定，端别层（WEB端/移动端/助手端/客户端）只在同一系统跨多端且各端需求不同时才设，功能只落一个端时整层省掉，定制化需求章默认不写。功能点固定七节式：业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出；「输入、输出」要求成对写清数据流入与流出（数据项 | 来源 | 说明、数据项 | 去向 | 说明）。内置可跑的 build_req_spec.py（字典驱动生成 docx：封面+logo、修改历史、菜单目录、标题自动编号、三列明细表、输入输出表、插图）与 split_image_for_docx.py（过高图自动拆上下两张）。强制四条交付物硬要求：目录打开即自动重排、每张表显式全边框、逐条列用真实项目符号、图按正文区宽 15cm 高 20.5cm 双向封顶。
 description_en: "Requirements-specification writing standard plus a Word generator for investment-banking / fintech management systems, with a configurable company profile — no vendor is hard-coded. Before writing, confirm the company's full legal name and logo and store them in company.json; the cover then carries that name and logo, and no third-party vendor name or mark leaks into the document. The outline is trimmed on demand: the H1 system name follows the functionality actually being developed, the device/channel layer (web, mobile, assistant, desktop client) appears only when one system spans several channels with differing requirements, and the customization chapter is omitted by default. Every function point follows a fixed seven-section structure: business description / business rules / user roles / permissions / function spec / page field spec / inputs and outputs, where inputs and outputs must be written as a pair covering both data inflow and outflow. Ships a runnable build_req_spec.py that builds the whole docx from a Python dict (cover with logo, revision history, menu catalog, auto-numbered headings, three-column detail tables, input/output tables, figures) and split_image_for_docx.py for automatically splitting over-tall images. Enforces four delivery hard rules: table of contents auto-refreshes on open, explicit full borders on every table, real bullet lists, and figures capped at 15cm wide by 20.5cm high."
 category: writing
-version: "2.0.0"
+version: "2.1.0"
 author: WorkBuddy
 agent_created: true
 ---
@@ -42,6 +42,47 @@ agent_created: true
 > （`python scripts/build_req_spec.py --company` 可查看当前生效值）；模板带过来的旧 logo、页眉外链图片域、
 > 文档属性署名，脚本在 `Builder` 初始化时**一律清掉**，不传公司名只会写占位值 `×××有限公司`，
 > **绝不会把别家公司的名字或 logo 带进交付物**。生成前先走「第 0 步」。
+
+## 环境与依赖
+
+跑这个技能只需要 Python 与一个第三方库，其余全部是标准库。
+
+| 项 | 要求 | 说明 |
+| --- | --- | --- |
+| Python | **≥ 3.7** | 脚本未使用 walrus、`match`、`list[str]` 等 3.8+ 语法；3.6 不支持（用了 `sys.stdout.reconfigure`） |
+| 操作系统 | 不限 | Windows / macOS / Linux 均可，示例路径已跨平台 |
+| 必需依赖 | `python-docx>=1.1,<2` | 清单见 `scripts/requirements.txt`；**不需要 Pillow**（图片尺寸由脚本自带图片头解析读取） |
+| 必需文件 | `assets/需求规格说明书_模板.docx` | 缺了脚本会直接提示；不要只拷贝 .py 而漏掉 assets |
+| 可选依赖 | `mermaid转图片` 技能 | 只在需要渲染流程图时用；没有就跳过图，不影响 docx 生成 |
+
+```bash
+pip install -r scripts/requirements.txt
+```
+
+装完可以先验一下环境（不会写任何文件）：
+
+```bash
+python scripts/build_req_spec.py --company
+```
+
+## 30 秒跑通
+
+第一次拿到这个技能，按三条命令走一遍，能出文件就说明环境没问题：
+
+```bash
+# ① 装依赖（只需一次）
+pip install -r scripts/requirements.txt
+
+# ② 看一眼当前生效的公司配置（封面会用这个名字与 logo）
+python scripts/build_req_spec.py --company
+
+# ③ 直接跑内置 EXAMPLE，生成一份样例文档到系统临时目录
+python scripts/build_req_spec.py
+```
+
+**预期结果**：终端最后打印 `saved -> <临时目录>/需求规格说明书V1.0.docx`，用 Word 打开应看到 —— 封面（公司名 + logo）、文档修改历史表、菜单目录表、按 `1. / 1.1. / 1.1.1.` 自动编号的标题、七节式小节、若干三列明细表与输入输出表。看到这些就说明依赖、模板、字体链路都正常，可以开始写正式文档。
+
+跑不通时对照「环境与依赖」表逐项检查，脚本对缺依赖、缺模板会直接给出修复命令，不会抛堆栈。
 
 ## 第 0 步：确认公司与 logo（每次生成前必做）
 
@@ -104,7 +145,21 @@ python scripts/build_req_spec.py --company      # 打印当前生效的公司配
 - 把口头/邮件/访谈材料整理成规范需求点；
 - 检查一份需求文档是否符合本规范。
 
-## 四条铁律
+## 不适用场景
+
+以下场景**不要用**这个技能，换更合适的产出物：
+
+| 不适用 | 原因 | 该用什么 |
+| --- | --- | --- |
+| 需求评审纪要、会议记录、访谈逐字稿 | 这些是过程材料，本技能产出的是成品需求章节 | 普通 Markdown / Word 纪要模板 |
+| 原型 HTML、前端页面、可交互 Demo | 本技能只写文档，不产代码与界面 | 前端脚手架 / 原型工具 |
+| 非中文（英文、日文等）需求文档 | 模板版式、字体、项目符号、页眉都是中文排版约定 | 另建对应语种的模板 |
+| 需要多人同时在线编辑的协作文档 | 产物是本地 `.docx` 文件，没有协同与版本合并能力 | 在线文档平台 |
+| 只要 Excel / CSV 数据表、不要成稿文档 | 本技能的核心是七节式正文与版式，表格只是其中一部分 | 直接用 openpyxl / pandas 生成表格 |
+
+判断口径：**交付物是不是「一份排版规范的、可评审的中文功能需求章节」** —— 是就用，不是就别用。
+
+## 六条铁律
 
 1. **需求点采用"七节式"**：`业务说明 → 业务规则 → 使用角色 → 权限说明 → 功能说明 → 页面字段说明 → 输入、输出`，顺序固定，无内容的节可整节省略（见 `references/02-需求点模板.md`）。**业务说明 / 功能说明 / 输入、输出 三节不能省。**
 2. **「输入、输出」必须成对写**：输入 = 这个功能点**运行需要**哪些数据（表 `数据项 | 来源 | 说明`），输出 = 它**产生或改变**哪些数据（表 `数据项 | 去向 | 说明`）。只写单向的"数据来源"是旧四段式写法，**不算完成**。
@@ -112,6 +167,21 @@ python scripts/build_req_spec.py --company      # 打印当前生效的公司配
 4. **标题层级与【菜单目录】强对应**：`H1 系统 →〔H2 端别〕→ 一级功能模块 → 功能点（页面级）→ 七节式小节`，禁止跳级。
    **系统名按本次开发的功能来定**（写 `<系统名>标准产品需求`，不要沿用别的系统的名字）；
    **端别层是按需的** —— 只有同一系统跨多个端且各端需求不同才设，功能只落一个端时整层不要（见下方骨架与 `references/01`）。
+
+5. **只写最终形态，不写改造过程**：需求文档是「系统现在长什么样、按什么规则跑」的说明书，不是变更日志。
+   - **不写变更叙述**：不出现「原来…现在改为…」「不再…」「替代原先…」「新增了…」「本次调整…」「已删除…」这类对比句；
+   - **不写时间与版本痕迹**：正文不出现「（2026-10-27）」「v3.50 起」「本期新增」；
+   - **不写实现视角**：不写「把 A 挪到 B」「去掉 C 按钮」「合并成两层」—— 直接写最终界面上有哪些元素、点击后发生什么；
+   - **唯一例外**：文首的 `文档修改历史` 表（用户明确要求时才加一行）与文末「未收录说明」。
+   - **自检**：把任意一段读给没参与迭代的人，若他必须先知道「以前是什么样」才能读懂，这段就是写错了。
+
+6. **不写「没有这个功能」**：需求文档只描述系统**有**什么，没有的东西不写 —— 否定句既占篇幅又让读者去找那个不存在的功能。
+   - **判断口径**：把「不展示 X / 不做 X / 不提供 X」换成「系统是否需要为这个限制写一段逻辑」——
+     - **需要**（按条件隐藏、按角色隐藏、按状态拦截、按校验阻止）→ **保留**，并写成**条件句或行为句**：
+       「已发函的批次不展示【批量发函】」「质控人员只读，维护按钮不展示」「风险结论非『正常』时风险说明必填」；
+     - **不需要**（纯粹「我们没做这个功能」）→ **整句删除**，不要用否定句占位。
+   - 典型该删的：「本模块不设条件查询」「不提供【只看可发函】按钮」「不需要手工刷新」「不提供行内编辑」（若前一句已写「只读」）。
+   - 典型该留的：条件展示、权限隐藏、状态约束、校验拦截、可选值范围（「早于当前时间的时段不出现」）。
 
 ## 需求点内部按「功能小点」写（v1.6 起）
 
@@ -440,3 +510,16 @@ docs/images/
 | `assets/需求规格说明书_模板.docx` | 空模板（含全部样式与自动编号），可直接另存使用。**原厂商 logo、页眉外链图片、文档属性署名已清除**；仍有三个"坑"：菜单目录表无边框、菜单目录表里带着另一份文档的 52 行菜单、目录域里缓存着另一份文档的条目 —— 脚本已全部处理 |
 | `scripts/build_req_spec.py` | 字典驱动生成 docx（v1.1：目录自动更新 / 表格全边框 / 项目符号 / 清模板遗留行；v1.2：插图；v1.3：需求点由四段式改为七节式 + 输入、输出节；v1.4：目录结构按需裁剪；**v2.0：公司信息可配置 —— `company.json` + 封面 logo + 清模板厂商痕迹 + `--company` 查看配置**） |
 | `scripts/split_image_for_docx.py` | 把**过高的图**（差于 1:2.2）拆成上下两张，好在 A4 正文区里保住字号 |
+| `scripts/requirements.txt` | 唯一必需依赖 `python-docx` 的版本区间；`pip install -r` 用 |
+
+## 许可与来源
+
+**内部专用** —— 本技能及随附的模板、脚本、写作规范仅限**公司内部使用**，不对外分发、不公开发布；转发给同事或并入其他内部技能库时，请保留本节声明。
+
+| 项 | 说明 |
+| --- | --- |
+| 来源 | 沉淀自一份投行类管理系统《需求规格说明书》的既有格式（实测 v4.0.5，3187 段 / 221 表），并按七节式规范重构 |
+| 模板 | `assets/需求规格说明书_模板.docx` 已剥离原厂商 logo、页眉外链图片与文档属性署名，只保留样式、编号与页面设置；脚本每次生成还会再清一次 |
+| 第三方品牌 | 交付物中不出现任何第三方厂商的名称或标识；`company.json` 留空只写占位值 `×××有限公司` |
+| 依赖许可 | `python-docx` 为 MIT 许可，见其官方仓库；本技能未修改其源码，仅作为依赖调用 |
+| 作者 | WorkBuddy（内部技能库） |

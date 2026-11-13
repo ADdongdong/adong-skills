@@ -1,0 +1,8 @@
+# prd-writer 生成 docx 的唯一必需第三方依赖
+# 安装：pip install -r scripts/requirements.txt
+#
+# 说明：
+# - 只需要 python-docx；图片尺寸由脚本自带的图片头解析读取，**不需要 Pillow**；
+# - mermaid 流程图渲染由独立技能负责（不是本技能的依赖），没有该技能时流程图跳过、不影响生成；
+# - 不依赖 pandas / openpyxl / lxml 的额外用法，word 文件读写全部走 python-docx。
+python-docx>=1.1,<2
