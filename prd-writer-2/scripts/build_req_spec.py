@@ -1,0 +1,1247 @@
+# -*- coding: utf-8 -*-
+"""
+按投行类管理系统《需求规格说明书》的既有格式规范生成 docx（实测自 v4.0.5，3187 段 / 221 表）。
+**系统名按本次开发的功能来定** —— 不要把任何一份既有文档的系统名写死进模板或示例。
+
+版本 v1.1（2026-10-08）—— 相对 v1.0 补齐三件"用户明确要求、但原脚本靠人肉补"的事：
+① 目录（TOC 域）自动更新；② 每张表显式全边框；③ 逐条列用真实项目符号。
+另修两处模板遗留：菜单目录表与修改历史表里的**上一份文档的行**、目录域里的**旧条目缓存**。
+（这三条同时写进了 SKILL.md 与 references/03、04。）
+
+版本 v1.2（2026-10-08）—— **插图**：`figure()` / `('fig', {...})` 块，图注用「列出段落1」样式、
+图片居中并按正文区**宽 15cm / 高 20.5cm** 双向封顶等比缩放（纵向流程图按高度反算宽度，
+否则一张图跨两三页）；`req(...)` 的 `界面原型图` 也支持直接传图片路径。
+图源建议先用 skill `mermaid转图片` 把 Markdown 里的 ```mermaid 块渲染成 PNG
+（`render_mermaid.py <md> --out <图目录> --format png --scale 3`）。
+
+版本 v1.3（2026-10-08）—— **需求点结构由「四段式」改为「七节式」**：功能点下固定 7 节，
+`业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出`。
+「输入、输出」为新增节，写清该功能点**输入哪些数据、输出哪些数据**（两段 + 两张三列表）。
+旧四段式的槽位去向见 `_LEGACY_KEYS` 与 references/02。**v1.3 起旧键名会直接报错**，
+不再静默生成 —— 四段式的「补充说明」在新结构里没有一一对应项，自动映射会写错文档。
+
+版本 v1.4（2026-10-08）—— **目录结构改为按需裁剪**（不改代码逻辑，改的是推荐骨架与示例）：
+① H1 系统名**按本次开发的功能来定**，不再沿用模板来源文档的系统名；
+② **端别层（H2 WEB端/移动端/…）改为按需** —— 功能只落一个端时整层不设，一级功能模块直接挂 H1，
+   功能点随之从 H4 上移到 H3（`req(level=3)`）；跨多端且各端需求不同时才加端别层（`level=4`）；
+③ **定制化需求章默认不写**，只有确有特殊定义/明确属于定制功能时才追加。
+（示例 EXAMPLE 已改成"单端"默认形态，多端形态在注释里给出。）
+
+版本 v2.0（2026-11-09）—— **公司信息可配置，不再绑定任何厂商**：
+① 封面公司名、公司 logo 改为从 `company.json` 读取（`load_company()`），入参优先；
+② 模板里的原厂商痕迹（封面 logo、页眉外链图片域、文档属性署名）在 Builder 里**统一清掉**，
+   不传公司名也只会写占位值 `×××有限公司`，**不会把别家公司的名字/logo 带出去**；
+③ 新增 `cover(..., logo=, logo对齐=, logo最大宽度cm=, logo最大高度cm=)`：logo 落在封面左上角
+   （模板第一段），按 8.5cm × 2.5cm 双向封顶等比缩放；
+④ `python build_req_spec.py --company` 打印当前生效的公司配置，便于先确认再生成。
+
+用法：
+    from build_req_spec import build
+    import os, tempfile
+    build(SPEC, os.path.join(tempfile.gettempdir(), 'XX需求规格说明书V1.0.docx'))
+
+    或命令行：python build_req_spec.py [输出路径]   # 不传路径则写到系统临时目录
+
+    公司信息：编辑技能根目录的 `company.json`（或用环境变量 REQ_SPEC_COMPANY 指向别的 json），
+    也可在 `封面` 字典里显式传 `公司=` / `logo=` 覆盖。
+
+SPEC 结构见文件末尾 EXAMPLE。核心特点：
+- 以 assets/需求规格说明书_模板.docx 为底，完整继承原文档样式与多级标题自动编号
+  （heading 1..6 = styleId 2..7，编号 1. / 1.1. / 1.1.1. / 1.1.1.1. 自动生成，无需手写序号）
+- 需求点用 ("req", {...}) 一次性生成**七节式**（见 SECTIONS / FUNC_KEYS / IO_*_HEADER）
+- **目录（TOC 域）自动更新**：清掉模板带来的旧缓存条目 + 置 settings 的 updateFields，
+  在 Word/WPS 中打开即按当前正文重排，**不需要手动 F9**（见 _clear_toc_cache）
+- **每一张表都带全边框**：显式写 tblBorders（模板的菜单目录表本身是无边框的，
+  只套 Table Grid 样式压不住，见 _force_borders）
+- **逐条列用真实项目符号**（numbering 定义，不手打"●"）；业务说明保持叙述段落（见 bullets / bullet）
+"""
+import copy, datetime, json, os, re, shutil, sys, tempfile
+
+try:                                   # Windows 控制台默认 GBK：日志里有中文/符号会直接抛异常
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE = os.path.join(HERE, '..', 'assets', '需求规格说明书_模板.docx')
+REQUIREMENTS = os.path.join(HERE, 'requirements.txt')
+
+
+def _fail(message, hint=None):
+    """统一的"一句话怎么修"退出：不抛堆栈，直接把可执行的修复方式打出来。
+
+    stderr 也切成 UTF-8（Windows 控制台默认 GBK，中文提示会变问号）；
+    前缀用 ERROR / FIX，任何终端都能一眼认出这是可修复的提示、不是程序崩溃。
+    """
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+    print('\n[prd-writer] ERROR: ' + message, file=sys.stderr)
+    if hint:
+        print('[prd-writer] FIX:   ' + hint, file=sys.stderr)
+    sys.exit(1)
+
+
+try:
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Cm, Pt, RGBColor
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    from docx.text.paragraph import Paragraph
+except ImportError as exc:             # 环境没装 python-docx：给安装命令，不甩 ImportError 堆栈
+    _fail(
+        '缺少 python-docx（%s），无法生成 docx。' % exc,
+        '请执行：pip install -r %s' % REQUIREMENTS,
+    )
+
+
+def _check_template():
+    """模板是唯一必需的文件依赖，缺了直接给路径与解决方式。"""
+    path = os.path.normpath(TEMPLATE)
+    if not os.path.isfile(path):
+        _fail(
+            '找不到模板文件：%s' % path,
+            '请确认技能目录完整（必须包含 assets/需求规格说明书_模板.docx），不要只拷贝 scripts/ 下的 .py。',
+        )
+    return path
+
+# ---- 公司信息（v2.0：可配置，不绑定任何厂商）----
+# 取值优先级：cover()/build() 入参 > 环境变量 REQ_SPEC_COMPANY 指向的 json
+#            > 技能根目录 company.json > 占位值 COMPANY_PLACEHOLDER
+COMPANY_FILE = os.path.normpath(os.path.join(HERE, '..', 'company.json'))
+COMPANY_ENV = 'REQ_SPEC_COMPANY'
+COMPANY_PLACEHOLDER = '×××有限公司'
+COMPANY_DEFAULTS = {
+    '公司全称': '',          # 封面署名的公司名；空则用占位值
+    '英文名': '',            # 需要时可写进封面/页脚，脚本不强用
+    'logo': '',              # 图片路径；相对路径按 company.json 所在目录解析
+    'logo对齐': 'left',      # left（沿用原版式）/ center
+    'logo最大宽度cm': 8.5,   # 与最大高度一起做双向封顶，等比缩放
+    'logo最大高度cm': 2.5,
+    '页眉文字': '',          # 留空则沿用模板页眉（一般就是「业务需求说明书」）
+}
+LOGO_MAX_W_CM = 8.5
+LOGO_MAX_H_CM = 2.5
+
+W = qn('w:p'); T = qn('w:tbl')
+# 模板中的 styleId 映射
+SID = {'Normal': '1', 'h1': '2', 'h2': '3', 'h3': '4', 'h4': '5', 'h5': '6', 'h6': '7'}
+# ---- 需求点：七节式（v1.3 起替代原「四段式」）----
+# 功能点（H4）下固定这 7 节，顺序即此列表顺序（脚本按此顺序生成，调用方不必关心）。
+SEC_BIZ_DESC = '业务说明'        # 叙述段落：这个功能是什么、什么业务场景下解决什么问题
+SEC_BIZ_RULE = '业务规则'        # 逐条/表格：判定、流转、状态、限制、边界
+SEC_ROLE     = '使用角色'        # 逐条：谁会用到这个功能
+SEC_PERM     = '权限说明'        # 三要素：菜单权限 / 功能权限 / 列表数据权限
+SEC_FUNC     = '功能说明'        # 功能概述 + 二级页面 + 操作说明 + 界面原型图
+SEC_FIELD    = '页面字段说明'    # 表：字段名称 | 规则/说明
+SEC_IO       = '输入、输出'      # 输入表（数据项|来源|说明）+ 输出表（数据项|去向|说明）
+SECTIONS = [SEC_BIZ_DESC, SEC_BIZ_RULE, SEC_ROLE, SEC_PERM, SEC_FUNC, SEC_FIELD, SEC_IO]
+
+# 「功能说明」内部固定子要素（按此顺序出现，缺失则跳过）
+FUNC_KEYS = ['功能概述', '二级页面', '操作说明', '界面原型图']
+
+# 「输入、输出」两张表的标准表头（三列；不写字面表头时由脚本自动补）
+IO_IN_HEADER  = ['数据项', '来源', '说明']
+IO_OUT_HEADER = ['数据项', '去向', '说明']
+# 「页面字段说明」表标准表头
+FIELD_HEADER  = ['字段名称', '规则/说明']
+
+# 旧四段式的键名 → 新七节式的迁移提示（v1.3 起旧键名直接报错，见 req()）
+_LEGACY_KEYS = {
+    '用户场景': ('业务说明', '内容基本可平移；业务说明写得更偏"业务背景 + 解决什么问题"'),
+    '功能描述': ('功能说明', '「功能说明」下改挂 功能概述 / 二级页面 / 操作说明 / 界面原型图 四个子要素；'
+                            '原「数据来源」的内容并入「输入、输出」的输入表（来源列）'),
+    '补充说明': ('业务规则', '边界情况 / 限制条件 / 后续规划合并进「业务规则」'),
+    '数据来源': ('输入、输出', '写进输入表的「来源」列，不再单列小节'),
+    '状态划分': ('业务规则', '状态枚举属于业务规则'),
+    '字段逻辑': ('页面字段说明', '与字段说明合并为「页面字段说明」'),
+    '字段说明': ('页面字段说明', '与字段逻辑合并为「页面字段说明」'),
+}
+
+# 「名称 / 类型 / 规则/说明」明细表标准表头
+DETAIL_HEADER = ['名称', '类型', '规则/说明']
+# 【菜单目录】表标准表头
+MENU_HEADER = ['一级菜单', '二级菜单', '三级菜单']
+
+# ---- 插图（v1.2）----
+IMG_CAPTION_SID = '25'      # 「列出段落1」样式（styleId 25）—— 主文档的图注就用它
+MAX_IMG_W_CM = 15.0         # 正文区宽度（A4 纵向减左右页边距）
+MAX_IMG_H_CM = 20.5         # 单页可用高度余量（A4 29.7cm − 上下页边距 − 图注）
+
+
+def _image_px(path):
+    """读图片像素尺寸；读不到返回 None（python-docx 自带图片头解析，无需 Pillow）。"""
+    try:
+        from docx.image.image import Image as _DocxImage
+        im = _DocxImage.from_file(str(path))
+        w = float(getattr(im, 'px_width', None) or im.width)
+        h = float(getattr(im, 'px_height', None) or im.height)
+        return (w, h) if w > 0 and h > 0 else None
+    except Exception:
+        return None
+
+
+def _fit_cm(path):
+    """按正文区尺寸等比缩放，返回 `(宽cm, 高cm)`；算不出比例时只给宽度、由 Word 等比缩放。
+
+    **纵向流程图必须按高度封顶**（实测：`flowchart TB` 长链路的图宽高比能到 1:1.8，
+    按 15cm 宽铺开就是 27cm 高 —— 一张图横跨两三页，读者得翻页对照）。所以：
+    先按最大宽度算高度，超过最大高度就**改按高度反算宽度**。
+    """
+    px = _image_px(path)
+    if not px:
+        return MAX_IMG_W_CM, None
+    ratio = px[1] / px[0]
+    w, h = MAX_IMG_W_CM, MAX_IMG_W_CM * ratio
+    if h > MAX_IMG_H_CM:
+        h = MAX_IMG_H_CM
+        w = h / ratio
+    return round(w, 2), round(h, 2)
+
+
+def _fit_logo_cm(path, max_w=LOGO_MAX_W_CM, max_h=LOGO_MAX_H_CM):
+    """封面 logo 等比缩放：先按最大宽度算高，超过最大高度就改按高度反算宽度。
+
+    宽扁的横幅 logo（公司名 + 英文名那种）按宽度封顶，方形的按高度封顶 ——
+    只按宽度封顶会让方形 logo 变成 8.5cm 见方，把封面标题挤下去。
+    """
+    px = _image_px(path)
+    if not px:
+        return float(max_w), None
+    ratio = px[1] / px[0]
+    w, h = float(max_w), float(max_w) * ratio
+    if h > float(max_h):
+        h = float(max_h)
+        w = h / ratio
+    return round(w, 2), round(h, 2)
+
+
+def load_company(path=None):
+    """读公司信息配置，返回补齐默认值的字典（**缺字段不报错**）。
+
+    查找顺序：入参 `path` → 环境变量 `REQ_SPEC_COMPANY` → 技能根目录 `company.json`。
+    `logo` 写相对路径时按 **company.json 所在目录** 解析，方便把 logo 和配置放在一起。
+    用户可能只填了一部分字段（比如只给公司全称），其余字段留空由 `cover()` 兜底。
+    """
+    cand = path or os.environ.get(COMPANY_ENV) or COMPANY_FILE
+    data = dict(COMPANY_DEFAULTS)
+    if not cand or not os.path.isfile(str(cand)):
+        return data
+    try:
+        with open(cand, encoding='utf-8') as f:
+            raw = json.load(f)
+    except Exception as e:                      # 用户手改坏了 json：给提示，按占位值继续
+        print('⚠ 公司配置读取失败，按占位值生成：', cand, e)
+        return data
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            if k in COMPANY_DEFAULTS and v not in (None, ''):
+                data[k] = v
+    logo = str(data.get('logo') or '').strip()
+    if logo and not os.path.isabs(logo):
+        data['logo'] = os.path.normpath(
+            os.path.join(os.path.dirname(os.path.abspath(str(cand))), logo))
+    return data
+
+
+# tblPr 子元素的 schema 顺序。**顺序错，Word 打开会报"文档已损坏"** ——
+# python-docx 1.2 的 CT_TblPr 只暴露了 tblStyle / tblLayout / jc / bidiVisual 的 get_or_add_*，
+# tblW / tblBorders 这些得自己按这个顺序插。
+TBLPR_SEQ = (
+    'w:tblStyle', 'w:tblpPr', 'w:tblOverlap', 'w:bidiVisual', 'w:tblStyleRowBandSize',
+    'w:tblStyleColBandSize', 'w:tblW', 'w:jc', 'w:tblCellSpacing', 'w:tblInd',
+    'w:tblBorders', 'w:shd', 'w:tblLayout', 'w:tblCellMar', 'w:tblLook',
+    'w:tblCaption', 'w:tblDescription', 'w:tblPrChange',
+)
+
+
+def _tbl_pr_set(tblPr, tag, **attrs):
+    """在 tblPr 里放一个 `<tag>`：**先删旧的，再按 schema 顺序插**（返回新元素）。"""
+    for el in tblPr.findall(qn(tag)):
+        tblPr.remove(el)
+    e = OxmlElement(tag)
+    for k, v in attrs.items():
+        e.set(qn(k), v)
+    tail = {qn(t) for t in TBLPR_SEQ[TBLPR_SEQ.index(tag) + 1:]}
+    for child in tblPr:
+        if child.tag in tail:
+            child.addprevious(e)
+            return e
+    tblPr.append(e)
+    return e
+
+
+def _para_of(el):
+    """往上找所属段落（域的 run 常被包在 `w:hyperlink` 里）。"""
+    p = el.getparent()
+    while p is not None and p.tag != W:
+        p = p.getparent()
+    return p
+
+
+# 条目开头的**手写序号**：`1、` `2.` `3）` `(4)` `（5）`
+LIST_NO_RE = re.compile(r'^\s*(?:\d+\s*[、.．)）]|[(（]\s*\d+\s*[)）])\s*')
+
+
+def _strip_list_no(text):
+    """去掉条目前的**手写序号**。
+
+    与项目符号同时出现会变成两层标记（"● 1、列表排序规则…"），所以**加圆点的场合**顺手去掉。
+    `p()` 写的普通段落不动 —— 那里保留手写序号是对的（主文档正文就是 `1、…` 的写法）。
+    若某条序号**被正文引用**（如"见第 4 点"），就别用 bullets，改用 `p()` 逐条写。
+    """
+    return LIST_NO_RE.sub('', str(text))
+    p = el.getparent()
+    while p is not None and p.tag != W:
+        p = p.getparent()
+    return p
+
+
+def _field_runs(body):
+    """把正文里**与域有关**的 run 按文档顺序摊平：`[(run, 'begin'|'separate'|'end'|'instr', 文本), …]`。
+
+    处理目录/域必须按这个顺序做配对：段落结构（域跨段、子域嵌套）靠它才能算清。
+    """
+    seq = []
+    for r in body.iter(qn('w:r')):
+        fc = r.find(qn('w:fldChar'))
+        if fc is not None:
+            seq.append((r, fc.get(qn('w:fldCharType')), ''))
+            continue
+        it = r.find(qn('w:instrText'))
+        if it is not None:
+            seq.append((r, 'instr', (it.text or '').strip()))
+    return seq
+
+
+# ---- 与主文档一致的直接排版参数（实测自 v4.0.5 document.xml）----
+BODY_FONT = '宋体'      # 正文/表格：ascii/hAnsi/eastAsia/cs 均为宋体
+BODY_SZ_HALF = 24       # 12pt（w:sz 单位为半磅）
+LINE = 1.5              # = w:spacing w:line="360" w:lineRule="auto"
+FIRST_LINE_TWIPS = 420  # 叙述性段落首行缩进（业务说明 / 功能概述，2 字符）
+
+
+def _sty(doc, key):
+    sid = SID[key] if key in SID else key
+    for s in doc.styles:
+        if s.style_id == sid:
+            return s
+    raise KeyError('style %s not found' % sid)
+
+
+def fmt_run(run, size_half=BODY_SZ_HALF, bold=None, color=None,
+            latin=BODY_FONT, ea=BODY_FONT, hint='eastAsia'):
+    """按主文档写法设置字符格式：rFonts(ascii/hAnsi/eastAsia/cs/hint) + sz。
+    标题只需 hint=eastAsia（字体字号由 heading 样式决定），传 size_half=None 即可。"""
+    rpr = run._element.get_or_add_rPr()
+    rf = rpr.find(qn('w:rFonts'))
+    if rf is None:
+        rf = OxmlElement('w:rFonts')
+        rpr.insert(0, rf)                     # rFonts 必须是 rPr 的首个子元素
+    if latin:
+        rf.set(qn('w:ascii'), latin); rf.set(qn('w:hAnsi'), latin); rf.set(qn('w:cs'), latin)
+    if ea:
+        rf.set(qn('w:eastAsia'), ea)
+    if hint:
+        rf.set(qn('w:hint'), hint)
+    if size_half is not None:
+        run.font.size = Pt(size_half / 2.0)
+    if bold is not None:
+        run.font.bold = bold
+    if color is not None:
+        run.font.color.rgb = color
+    return run
+
+
+def fmt_para(p, line=LINE, first_line=None, left=None, before=None, after=None):
+    """按主文档写法设置段落格式：spacing(line=360,lineRule=auto)、ind、before/after。"""
+    pf = p.paragraph_format
+    if line is not None:
+        pf.line_spacing = line                # → w:spacing line=360 lineRule=auto
+    if first_line is not None:
+        pf.first_line_indent = Pt(first_line / 20.0)   # twips → pt
+    if left is not None:
+        pf.left_indent = Pt(left / 20.0)
+    if before is not None:
+        pf.space_before = Pt(before / 20.0)
+    if after is not None:
+        pf.space_after = Pt(after / 20.0)
+    return p
+
+
+def _set_cell(cell, text, bold=False):
+    """写入单元格，段落与字符格式对齐主文档表格：
+    spacing(before=0, after=0, line=360) + 宋体 12pt。"""
+    p = cell.paragraphs[0]
+    for r in list(p.runs):                     # 清掉占位空 run，避免首个 run 无字体属性
+        r._element.getparent().remove(r._element)
+    fmt_para(p, before=0, after=0)
+    fmt_run(p.add_run(str(text)), bold=bold)
+
+
+def _force_borders(t):
+    """给表格写**显式全边框**（`tblBorders`，六个方向 single）。
+
+    **为什么不只靠 `tblStyle = 'Table Grid'`**（v1.1 修）：
+    · 模板里那张**菜单目录表本来是无边框的** —— 它的 `tblBorders` 六向全是 `val="none"`，
+      而**直接格式比样式更"具体"**，光套 `Table Grid` 样式压不住它，必须把 `none` 换掉；
+    · 文档里混着"样式给的框线"与"直接格式给的框线"，一旦某张表被复制粘贴过就说不清了。
+
+    所以统一在收尾时给**每一张**表都写死边框：`single` + `sz=4`（0.5pt，与主文档表格一致；
+    `sz=6` 会明显偏粗）+ `color=auto`（跟随文字色）。
+    """
+    b = _tbl_pr_set(t._tbl.tblPr, 'w:tblBorders')
+    for tag in ('w:top', 'w:left', 'w:bottom', 'w:right', 'w:insideH', 'w:insideV'):
+        e = OxmlElement(tag)
+        e.set(qn('w:val'), 'single'); e.set(qn('w:sz'), '4')
+        e.set(qn('w:space'), '0'); e.set(qn('w:color'), 'auto')
+        b.append(e)
+
+
+def _fix_table(t, widths):
+    """统一表格版式：固定列宽 + 表宽 100% + 全边框。"""
+    t.autofit = False
+    tblPr = t._tbl.tblPr
+    _tbl_pr_set(tblPr, 'w:tblW', **{'w:type': 'pct', 'w:w': '5000'})
+    _tbl_pr_set(tblPr, 'w:tblLayout', **{'w:type': 'fixed'})
+    grid = t._tbl.find(qn('w:tblGrid'))
+    if grid is not None:
+        for gc in list(grid):
+            grid.remove(gc)
+        for wd in widths:
+            gc = OxmlElement('w:gridCol'); gc.set(qn('w:w'), str(int(wd * 567))); grid.append(gc)
+    _force_borders(t)
+
+
+class Builder:
+    def __init__(self, template=TEMPLATE, company=None):
+        self._tmp = os.path.join(tempfile.gettempdir(), '_req_spec_tmp_%d.docx' % os.getpid())
+        shutil.copy2(template, self._tmp)
+        self.doc = Document(self._tmp)
+        self.company = dict(COMPANY_DEFAULTS)
+        if company:
+            self.company.update({k: v for k, v in company.items() if v not in (None, '')})
+        self._scrub_template()           # 清掉模板可能带过来的厂商 logo / 外链图片 / 署名
+        self._clear_skeleton()
+        self._clear_toc_cache()          # 目录：清掉模板带来的旧条目
+        self._auto_update_fields()       # 目录：打开文档即自动重排（不必手动 F9）
+        self._bullet_numid_value = None  # 项目符号的 numId 缓存（见 _bullet_numid）
+
+    # ---------- 基础 ----------
+    def _scrub_template(self):
+        """**清掉模板里的厂商痕迹**（模板是从别处拿来的，不能把别家的 logo/名字带出去）。
+
+        ① 封面第一段的旧 logo（inline drawing / VML）—— 不删的话每份文档都顶着别家 logo；
+        ② 页眉里的 `INCLUDEPICTURE` 外链图片域 —— 指向某人本机的路径，显示不出来还占位；
+        ③ 文档属性的作者 / 最后修改人；
+        ④ 页眉文字：`company.json` 里配了「页眉文字」就替换，否则沿用模板文字（一般是「业务需求说明书」）。
+        """
+        body = self.doc.element.body
+        paras = [el for el in body if el.tag == W]
+        if paras:                                  # ① 封面旧 logo
+            for r in list(paras[0].findall(qn('w:r'))):
+                if r.find(qn('w:drawing')) is not None or r.find(qn('w:pict')) is not None:
+                    paras[0].remove(r)
+        for sec in self.doc.sections:              # ② 页眉页脚的外链图片域
+            for hf in (sec.header, sec.first_page_header, sec.even_page_header,
+                       sec.footer, sec.first_page_footer, sec.even_page_footer):
+                for p in hf.paragraphs:
+                    self._drop_picture_fields(p)
+        cp = self.doc.core_properties           # ③ 文档属性署名
+        for attr in ('author', 'last_modified_by'):
+            try:
+                if getattr(cp, attr, ''):
+                    setattr(cp, attr, '')
+            except Exception:
+                pass
+        txt = str(self.company.get('页眉文字') or '').strip()   # ④ 页眉文字
+        if txt:
+            for sec in self.doc.sections:
+                for p in sec.header.paragraphs:
+                    ts = list(p._p.iter(qn('w:t')))
+                    if ts:
+                        ts[0].text = txt
+                        for t in ts[1:]:
+                            t.text = ''
+
+    @staticmethod
+    def _drop_picture_fields(p):
+        """删掉段落里包含 INCLUDEPICTURE 的整个域（begin → end 之间的 run）。"""
+        runs = list(p.runs)
+        if not any('INCLUDEPICTURE' in (r._r.find(qn('w:instrText')).text or '')
+                   for r in runs if r._r.find(qn('w:instrText')) is not None):
+            return
+        depth, killing = 0, False
+        for r in runs:
+            fc = r._r.find(qn('w:fldChar'))
+            kind = fc.get(qn('w:fldCharType')) if fc is not None else None
+            if kind == 'begin':
+                depth += 1
+                killing = True
+            if killing:
+                r._r.getparent().remove(r._r)
+            if kind == 'end' and killing:
+                depth -= 1
+                if depth <= 0:
+                    killing = False
+
+    def _clear_skeleton(self):
+        """删除模板中「菜单目录」表之后的所有骨架内容（保留封面/修改历史/编写说明/目录域/菜单目录）。"""
+        body = self.doc.element.body
+        children = list(body)
+        menu_idx = None
+        for i, el in enumerate(children):
+            if el.tag != T:
+                continue
+            head = ''.join(t.text or '' for t in el.iter(qn('w:t')))[:12]
+            if head.startswith('一级菜单'):
+                menu_idx = i
+        if menu_idx is None:
+            return
+        for i, el in enumerate(children):
+            if i > menu_idx and el.tag in (W, T):
+                body.remove(el)
+        # 空白标题段会占掉一个自动编号（如出现孤立的"2."）。
+        # 注意：模板尾部这类段落常同时承载分节符（pPr/sectPr），直接删除会破坏页面设置，
+        # 因此只摘掉它的标题样式与编号，保留段落本身。
+        for p in body.findall(W):
+            ppr = p.find(qn('w:pPr'))
+            if ppr is None:
+                continue
+            st = ppr.find(qn('w:pStyle'))
+            sid = st.get(qn('w:val')) if st is not None else None
+            if sid not in SID.values():
+                continue
+            if ''.join(t.text or '' for t in p.iter(qn('w:t'))).strip():
+                continue
+            ppr.remove(st)
+            for np in ppr.findall(qn('w:numPr')):
+                ppr.remove(np)
+
+    # ---------- 目录（TOC 域） ----------
+    def _clear_toc_cache(self, levels=None):
+        """**目录：清掉模板带过来的旧缓存结果，并把域标成"待更新"。**
+
+        模板 `assets/需求规格说明书_模板.docx` 的目录域里存着**另一份文档的条目**
+        （"1. 引言 / 1.1 编写目的 …"）。不清掉的话，凡是不自动更新域的阅读器（在线预览、
+        部分 WPS）打开就会显示这些**与本文档毫不相干**的条目 —— 比"空目录"更容易让人
+        以为文档写错了。清空后只剩「域起止 + `TOC \\o "1-3" \\h \\u` 指令」，
+        由 `_auto_update_fields()` 让 Word/WPS 打开时按当前正文重排。
+
+        实现要点（直接改 XML 的坑）：
+        · 目录缓存**跨多个段落**，每条一目；且**首条与域起点同段、末段与域终点同段** ——
+          所以要分三处清：独占的整段删掉、起点段删 `separate` 之后的、终点段删 `end` 之前的；
+        · 域的配平用**深度计数**（`begin` +1 / `end` -1 回到 0 即本域），别用"往后找第一个 end"，
+          因为域里嵌着 HYPERLINK / PAGEREF 这些子域，第一个 end 是子域的。
+        """
+        seq = _field_runs(self.doc.element.body)
+        begin = sep = None
+        for i, (r, kind, val) in enumerate(seq):
+            if kind == 'instr' and val.upper().startswith('TOC'):
+                if levels:
+                    self._set_toc_switch(r, levels)
+                for j in range(i - 1, -1, -1):
+                    if seq[j][1] == 'begin':
+                        begin = j
+                        break
+                for j in range(i + 1, len(seq)):
+                    if seq[j][1] == 'separate':
+                        sep = j
+                        break
+                break
+        if begin is None or sep is None:
+            return
+        depth, end = 0, None
+        for j in range(begin, len(seq)):
+            if seq[j][1] == 'begin':
+                depth += 1
+            elif seq[j][1] == 'end':
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+        if end is None or end <= sep:
+            return
+        sep_run, end_run = seq[sep][0], seq[end][0]
+        p_sep, p_end = _para_of(sep_run), _para_of(end_run)
+        # ① 域内独占的整段（一条目一段）整段删掉
+        node = p_sep.getnext()
+        while node is not None and node is not p_end:
+            nxt = node.getnext()
+            if node.tag in (W, T):
+                node.getparent().remove(node)
+            node = nxt
+        # ② 起点段：separate 之后的（首条缓存）删掉
+        node = sep_run.getnext()
+        while node is not None:
+            nxt = node.getnext()
+            p_sep.remove(node)
+            node = nxt
+        # ③ 终点段：end 之前的（末条缓存）删掉，**保留 end 与段落样式**
+        if p_end is not p_sep:
+            for node in list(p_end):
+                if node is end_run:
+                    break
+                if node.tag == qn('w:pPr'):
+                    continue
+                p_end.remove(node)
+        seq[begin][0].find(qn('w:fldChar')).set(qn('w:dirty'), 'true')
+
+    def _set_toc_switch(self, instr_run, levels):
+        """改目录的收录层级：`\\o "1-3"` → `\\o "1-4"` 等（默认沿用主文档的 1-3）。"""
+        it = instr_run.find(qn('w:instrText'))
+        it.text = re.sub(r'\\o\s+"[^"]*"', '\\o "%s"' % levels, it.text)
+        return it.text
+
+    def toc_levels(self, levels):
+        """对外：指定目录收录到几级标题（如 `'1-4'` 让 H4 功能点也进目录）。"""
+        for r, kind, val in _field_runs(self.doc.element.body):
+            if kind == 'instr' and val.upper().startswith('TOC'):
+                self._set_toc_switch(r, levels)
+                return True
+        return False
+
+    def _auto_update_fields(self):
+        """settings.xml 里置 `w:updateFields=true` —— 打开文档时自动更新域（含目录）。
+
+        **位置坑**：`w:updateFields` 在 CT_Settings 的元素顺序里夹在
+        `w:savePreviewPicture … alwaysMergeEmptyNamespace` 与
+        `w:hdrShapeDefaults / w:footnotePr / w:endnotePr / w:compat` 之间，
+        **不能随手 append 到 settings 末尾** —— 顺序错 Word 会报"文档已损坏"。
+        这里拿顺序上紧跟其后、且必然存在的 `w:compat` 当锚点，插到它前面。
+        """
+        settings = self.doc.settings.element
+        for el in settings.findall(qn('w:updateFields')):
+            el.set(qn('w:val'), 'true')
+            return
+        e = OxmlElement('w:updateFields')
+        e.set(qn('w:val'), 'true')
+        anchor = None
+        for tag in ('w:compat', 'w:docVars', 'w:rsids', 'w:mathPr', 'w:themeFontLang',
+                    'w:clrSchemeMapping', 'w:shapeDefaults', 'w:decimalSymbol', 'w:listSeparator'):
+            anchor = settings.find(qn(tag))
+            if anchor is not None:
+                break
+        if anchor is not None:
+            anchor.addprevious(e)
+        else:
+            settings.append(e)
+
+    # ---------- 项目符号 ----------
+    def _bullet_numid(self):
+        """取项目符号用的 `numId`（缓存一次）。见 `_find_or_make_bullet`。"""
+        if self._bullet_numid_value is None:
+            self._bullet_numid_value = self._find_or_make_bullet() or ''
+        return self._bullet_numid_value or None
+
+    def _find_or_make_bullet(self):
+        """**优先复用模板里现成的 bullet 定义** —— 缩进（`left=420 hanging=420`）与圆点样式
+        跟主文档完全一致，不用自己造。
+
+        模板里有好几种项目符号（`\\uf06c` 实心圆 / `\\uf0d8` 方块 / `\\uf0b2` 方点），
+        **优先挑实心圆** —— 中文商务文档的项目符号惯例就是实心圆，方块更像"子级标记"。
+        模板里连 bullet 定义都没有时**克隆**一份（新的 abstractNumId / numId，不动原有定义）；
+        连可克隆的源都没有则返回 `None`（调用处退回普通段落）。
+        """
+        numbering = self.doc.part.numbering_part.element
+        circles, others, src, src_circle = set(), set(), None, None
+        for an in numbering.findall(qn('w:abstractNum')):
+            lvl0 = None
+            for lvl in an.findall(qn('w:lvl')):
+                if (lvl.get(qn('w:ilvl')) or '0') == '0':
+                    lvl0 = lvl
+            if lvl0 is None:
+                continue
+            fmt = lvl0.find(qn('w:numFmt'))
+            if fmt is None or fmt.get(qn('w:val')) != 'bullet':
+                continue
+            aid = an.get(qn('w:abstractNumId'))
+            lt = lvl0.find(qn('w:lvlText'))
+            is_circle = lt is not None and (lt.get(qn('w:val')) or '') == '\uf06c'
+            (circles if is_circle else others).add(aid)
+            if src is None:
+                src = an
+            if is_circle and src_circle is None:
+                src_circle = an
+        for want in (circles, others):
+            if not want:
+                continue
+            for num in numbering.findall(qn('w:num')):
+                ref = num.find(qn('w:abstractNumId'))
+                if ref is not None and ref.get(qn('w:val')) in want:
+                    return num.get(qn('w:numId'))
+        if src_circle is not None:
+            src = src_circle
+        if src is None:
+            return None
+        new_an = copy.deepcopy(src)
+        for tag in ('w:nsid', 'w:tmpl'):      # 文档级标识，跟着复制会撞车
+            for el in new_an.findall(qn(tag)):
+                new_an.remove(el)
+        aid = str(max(int(x.get(qn('w:abstractNumId'))) for x in numbering.findall(qn('w:abstractNum'))) + 1)
+        new_an.set(qn('w:abstractNumId'), aid)
+        first_num = numbering.find(qn('w:num'))
+        if first_num is not None:
+            first_num.addprevious(new_an)     # abstractNum 必须排在所有 w:num 之前
+        else:
+            numbering.append(new_an)
+        nid = str(max(int(x.get(qn('w:numId'))) for x in numbering.findall(qn('w:num'))) + 1)
+        new_num = OxmlElement('w:num')
+        new_num.set(qn('w:numId'), nid)
+        ref = OxmlElement('w:abstractNumId')
+        ref.set(qn('w:val'), aid)
+        new_num.append(ref)
+        numbering.append(new_num)
+        return nid
+
+    def bullet(self, text):
+        """一条**项目符号**（真实编号列表，不是手打的"●"）：圆点样式与缩进由模板的
+        bullet 定义提供（左 420 悬挂 420）。
+
+        用在**逐条并列**的内容上：业务规则 / 使用角色 / 权限说明 / 页面字段说明的条目。
+        **业务说明不加** —— 它是叙述性段落，加了圆点会读成清单，反而不像"说明"。
+
+        条目**开头的手写序号（`1、`）会被去掉** —— 不然会叠成"● 1、…"两层标记（见 `_strip_list_no`）。
+        """
+        p = self._add(_strip_list_no(text), 'Normal')
+        nid = self._bullet_numid()
+        if nid is None:
+            return p
+        ppr = p._p.get_or_add_pPr()
+        numpr = ppr.get_or_add_numPr()        # 按 schema 顺序插（必须在 w:spacing / w:ind 之前）
+        ilvl = OxmlElement('w:ilvl'); ilvl.set(qn('w:val'), '0')
+        numid = OxmlElement('w:numId'); numid.set(qn('w:val'), nid)
+        numpr.append(ilvl); numpr.append(numid)
+        return p
+
+    def _add(self, text, style_key, first_line=None, line=LINE):
+        p = self.doc.add_paragraph(text, style=_sty(self.doc, style_key))
+        fmt_para(p, line=line, first_line=first_line)
+        if style_key in ('Normal',):
+            for r in p.runs:
+                fmt_run(r)
+        else:                                  # heading：只加 hint=eastAsia
+            for r in p.runs:
+                fmt_run(r, size_half=None, latin=None, ea=None)
+        return p
+
+    # ---------- 块 ----------
+    def h(self, level, text):
+        return self._add(text, 'h%d' % level)
+
+    def p(self, text=''):
+        """普通段落（无缩进），与主文档正文一致：宋体 12pt + 1.5 倍行距。"""
+        return self._add(text, 'Normal')
+
+    def p_indent(self, text=''):
+        """首行缩进 2 字符的正文段落（主文档的叙述性正文即此格式，现由「业务说明」使用）。"""
+        return self._add(text, 'Normal', first_line=FIRST_LINE_TWIPS)
+
+    def cover(self, 系统名=None, 版本=None, 公司=None, 日期=None,
+              logo=None, logo对齐=None, logo最大宽度cm=None, logo最大高度cm=None):
+        """就地改写封面（系统名 / 版本 / **公司名** / 日期 / **logo**）。
+
+        公司名与 logo 的取值优先级：**本方法入参 > company.json > 占位值**。
+        **系统名 / 版本 / 公司 / 日期 四项都会被重写**（缺省写占位值）：不传也不能把模板里
+        原文档的系统名、版本号、厂商名留在封面上。
+        logo 默认落在封面左上角（模板第一段），传 `logo对齐='center'` 可居中。
+        """
+        body = self.doc.element.body
+        paras = [el for el in body if el.tag == W]
+        def set_at(idx, val):
+            if val is None or idx >= len(paras):
+                return
+            el = paras[idx]
+            for t in el.iter(qn('w:t')):
+                t.text = ''
+            ts = list(el.iter(qn('w:t')))
+            if ts:
+                ts[0].text = val
+        cov = self.company or COMPANY_DEFAULTS
+        today = datetime.date.today()
+        系统名 = 系统名 or '×××管理系统'
+        版本 = 版本 or '需求说明书vX.Y.Z'
+        日期 = 日期 or '%d年%d月' % (today.year, today.month)
+        公司 = 公司 or cov.get('公司全称') or COMPANY_PLACEHOLDER
+        # 模板封面：7=系统名 8=版本 17=公司 18=日期（下标基于模板固定版式）
+        set_at(7, 系统名); set_at(8, 版本); set_at(17, 公司); set_at(18, 日期)
+        # logo 放在最后插：插入图片不会新增段落，但保持"先写文字后放图"的顺序更好排查
+        self.cover_logo(logo if logo is not None else cov.get('logo'),
+                        对齐=logo对齐 or cov.get('logo对齐') or 'left',
+                        最大宽度cm=logo最大宽度cm or cov.get('logo最大宽度cm'),
+                        最大高度cm=logo最大高度cm or cov.get('logo最大高度cm'),
+                        paras=paras)
+
+    def cover_logo(self, 图片, 对齐='left', 最大宽度cm=None, 最大高度cm=None, paras=None):
+        """封面第一段插入公司 logo（**模板的 logo 槽位**）；没给图就保持空白。
+
+        尺寸：宽 ≤ 8.5cm、高 ≤ 2.5cm 双向封顶等比缩放 —— 横幅 logo 按宽度封顶，
+        方形 logo 按高度封顶，避免把标题挤到第二页。图片不存在时只警告、不中断。
+        """
+        if not 图片:
+            return None
+        if not os.path.isfile(str(图片)):
+            print('⚠ logo 文件不存在，封面不插 logo：', 图片)
+            return None
+        body = self.doc.element.body
+        paras = paras if paras is not None else [el for el in body if el.tag == W]
+        if not paras:
+            return None
+        p_el = paras[0]
+        for r in list(p_el.findall(qn('w:r'))):        # 双保险：清掉残留旧 logo
+            if r.find(qn('w:drawing')) is not None or r.find(qn('w:pict')) is not None:
+                p_el.remove(r)
+        p = Paragraph(p_el, self.doc)
+        p.alignment = (WD_ALIGN_PARAGRAPH.CENTER if str(对齐).lower() == 'center'
+                       else WD_ALIGN_PARAGRAPH.LEFT)
+        w_cm, h_cm = _fit_logo_cm(图片,
+                                  float(最大宽度cm or LOGO_MAX_W_CM),
+                                  float(最大高度cm or LOGO_MAX_H_CM))
+        run = p.add_run()
+        run.add_picture(str(图片), width=Cm(w_cm), height=(Cm(h_cm) if h_cm else None))
+        return p
+
+    def history(self, rows):
+        """文档修改历史表：[[版本号,修改日期,编写人,评审人,批准人,修改内容], ...]
+
+        与 `menu_table` 同理：**保留表头行、清掉其余行再追加**（模板表里带着上一版的记录，
+        直接追加会变成"旧记录 + 新记录"）。
+        """
+        t = self.doc.tables[0]
+        for tr in t._tbl.findall(qn('w:tr'))[1:]:
+            t._tbl.remove(tr)
+        for r in rows:
+            cells = t.add_row().cells
+            for i, v in enumerate(r[:len(cells)]):
+                _set_cell(cells[i], v)
+        _fix_table(t, [1.8, 2.4, 1.8, 1.8, 1.8, 5.4])
+
+    def menu_table(self, rows):
+        """菜单目录表：[[一级菜单,二级菜单,三级菜单], ...]（可含表头行）
+
+        **模板里那张表带着上一份文档的整套菜单（52 行）**，而这里是"追加"语义 ——
+        不先清掉就会得到「上一份文档的菜单 + 本系统菜单」两份。所以：**保留表头行、清掉其余行，再追加**
+        （传进来的表头行与模板表头重复，跳过）。
+
+        注意在 **XML 层**删行（`w:tr`）：python-docx 的 `table.rows` 视图与 XML 不完全同步，
+        有合并单元格时容易看漏。
+        """
+        t = self.doc.tables[1]
+        for tr in t._tbl.findall(qn('w:tr'))[1:]:
+            t._tbl.remove(tr)
+        for r in rows:
+            if list(r)[:3] == MENU_HEADER:
+                continue
+            cells = t.add_row().cells
+            for i, v in enumerate(r[:len(cells)]):
+                _set_cell(cells[i], v)
+        _fix_table(t, [3.0, 5.0, 7.0])
+
+    def table(self, rows, widths=None):
+        rows = list(rows)
+        ncol = len(rows[0])
+        t = self.doc.add_table(rows=0, cols=ncol)
+        t.style = 'Table Grid'
+        for r in rows:
+            cells = t.add_row().cells
+            for i, v in enumerate(r[:ncol]):
+                _set_cell(cells[i], v)
+        _fix_table(t, widths or ([15.0 / ncol] * ncol))
+        return t
+
+    def kv(self, label, value):
+        """「标签：内容」单行 —— 节内子要素（二级页面 / 操作说明）与分段（输入 / 输出）的标准句式。
+
+        注意：`业务规则` / `使用角色` / `页面字段说明` 是 **H5 标题本身**，正文不要再写一遍标签，
+        三个节走 `_labelled(..., prefix=False)`。
+        """
+        return self.p('%s：%s' % (label, value) if value else '%s：' % label)
+
+    def bullets(self, items, indent=False, bullet=True):
+        """逐条列。
+
+        `bullet=True`（默认）→ **真实项目符号**（用 numbering 定义，圆点与悬挂缩进交给 Word 排）；
+        `bullet=False` → 普通段落（`indent=True` 时首行缩进 2 字符）。
+        **业务说明用 `bullet=False, indent=True`**：它是叙述性段落，加圆点会被读成清单。
+
+        **只有一条时不加圆点**（`len(items) == 1` → 普通段落）：单条内容写成一句话更自然，
+        「● 无」「● 不涉及」这类只有一个圆点跟着两个字的排版也会显得怪。
+        """
+        items = list(items)
+        use_bullet = bullet and len(items) > 1
+        for it in items:
+            if use_bullet:
+                self.bullet(it)
+            else:
+                (self.p_indent if indent else self.p)(it)
+
+    def figure(self, 图片, 图注=None, 宽度=None, 说明=None):
+        """**插一张图**（v1.2）：**图注在图片上方**（「列出段落1」样式、冒号结尾）+ 图片居中。
+
+        参数与 `req()` 一样用中文键：`('fig', dict(图注='…', 图片=r'…'))`。
+
+        规范见 `references/03-样式与编号规范.md` 第六节。三条尺寸约定：
+        · 宽上限 **15cm**（A4 纵向正文区）；
+        · 高上限 **20.5cm** —— 纵向流程图超过就**改按高度反算宽度**（否则一张图跨两三页）；
+        · 图注里**不写"图 4.5-1"这类编号**：标题编号是样式自动生成的，手写图号一旦插删章节就对不上。
+          用「回函管理业务数据分工：」这种**描述性图注**（主文档即如此）。
+
+        `图片` 不存在时插入灰色占位文字并打印警告，**不让整篇文档生成失败**。
+        """
+        if 图注:
+            cap = str(图注).strip()
+            if not cap.endswith(('：', ':')):
+                cap += '：'
+            p = self.doc.add_paragraph(cap, style=_sty(self.doc, IMG_CAPTION_SID))
+            fmt_para(p, line=LINE)
+            for r in p.runs:
+                fmt_run(r)
+        p = self.doc.add_paragraph()
+        fmt_para(p, line=LINE)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if not 图片 or not os.path.isfile(str(图片)):
+            r = p.add_run('[图表未找到：%s]' % (图片,))
+            fmt_run(r, color=RGBColor(0x99, 0x99, 0x99))
+            print('⚠ 图片不存在，已插入占位：', 图片)
+            return p
+        w_cm, h_cm = _fit_cm(图片) if 宽度 is None else (float(宽度), None)
+        run = p.add_run()
+        run.add_picture(str(图片), width=Cm(w_cm), height=(Cm(h_cm) if h_cm else None))
+        if 说明:
+            np_ = self.doc.add_paragraph(str(说明), style=_sty(self.doc, 'Normal'))
+            fmt_para(np_, line=LINE)
+            for r in np_.runs:
+                fmt_run(r)
+        return p
+
+    # ---------- 需求点（七节式，v1.3） ----------
+    @staticmethod
+    def _ensure_header(rows, header):
+        """二维表：首行已是标准表头就沿用，否则**自动补一行** —— 调用方只写数据行即可。"""
+        rows = [list(r) for r in rows]
+        head = [str(x) for x in header]
+        if not rows or [str(x) for x in rows[0]][:len(head)] != head:
+            rows = [head] + rows
+        return rows
+
+    def _labelled(self, label, val, widths=None, header=None, prefix=True):
+        """「标签：内容」的三种形态（七节式里多个节共用）：
+
+        · 单条（str / 长度 1 的列表）→ 标签与内容**同行**：`输入：…`；
+        · 多条（1 维列表）→ `标签：` 独占一行 + **项目符号**逐条列；
+        · 二维列表（行是列表）→ **表格**（传 header 则自动补标准表头，标签行可省）。
+
+        `prefix=False` —— **当这节本身就是 H5 标题时用**（业务规则 / 使用角色 / 页面字段说明）：
+        标题已经写了节名，正文再来一行"业务规则："纯属重复。只有**节内子要素**
+        （功能说明里的 二级页面 / 操作说明）和**一节含多段**（输入、输出）才需要标签。
+        """
+        if val is None:
+            return
+        if isinstance(val, (list, tuple)) and val and isinstance(val[0], (list, tuple)):
+            rows = self._ensure_header(val, header) if header else [list(r) for r in val]
+            ncol = len(rows[0])
+            w = list(widths) if widths and len(widths) == ncol else [15.0 / ncol] * ncol
+            if prefix:
+                self.p('%s：' % label)
+            self.table(rows, w)
+            return
+        items = list(val) if isinstance(val, (list, tuple)) else [val]
+        if prefix and len(items) == 1:
+            self.p('%s：%s' % (label, items[0]))
+        elif prefix:
+            self.p('%s：' % label)
+            self.bullets(items)
+        else:
+            # 无标签：单条写一行、多条加项目符号（`bullets()` 已内置"单条不加圆点"）
+            self.bullets(items)
+
+    def _op_table(self, rows):
+        """操作说明表：`名称 | 类型 | 规则/说明`（★ 最核心，所有可点击元素都要进表）。"""
+        self.table(self._ensure_header(rows, DETAIL_HEADER), [3.5, 2.5, 9.0])
+
+    def _proto(self, val):
+        """界面原型图：文字 / 图片路径 / `{'图片':…, '图注':…}` / **上面几种组成的列表** ——
+        一个功能点常有多个入口、多个状态（原始文件 / AI 批注、首次确认 / 修改态…），逐张插。"""
+        items = list(val) if isinstance(val, (list, tuple)) else [val]
+        if any(isinstance(x, dict) or (x and os.path.isfile(str(x))) for x in items):
+            for x in items:
+                if isinstance(x, dict):
+                    fig = dict(x)
+                    self.figure(fig.pop('图片', None), 图注=fig.pop('图注', None) or '界面原型图', **fig)
+                elif x and os.path.isfile(str(x)):
+                    self.figure(x, 图注='界面原型图')
+        else:
+            self.p('界面原型图：' + (val or '（此处插入页面截图）'))
+
+    def _func_section(self, spec):
+        """「功能说明」节：4 个固定子要素，顺序固定，缺则跳过。
+
+        · 功能概述   → **叙述段落**（首行缩进 2 字符，不加圆点）：这个页面是干什么用的
+        · 二级页面   → `二级页面 | 规则/说明` 表（一个菜单下挂多个并列页面时才用）
+        · 操作说明   → `名称 | 类型 | 规则/说明` 三列表（★ 核心）
+        · 界面原型图 → 截图（可传列表逐张插）或文字（`无`）
+
+        也接受**简写**：直接给一个字符串/一维列表 → 当作「功能概述」；
+        直接给二维列表 → 当作只有「操作说明」表。
+        """
+        if isinstance(spec, str):
+            self.p_indent(spec)
+            return
+        if isinstance(spec, (list, tuple)) and spec and not isinstance(spec[0], (list, tuple)):
+            self.bullets(spec, indent=True, bullet=False)
+            return
+        if isinstance(spec, (list, tuple)):
+            self.p('操作说明：')
+            if spec:
+                self._op_table(spec)
+            return
+        for key in FUNC_KEYS:
+            if key not in spec:
+                continue
+            val = spec[key]
+            if key == '功能概述':
+                self.bullets(val if isinstance(val, (list, tuple)) else [val],
+                             indent=True, bullet=False)
+            elif key == '二级页面':
+                self._labelled(key, val, widths=(5.0, 10.0), header=['二级页面', '规则/说明'])
+            elif key == '操作说明':
+                self.p('操作说明：')
+                if val:
+                    self._op_table(val)
+            elif key == '界面原型图':
+                self._proto(val)
+
+    def _io_section(self, spec):
+        """「输入、输出」节（v1.3 新增）：**两段 + 两张三列表**。
+
+        `spec` 形如：
+
+            {'输入': [[数据项, 来源, 说明], …],      # 表头 数据项 | 来源 | 说明
+             '输出': [[数据项, 去向, 说明], …]}      # 表头 数据项 | 去向 | 说明
+
+        表头不用自己写，脚本按标准表头自动补；**来源 / 去向**要写清是
+        `人工录入`、`<哪个系统>对接` 还是 `系统推导` —— 这一节的价值全在这两列。
+        """
+        if not isinstance(spec, dict):
+            raise TypeError('输入输出 需要 dict，形如 {"输入": [[…]], "输出": [[…]]}')
+        if spec.get('输入') is not None:
+            self._labelled('输入', spec['输入'], widths=(4.0, 4.5, 6.5), header=IO_IN_HEADER)
+        if spec.get('输出') is not None:
+            self._labelled('输出', spec['输出'], widths=(4.0, 4.5, 6.5), header=IO_OUT_HEADER)
+
+    def req(self, title, 业务说明=None, 业务规则=None, 使用角色=None, 权限说明=None,
+            功能说明=None, 页面字段说明=None, 输入输出=None, level=4, **legacy):
+        """
+        生成一个完整需求点（**七节式**，v1.3 起替代原「四段式」）：
+
+            h{level}   功能点名称（**层级按目录形态定**：单端不设端别层 → 功能点在 H3、传 level=3；
+                       多端有端别层 → 功能点在 H4、传 level=4（默认）；多页模块再 +1，传 level=5；
+                       定制化需求章里一级菜单即功能点 → 传 level=3）
+              h{level+1} 业务说明     → **叙述段落**（首行缩进 2 字符，不加项目符号）
+              h{level+1} 业务规则     → 逐条列（项目符号）/ 二维 → 表格 / 单条一行；无则写「无」
+              h{level+1} 使用角色     → 逐条列（项目符号）
+              h{level+1} 权限说明     → **三要素**：菜单权限 / 功能权限 / 列表数据权限
+              h{level+1} 功能说明     → {'功能概述':…, '二级页面':表, '操作说明':表, '界面原型图':…}
+              h{level+1} 页面字段说明 → 表（字段名称|规则/说明）/ 逐条 / 单条
+              h{level+1} 输入、输出   → {'输入': 二维表, '输出': 二维表}（表头自动补）
+
+        `使用角色` 独立成节后，原「权限说明」的 `使用人员` 不再重复写（见 references/02）。
+        旧四段式的键名（用户场景 / 功能描述 / 补充说明 …）**会直接报错**并给出迁移指引 ——
+        见 `_LEGACY_KEYS`：四段式的「补充说明」在新结构里没有一一对应项，静默映射会写错文档。
+        """
+        for k in legacy:
+            if k in _LEGACY_KEYS:
+                new, why = _LEGACY_KEYS[k]
+                raise ValueError('v1.3 起需求点改用七节式：`%s` 已取消，请改用 `%s`。%s' % (k, new, why))
+            raise TypeError('req() 收到未知参数：%r（七节式为 %s）' % (k, ' / '.join(SECTIONS)))
+        sec = level + 1
+        self.h(level, title)
+        if 业务说明 is not None:
+            self.h(sec, SEC_BIZ_DESC)
+            # 叙述段落 + 首行缩进 2 字符 + **不加项目符号**（加了就变成清单）。
+            self.bullets(业务说明 if isinstance(业务说明, (list, tuple)) else [业务说明],
+                         indent=True, bullet=False)
+        if 业务规则 is not None:
+            self.h(sec, SEC_BIZ_RULE)
+            self._labelled(SEC_BIZ_RULE, 业务规则, prefix=False)
+        if 使用角色 is not None:
+            self.h(sec, SEC_ROLE)
+            self._labelled(SEC_ROLE, 使用角色, prefix=False)
+        if 权限说明 is not None:
+            self.h(sec, SEC_PERM)
+            self.bullets(权限说明 if isinstance(权限说明, (list, tuple)) else [权限说明])
+        if 功能说明 is not None:
+            self.h(sec, SEC_FUNC)
+            self._func_section(功能说明)
+        if 页面字段说明 is not None:
+            self.h(sec, SEC_FIELD)
+            self._labelled(SEC_FIELD, 页面字段说明, widths=(5.0, 10.0),
+                           header=FIELD_HEADER, prefix=False)
+        if 输入输出 is not None:
+            self.h(sec, SEC_IO)
+            self._io_section(输入输出)
+
+    # ---------- 输出 ----------
+    def save(self, path):
+        os.makedirs(os.path.dirname(os.path.abspath(path)) or '.', exist_ok=True)
+        self.doc.save(path)
+        try:
+            os.remove(self._tmp)
+        except OSError:
+            pass
+        return path
+
+
+def build(spec, path, company=None):
+    """按 SPEC 生成 docx。
+
+    `company` 可传 dict 覆盖公司配置（一般不用传 —— 走 `company.json` 或环境变量即可）。
+    **封面一定要跑**：不写 `封面` 也要把占位公司名写上去，否则模板里的原厂商名会留在封面上。
+    """
+    cov_company = load_company(spec.get('公司配置'))
+    if company:
+        cov_company.update({k: v for k, v in company.items() if v not in (None, '')})
+
+    # 模板与输出目录先自检：缺模板给路径提示，目录不存在就建，避免 FileNotFoundError 堆栈
+    template = spec.get('模板') or _check_template()
+    if not os.path.isfile(template):
+        _fail(
+            '找不到模板文件：%s' % os.path.normpath(template),
+            '请确认 assets/需求规格说明书_模板.docx 存在，或在 SPEC 的「模板」里传可用路径。',
+        )
+    out_dir = os.path.dirname(os.path.abspath(path))
+    if out_dir and not os.path.isdir(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
+    b = Builder(template, company=cov_company)
+    cov = dict(spec.get('封面') or {})
+    b.cover(**cov)
+    if spec.get('文档修改历史'):
+        b.history(spec['文档修改历史'])
+    if spec.get('菜单目录'):
+        b.menu_table(spec['菜单目录'])
+    if spec.get('目录层级'):            # 可选：'1-4' 让 H4 功能点也进目录（默认沿用主文档的 1-3）
+        b.toc_levels(spec['目录层级'])
+    for blk in spec.get('body', []):
+        kind = blk[0]
+        if kind in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            b.h(int(kind[1]), blk[1])
+        elif kind == 'p':
+            b.p(blk[1])
+        elif kind == 'bullets':         # 段落级逐条列（真实项目符号）
+            b.bullets(blk[1])
+        elif kind == 'fig':             # 插图：('fig', dict(图注=…, 图片=…, 宽度=…))
+            b.figure(**blk[1])
+        elif kind == 'table':
+            b.table(blk[1], blk[2] if len(blk) > 2 else None)
+        elif kind == 'req':
+            b.req(**blk[1])
+        else:
+            raise ValueError('unknown block: %r' % (kind,))
+    return b.save(path)
+
+
+DETAIL = lambda rows: [DETAIL_HEADER] + rows
+
+EXAMPLE = dict(
+    # 封面系统名**按本次开发的功能定** —— 不要照抄别的文档的系统名
+    # 公司名 / logo 不写就取 company.json；写了则以这里为准（logo 传图片路径即可）
+    封面=dict(系统名='×××管理系统', 版本='需求说明书v1.0',
+              公司='×××有限公司', 日期='2026年11月',
+              # logo=r'D:/brand/logo.png', logo对齐='left',
+              ),
+    文档修改历史=[['V1.0', '2026-10-08', '×××', '', '', '初稿']],
+    # 目录层级='1-4',   # 可选：让功能点也进目录（默认沿用主文档的 1-3）
+    菜单目录=[MENU_HEADER, ['首页', '', ''], ['×××管理', '×××列表', '']],
+    body=[
+        # ══ 目录结构：系统名按本次功能定；**端别层按需** ══
+        # 默认形态（功能只落一个端）→ **不设端别层**：一级功能模块直接挂 H1，功能点在 H3、七节在 H4
+        ('h1', '×××管理系统标准产品需求'),
+        ('h2', '首页'),
+        # ── 需求点：七节式（业务说明 / 业务规则 / 使用角色 / 权限说明 / 功能说明 / 页面字段说明 / 输入、输出）──
+        ('req', dict(
+            title='首页－待办处理',
+            level=3,      # 单端形态：功能点 H3 + 七节 H4；多端形态才用默认的 level=4
+            # ① 业务说明 = **叙述段落**（首行缩进 2 字符，不加项目符号）
+            业务说明=['为当前登录用户提供待办处理，并可通过待办详情查看并处理自己的任务待办。'],
+            # ② 业务规则 = 逐条列（自动加项目符号）/ 单条一行 / 二维 → 表格
+            业务规则=['待办仅展示当前登录用户有权处理的任务，无权限的不出现在列表中。',
+                      '待办状态与任务状态保持一致，任务提交后待办自动消失。'],
+            # ③ 使用角色 = 逐条列（原来挤在「权限说明/使用人员」里的角色名，现在独立成节）
+            使用角色=['项目业务人员', '项目负责人', '质控人员'],
+            # ④ 权限说明 = **三要素**（使用人员已由「使用角色」承担，不再重复）
+            权限说明=['菜单权限：登录用户均有首页权限', '功能权限：不涉及',
+                      '列表数据权限：所有需要当前登录用户处理的任务'],
+            # ⑤ 功能说明 = 功能概述 + 二级页面 + 操作说明 + 界面原型图（顺序固定，按需给）
+            功能说明={
+                '功能概述': '首页以待办卡片形式汇总当前用户的任务，点击可进入待办详情逐项处理。',
+                '操作说明': [   # 三列表，表头自动补；不写字面表头也行
+                    ['提交', '按钮', '勾选需要提交的任务，点击提交按钮可进行提交操作'],
+                    ['更多操作', '下拉选择', '可进行任务索引、附件引用等操作'],
+                ],
+                # 也可传图片路径（或 dict / 列表，多入口多状态各一张）：'界面原型图': r'…/ui_home_todo.png'
+                '界面原型图': '（此处插入页面截图）',
+            },
+            # ⑥ 页面字段说明 = 表（字段名称 | 规则/说明），表头自动补；简写可给 '不涉及'
+            页面字段说明=[['待办数量', '统计当前用户待处理任务数，"0" 时置灰并显示"暂无待办"'],
+                          ['截止时间', '取任务的计划完成时间，超过当天 24:00 显示为红色']],
+            # ⑦ 输入、输出 = 两段 + 两张三列表；表头自动补，来源/去向必须写清
+            输入输出={
+                '输入': [['待处理任务', '本系统推导', '按当前登录用户的可见范围过滤'],
+                         ['任务计划完成时间', '待办详情页人工录入', '用于待办排序与超期标红']],
+                '输出': [['已提交任务', '去向：任务详情页', '提交后写入任务记录，状态改为"已提交"'],
+                         ['待办处理留痕', '去向：系统日志', '记录处理人、处理时间与动作']],
+            },
+        )),
+        # ── 多端形态：仅当同一系统跨多个端、且各端需求不同时才加端别层 ──
+        # 加了端别层后，功能点从 H3 下沉到 H4，req 传 level=4：
+        #
+        # ('h1', '×××管理系统标准产品需求'),
+        # ('h2', 'WEB端需求'),                       ← 端别层
+        #     ('h3', '首页'),
+        #         ('req', dict(title='首页－待办处理', level=4, ...)),
+        # ('h2', '移动端需求'),                      ← 只写本期有需求的端；没有需求的端不写
+        #     ('h3', '首页'),
+        #         ('req', dict(title='首页－待办处理', level=4, ...)),
+
+        # —— 「本章节暂未收录的需求」这类段落级清单，用 bullets 块（真实项目符号）——
+        ('h3', '本章节暂未收录的需求'),
+        ('p', '以下内容本次未收录，后续版本补充：'),
+        ('bullets', ['×××功能（本期未涉及）', '各功能点的界面原型图（原型见原型工程）']),
+        # —— 插图：图片路径不存在时会插灰色占位并打警告，不会让整篇文档生成失败 ——
+        # ('h3', '业务流程'),
+        # ('p', '×××的业务链路：……。下面三张图分别是……。'),
+        # ('fig', dict(图注='×××业务数据分工（AI 读取 / 人工定性 / 系统推导）',
+        #              图片=r'D:/proj/docs/figures/mermaid_0.png')),
+        # 也可以只给宽度（此时不再按高度封顶，自己确认不会跨页）：('fig', dict(图片=…, 宽度=12))
+
+        # —— 定制化需求：**默认不写这一章**。只有该功能确有特殊定义、或明确属于定制功能时才追加；
+        #     没有就整章不写（含引言 / 需求总览 / 空标题）。确有定制内容时照下面写：
+        # ('h1', '定制化需求'),
+        # ('h2', '定制化需求引言'),
+        # ('h3', '编写目的'),
+        # ('p', '本章节描述……'),
+        # ('h3', '项目背景'),
+        # ('p', '……'),
+        # ('h2', '需求总览'),
+        # ('table', [['条目', '需求名称', '新系统主要落点'], ['1.0', '××对接增加字段', '系统对接说明']]),
+        # ('h2', '功能需求'),
+        # ('req', dict(title='××', 业务说明=[...], 业务规则=[...], 使用角色=[...], 权限说明=[...],
+        #              功能说明={...}, 页面字段说明=[...], 输入输出={'输入': [...], '输出': [...]},
+        #              level=3)),
+    ],
+)
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] in ('--company', '--show-company'):
+        # 先确认公司配置再生成：python build_req_spec.py --company
+        print(json.dumps(load_company(), ensure_ascii=False, indent=2))
+        print('\n配置文件：', COMPANY_FILE)
+        sys.exit(0)
+    # 不传路径时写到系统临时目录：跨平台、不污染技能目录，直接跑就能看到产物
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        tempfile.gettempdir(), '需求规格说明书V1.0.docx'
+    )
+    print('saved ->', build(EXAMPLE, out))

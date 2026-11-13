@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6111215b-3224-4035-814f-f751de3c2181",
+  "path": "prd-writer-2",
+  "path_key": "prd-writer-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
