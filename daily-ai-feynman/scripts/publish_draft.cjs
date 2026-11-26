@@ -60,6 +60,7 @@ function parseArgs(argv) {
     else if (argv[i] === '--confirmed') args.confirmed = true;
     else if (argv[i] === '--keep-bg') args.keepBg = true;       // 保留主题背景色（默认剥掉）
     else if (argv[i] === '--keep-h1') args.keepH1 = true;       // 保留正文顶部大标题（默认删掉）
+    else if (argv[i] === '--local') args.local = true;          // 本地排版，跳过远端渲染 API（不需要 THEME_ID）
   }
   return args;
 }
@@ -276,7 +277,7 @@ async function main() {
   const defaultAuthor = process.env.AUTHOR_NAME || '';
 
   const missingEnv = [
-    !account && 'ACCOUNT', !themeId && 'THEME_ID',
+    !account && 'ACCOUNT', (!args.local && !themeId) && 'THEME_ID',
     !appId && 'WECHAT_APP_ID', !appSecret && 'WECHAT_APP_SECRET',
   ].filter(Boolean);
   if (missingEnv.length) exitErr('missing_env', '缺少环境变量，请检查本 skill 目录的 .env：\n' + missingEnv.map(v => `  - ${v}`).join('\n'));
@@ -296,18 +297,28 @@ async function main() {
   const mdForRender = args.keepH1 ? mdContent : stripLeadingH1(mdContent);
   if (!args.keepH1 && mdForRender !== mdContent) console.error('[排版] 已移除正文顶部大标题');
 
-  console.error('[渲染] 调用渲染 API...');
-  const res = await fetch(`${apiBase}/api/skill`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Account': account, 'X-Theme-Id': themeId },
-    body: JSON.stringify({ action: 'render', markdown: mdForRender }),
-  });
-  if (!res.ok) exitErr('api_http_error', `渲染 API HTTP ${res.status}`);
-  const data = await res.json();
-  if (!data.success) exitErr('api_error', `渲染失败：${data.error || JSON.stringify(data)}`);
-  let html = data.html || '';
-  if (!html) exitErr('empty_html', '渲染返回空内容，检查 ACCOUNT / THEME_ID');
-  console.error('[渲染] ✅ 完成');
+  let html = '';
+  if (args.local) {
+    // 本地排版：不依赖远端渲染 API / 主题 ID
+    console.error('[渲染] 本地排版模式（跳过远端 API）');
+    const { renderMarkdown } = require('./render_local.cjs');
+    html = renderMarkdown(mdForRender);
+    if (!html) exitErr('empty_html', '本地渲染结果为空，检查 Markdown 内容');
+    console.error(`[渲染] ✅ 完成（${html.length} 字符）`);
+  } else {
+    console.error('[渲染] 调用渲染 API...');
+    const res = await fetch(`${apiBase}/api/skill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Account': account, 'X-Theme-Id': themeId },
+      body: JSON.stringify({ action: 'render', markdown: mdForRender }),
+    });
+    if (!res.ok) exitErr('api_http_error', `渲染 API HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.success) exitErr('api_error', `渲染失败：${data.error || JSON.stringify(data)}`);
+    html = data.html || '';
+    if (!html) exitErr('empty_html', '渲染返回空内容，检查 ACCOUNT / THEME_ID');
+    console.error('[渲染] ✅ 完成');
+  }
 
   // 剥掉主题带来的黄底/色块，纯白无背景
   if (!args.keepBg) html = stripBackgrounds(html);
